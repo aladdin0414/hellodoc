@@ -81,9 +81,33 @@ public class DatabaseInitializer {
             // 初始化管理员账户（使用 ADMIN_PASSWORD 环境变量的加密密码）
             createAdminUser();
 
+            // 初始化默认本地存储配置 (防止文件并发上传时缺少 id=1 引起外键约束错误)
+            checkAndCreateDefaultStorageConfig();
+
         } catch (Exception e) {
             logger.error("数据库初始化失败", e);
             throw new RuntimeException("数据库初始化失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 检查并补齐默认本地存储配置 (id=1)
+     */
+    private void checkAndCreateDefaultStorageConfig() {
+        String checkQuery = "SELECT COUNT(*) FROM kb_storage_config WHERE id = 1";
+        String insertQuery = "INSERT INTO kb_storage_config (id, name, provider, is_default, created_at, updated_at) " +
+                "VALUES (1, '默认本地存储', 'local', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+
+        try (Connection conn = DriverManager.getConnection(datasourceUrl, username, password);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(checkQuery)) {
+
+            if (rs.next() && rs.getLong(1) == 0) {
+                stmt.executeUpdate(insertQuery);
+                logger.info("已完成默认本地存储配置 (id=1) 自动检查与补齐");
+            }
+        } catch (Exception e) {
+            logger.error("检查/补齐默认存储配置失败", e);
         }
     }
 
