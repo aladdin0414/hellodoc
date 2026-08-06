@@ -181,15 +181,13 @@ public class DatabaseInitializer {
         }
 
         try {
-            if (!StringUtils.hasText(adminPassword)) {
-                throw new IllegalStateException("admin.password 未配置，请通过 ADMIN_PASSWORD 环境变量显式提供初始管理员密码");
+            if (userService.getUserByUsername("admin").isPresent()) {
+                logger.info("管理员账户 'admin' 已存在，跳过初始创建以保护用户自定义密码");
+                return;
             }
 
-            var existingAdmin = userService.getUserByUsername("admin");
-            if (existingAdmin.isPresent()) {
-                userService.resetPassword(existingAdmin.get().getId(), adminPassword);
-                logger.info("管理员账户 'admin' 密码已成功与 ADMIN_PASSWORD 环境变量同步更新");
-                return;
+            if (!StringUtils.hasText(adminPassword)) {
+                throw new IllegalStateException("admin.password 未配置，请通过 ADMIN_PASSWORD 环境变量显式提供初始管理员密码");
             }
 
             SysUser adminUser = new SysUser();
@@ -198,12 +196,13 @@ public class DatabaseInitializer {
             adminUser.setEmail("admin@hellodoc.local");
 
             userService.createUser(adminUser, "admin", adminPassword, "admin");
-            logger.info("管理员账户创建成功: username=admin");
+            logger.info("初始管理员账户创建成功: username=admin");
 
         } catch (Exception e) {
-            logger.error("创建/同步管理员账户失败", e);
-            throw new RuntimeException("创建/同步管理员账户失败: " + e.getMessage(), e);
+            logger.error("创建管理员账户失败", e);
+            throw new RuntimeException("创建管理员账户失败: " + e.getMessage(), e);
         }
     }
+
 
 }
