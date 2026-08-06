@@ -84,6 +84,35 @@ function getGitCommit() {
   }
 }
 
+// 获取最新版本的 Git Tag (例如 v2.0.6)
+function getLastGitTag() {
+  try {
+    const tags = execSync('git tag --sort=-v:refname', { cwd: ROOT_DIR }).toString().trim().split('\n');
+    return tags.find((t) => /^v?\d+\.\d+\.\d+/.test(t)) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+// 获取从上次 Tag 到 HEAD 的 Commit 历史记录
+function getGitCommitsSince(tag) {
+  try {
+    const range = tag ? `${tag}..HEAD` : 'HEAD~10..HEAD';
+    const logs = execSync(`git log ${range} --oneline --no-merges`, { cwd: ROOT_DIR }).toString().trim();
+    if (!logs) return [];
+    return logs
+      .split('\n')
+      .map((line) => {
+        const parts = line.split(' ');
+        parts.shift();
+        return parts.join(' ').trim();
+      })
+      .filter(Boolean);
+  } catch (e) {
+    return [];
+  }
+}
+
 // 检查 Git 是否有未提交改动
 function isGitClean() {
   try {
@@ -130,19 +159,48 @@ function updateRootPackageJson(newVersion) {
   console.log(colors.green(`  ✓ 更新 package.json (根目录) -> ${newVersion}`));
 }
 
+// 更新/追加 CHANGELOG.md
+const CHANGELOG_PATH = path.join(ROOT_DIR, 'CHANGELOG.md');
+
+function updateChangelog(version, releaseNotes) {
+  const dateStr = new Date().toISOString().split('T')[0];
+  const notesMarkdown = releaseNotes.map((item) => `- ${item}`).join('\n');
+  const newSection = `## [v${version}] - ${dateStr}\n\n${notesMarkdown}\n\n`;
+
+  let content = '';
+  if (fs.existsSync(CHANGELOG_PATH)) {
+    content = fs.readFileSync(CHANGELOG_PATH, 'utf-8');
+    if (content.startsWith('# Changelog\n\n')) {
+      content = '# Changelog\n\n' + newSection + content.slice('# Changelog\n\n'.length);
+    } else if (content.startsWith('# Changelog\n')) {
+      content = '# Changelog\n\n' + newSection + content.slice('# Changelog\n'.length);
+    } else {
+      content = `# Changelog\n\n${newSection}` + content;
+    }
+  } else {
+    content = `# Changelog\n\nAll notable changes to HelloDoc will be documented in this file.\n\n${newSection}`;
+  }
+
+  fs.writeFileSync(CHANGELOG_PATH, content, 'utf-8');
+  console.log(colors.green(`  ✓ 更新 CHANGELOG.md -> v${version}`));
+}
+
 // 生成前端版本元数据文件 hellodoc-client/src/version.ts
-function generateClientVersionTs(newVersion) {
+function generateClientVersionTs(newVersion, releaseNotes = []) {
   const commit = getGitCommit();
   const buildTime = new Date().toLocaleString('zh-CN', { hour12: false });
+  const notesJson = JSON.stringify(releaseNotes, null, 2);
   const content = `// 本文件由 scripts/release.js 自动生成，请勿手动修改
 export const APP_VERSION = '${newVersion}';
 export const BUILD_TIME = '${buildTime}';
 export const GIT_COMMIT = '${commit}';
+export const RELEASE_NOTES: string[] = ${notesJson};
 
 export default {
   version: APP_VERSION,
   buildTime: BUILD_TIME,
   gitCommit: GIT_COMMIT,
+  releaseNotes: RELEASE_NOTES,
 };
 `;
   fs.writeFileSync(CLIENT_VERSION_TS_PATH, content, 'utf-8');
@@ -169,7 +227,7 @@ async function main() {
   console.log(`  - hellodoc-server  : ${colors.yellow(serverVersion)}\n`);
 
   // 基准当前版本
-  const currentBaseVersion = clientVersion !== '0.0.0' ? clientVersion : (serverVersion || '2.0.0');
+  const currentBaseVersion = clientVersion !== '0.0.0' ? clientVersion : serverVersion || '2.0.0';
 
   // 命令行第一个参数（如 node scripts/release.js patch）
   const argType = process.argv[2];
@@ -221,19 +279,89 @@ async function main() {
     process.exit(0);
   }
 
-  console.log(colors.bold('\n[1/3] 正在更新各个组件的版本号及元数据...'));
+  // 收集更新说明 (Release Notes)
+  const lastTag = getLastGitTag();
+  const autoCommits = getGitCommitsSince(lastTag);
+
+  console.log(colors.bold(`\n📝 准备更新说明 (Release Notes)：`));
+  if (lastTag) {
+    console.log(`自上次版本 ${colors.yellow(lastTag)} 以来的提交记录：`);
+  } else {
+    console.log(`最近的提交记录：`);
+  }
+
+  if (autoCommits.length > 0) {
+    autoCommits.forEach((msg, idx) => {
+      console.log(`  ${colors.cyan(idx + 1 + '.')} ${msg}`);
+    });
+  } else {
+    console.log(colors.yellow(`  (未检测到新的提交记录)`));
+  }
+
+  console.log(`\n更新说明录入选项：`);
+  console.log(`  1) 直接使用上述 Git 提交记录作为更新说明 (默认)`);
+  console.log(`  2) 手动逐行输入自定义更新说明`);
+  console.log(`  3) 在 Git 提交记录基础上，追加补充内容`);
+
+  const notesChoice = await ask(colors.bold('\n请选择更新说明方式 (1-3, 默认 1): '));
+  let releaseNotes = [];
+
+  if (notesChoice === '2') {
+    console.log(colors.cyan('\n请输入更新说明（每行一条，空行按回车结束）：'));
+    let lineIdx = 1;
+    while (true) {
+      const line = await ask(`  ${lineIdx}. `);
+      if (!line) break;
+      releaseNotes.push(line);
+      lineIdx++;
+    }
+  } else if (notesChoice === '3') {
+    releaseNotes = [...autoCommits];
+    console.log(colors.cyan('\n请输入要追加的补充说明（每行一条，空行按回车结束）：'));
+    let lineIdx = releaseNotes.length + 1;
+    while (true) {
+      const line = await ask(`  ${lineIdx}. `);
+      if (!line) break;
+      releaseNotes.push(line);
+      lineIdx++;
+    }
+  } else {
+    releaseNotes = autoCommits.length > 0 ? autoCommits : [`v${targetVersion} 版本发布与日常维护`];
+  }
+
+  if (releaseNotes.length === 0) {
+    releaseNotes = [`v${targetVersion} 版本发布`];
+  }
+
+  console.log(colors.bold('\n[1/4] 正在更新各个组件的版本号及元数据...'));
   updateClientPackageJson(targetVersion);
   updateDesktopPackageJson(targetVersion);
   updateServerBuildGradle(targetVersion);
   updateRootPackageJson(targetVersion);
-  generateClientVersionTs(targetVersion);
+  generateClientVersionTs(targetVersion, releaseNotes);
 
-  console.log(colors.bold('\n[2/3] 正在提交 Git、创建版本 Tag 并推送到远程仓库...'));
+  console.log(colors.bold('\n[2/4] 正在生成/更新 CHANGELOG.md...'));
+  updateChangelog(targetVersion, releaseNotes);
+
+  console.log(colors.bold('\n[3/4] 正在提交 Git、创建版本 Tag 并推送到远程仓库...'));
   try {
-    // 遵照项目 Git 提交规范
+    const commitMsg = `chore: 发布版本 v${targetVersion}`;
+    const tagMsgHeader = `Release v${targetVersion}\n\n更新说明:\n`;
+    const tagMsgBody = releaseNotes.map((n) => `- ${n}`).join('\n');
+    const fullTagMsg = tagMsgHeader + tagMsgBody;
+
     execSync('git add .', { cwd: ROOT_DIR });
-    execSync(`git commit -m "chore: 发布版本 v${targetVersion}"`, { cwd: ROOT_DIR });
-    execSync(`git tag -a "v${targetVersion}" -m "Release v${targetVersion}"`, { cwd: ROOT_DIR });
+    execSync(`git commit -m "${commitMsg}"`, { cwd: ROOT_DIR });
+
+    // 使用临时文件处理多行 Git Tag 消息
+    const tempTagMsgPath = path.join(ROOT_DIR, '.git', 'RELEASE_TAG_MSG_TMP');
+    fs.writeFileSync(tempTagMsgPath, fullTagMsg, 'utf-8');
+    try {
+      execSync(`git tag -a "v${targetVersion}" -F "${tempTagMsgPath}"`, { cwd: ROOT_DIR });
+    } finally {
+      if (fs.existsSync(tempTagMsgPath)) fs.unlinkSync(tempTagMsgPath);
+    }
+
     console.log(colors.green(`  ✓ Git 本地提交成功，打上 Tag: v${targetVersion}`));
 
     // 自动推送到远程 Gitea 仓库
@@ -244,7 +372,7 @@ async function main() {
     console.log(colors.yellow(`  ! Git 自动提交或推送跳过/未变动 (${e.message})`));
   }
 
-  console.log(colors.bold('\n[3/3] 发版流程全部完成！🎉'));
+  console.log(colors.bold('\n[4/4] 发版流程全部完成！🎉'));
   console.log(`全工程现已升级为版本: ${colors.green('v' + targetVersion)}`);
   console.log(`提示：发版与打包部署完全独立。如需上传并部署到 NAS，请运行命令：`);
   console.log(`      ${colors.cyan('npm run deploy:nas')}`);
@@ -256,3 +384,4 @@ main().catch((err) => {
   console.error(colors.red('发版过程出现错误:'), err);
   process.exit(1);
 });
+
