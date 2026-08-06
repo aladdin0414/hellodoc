@@ -26,6 +26,11 @@
 - JDK >= 17
 - PostgreSQL >= 13
 
+> ⚠️ **重要**：启动后端服务前，请确保 PostgreSQL 服务已启动，并已手动创建名为 `hellodoc` 的数据库：
+> ```sql
+> CREATE DATABASE hellodoc;
+> ```
+
 ### 1. 本地开发
 
 #### (1) 克隆项目与环境配置
@@ -33,8 +38,14 @@
 git clone <your-repo-url>
 cd <your-repo-dir>
 
-# 根目录环境变量用于本地开发 / 构建脚本
+# 1. 复制根目录环境变量模板并修改关键配置 (数据库密码、JWT私钥等)
 cp .env.example .env
+
+# 2. 在 PostgreSQL 中创建数据库
+psql -U postgres -c "CREATE DATABASE hellodoc;"
+
+# 3. 安装根目录 Node 依赖
+npm install
 ```
 
 #### (2) 一键启动前后端服务 (推荐)
@@ -49,7 +60,7 @@ npm run dev
 ```bash
 cd hellodoc-server
 
-# 通过环境变量配置数据库连接信息
+# 通过环境变量配置数据库连接信息（如未修改根目录 .env，bootRun 会读取默认环境变量）
 export DB_URL=jdbc:postgresql://localhost:5432/hellodoc
 export DB_USERNAME=postgres
 export DB_PASSWORD=<your-db-password>
@@ -60,7 +71,7 @@ export ADMIN_PASSWORD=<your-admin-password>
 ./gradlew bootRun
 ```
 
-#### (3) 启动前端服务 (`hellodoc-client`)
+#### (4) 启动前端服务 (`hellodoc-client`)
 ```bash
 cd hellodoc-client
 
@@ -68,7 +79,7 @@ npm install
 npm run dev
 ```
 
-#### (4) 启动桌面端 (`hellodoc-desktop`)
+#### (5) 启动桌面端 (`hellodoc-desktop`)
 ```bash
 cd hellodoc-desktop
 
@@ -102,15 +113,16 @@ npm run deploy
 
 本地开发时建议使用根目录 `.env`；容器部署时请使用 `deploy/.env`。以下为核心变量说明：
 
-| 环境变量 | 说明 | 默认值 |
-| :--- | :--- | :--- |
-| `DB_URL` | 本地开发数据库连接地址 | `jdbc:postgresql://localhost:5432/hellodoc` |
-| `DB_USERNAME` | 本地开发数据库用户名 | `postgres` |
-| `DB_PASSWORD` | 数据库密码 | 必填 |
-| `JWT_SECRET` | JWT 鉴权签名密钥，至少 64 字节 | 必填 |
-| `ADMIN_PASSWORD` | 初始管理员密码 | 必填 |
-| `OPENAI_API_KEY` | OpenAI API Key (如开启 AI 功能) | - |
-| `OPENAI_BASE_URL` | OpenAI API Proxy/Base URL | `https://api.openai.com/v1` |
+| 环境变量 | 是否必填 | 说明 | 默认值 / 推荐值 |
+| :--- | :--- | :--- | :--- |
+| `DB_URL` | **是** | 本地开发数据库连接地址（确保数据库已事先创建） | `jdbc:postgresql://localhost:5432/hellodoc` |
+| `DB_USERNAME` | **是** | 本地开发数据库用户名 | `postgres` |
+| `DB_PASSWORD` | **是** | 数据库密码 | 请修改为实际密码 |
+| `JWT_SECRET` | **是** | JWT 鉴权签名密钥，要求至少 64 字节（512 位） | 必须自定义随机长字符串 |
+| `ADMIN_PASSWORD` | **是** | 系统初始化创建管理员账号时的默认密码 | 必须自定义密码 |
+| `OPENAI_API_KEY` | 否 | OpenAI API Key (开启 AI 文档/问答助手功能) | - |
+| `OPENAI_BASE_URL` | 否 | OpenAI API Proxy/Base URL | `https://api.openai.com/v1` |
+| `OPENAI_MODEL` | 否 | 使用的大模型名称 | `gpt-4o` |
 
 ---
 
