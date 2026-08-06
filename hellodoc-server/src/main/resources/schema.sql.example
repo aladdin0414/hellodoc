@@ -1,0 +1,17 @@
+-- 这是一个示例 schema.sql 文件
+-- 如果你需要在数据库创建后自动初始化表结构,可以在这里添加 CREATE TABLE 语句
+-- 
+-- 使用方式:
+-- 1. 将此文件重命名为 schema.sql
+-- 2. 添加你的表结构定义
+-- 3. DatabaseInitializer 会在创建数据库后自动执行此脚本
+--
+-- 示例:
+-- CREATE TABLE IF NOT EXISTS users (
+--     id BIGSERIAL PRIMARY KEY,
+--     username VARCHAR(50) NOT NULL UNIQUE,
+--     email VARCHAR(100) NOT NULL UNIQUE,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+
+-- 在这里添加你的表结构定义

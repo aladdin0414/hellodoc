@@ -1,0 +1,31 @@
+.kb-icon-shell {
+    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.kb-icon-shell--sm {
+    width: 2rem;
+    height: 2rem;
+}
+
+.kb-icon-shell--md {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.kb-icon-glyph {
+    display: block;
+}
+
+.kb-icon-glyph--sm {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.kb-icon-glyph--md {
+    width: 1.5rem;
+    height: 1.5rem;
+}

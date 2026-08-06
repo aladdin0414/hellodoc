@@ -1,0 +1,419 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#app {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    overflow-x: hidden;
+    touch-action: manipulation;
+}
+
+/* 主题切换过渡 */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease !important;
+}
+
+.scrollbar-subtle::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 10px;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+    background: #d1d5db;
+}
+
+/* 暗黑模式滚动条 */
+.dark .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background: #4b5563;
+}
+
+.dark .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.shadow-tiny {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.md-editor,
+.md-editor .cm-editor .cm-content,
+.md-editor .cm-editor .cm-tooltip,
+.v-md-editor-preview {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+}
+
+/* 修复 Tailwind preflight 重置列表样式导致预览列表渲染异常 */
+.md-editor-preview ol,
+.md-editor-preview-wrapper ol,
+.v-md-editor-preview ol,
+div.github-theme ol {
+    list-style-type: decimal !important;
+    padding-inline-start: 2em !important;
+    margin: 0.6em 0 !important;
+}
+
+.md-editor-preview ul,
+.md-editor-preview-wrapper ul,
+.v-md-editor-preview ul,
+div.github-theme ul {
+    list-style-type: disc !important;
+    padding-inline-start: 2em !important;
+    margin: 0.6em 0 !important;
+}
+
+.md-editor-preview li,
+.md-editor-preview-wrapper li,
+.v-md-editor-preview li,
+div.github-theme li {
+    display: list-item !important;
+}
+
+/* 消除 li 内部 p 标签的多余 margin，防止内容被推到列表标记下方 */
+.md-editor-preview li > p,
+.md-editor-preview-wrapper li > p,
+.v-md-editor-preview li > p,
+div.github-theme li > p {
+    display: inline !important;
+}
+
+.md-editor-preview ol .task-list-item,
+.md-editor-preview ul .task-list-item {
+    list-style-type: none !important;
+}
+
+/* 移除标题下划线 */
+.v-md-editor-preview h1,
+.v-md-editor-preview h2,
+.v-md-editor-preview h3,
+.v-md-editor-preview h4 {
+    border-bottom: none !important;
+}
+
+/* 暗黑模式下 Markdown 预览样式 */
+.dark .v-md-editor-preview {
+    color: #e5e7eb !important;
+}
+
+.dark .v-md-editor-preview h1,
+.dark .v-md-editor-preview h2,
+.dark .v-md-editor-preview h3,
+.dark .v-md-editor-preview h4,
+.dark .v-md-editor-preview h5,
+.dark .v-md-editor-preview h6 {
+    color: #f3f4f6 !important;
+}
+
+.dark .v-md-editor-preview a {
+    color: #818cf8 !important;
+}
+
+.dark .v-md-editor-preview code {
+    background-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.dark .v-md-editor-preview pre {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+/* 消除代码框四角白点：父容器 .v-md-pre-wrapper 有浅色背景，圆角处会透出 */
+.dark .v-md-editor-preview .v-md-pre-wrapper {
+    background-color: #1f2937 !important;
+}
+
+.dark .v-md-editor-preview pre code {
+    background-color: transparent !important;
+    color: #e6edf3 !important;
+}
+
+/* 暗黑模式 highlight.js 语法高亮覆盖（GitHub Dark 风格） */
+.dark .v-md-editor-preview .hljs-keyword,
+.dark .v-md-editor-preview .hljs-selector-class {
+    color: #ff7b72 !important;
+    font-weight: 600;
+}
+
+.dark .v-md-editor-preview .hljs-title,
+.dark .v-md-editor-preview .hljs-title.function_ {
+    color: #d2a8ff !important;
+}
+
+.dark .v-md-editor-preview .hljs-string,
+.dark .v-md-editor-preview .hljs-attr {
+    color: #a5d6ff !important;
+}
+
+.dark .v-md-editor-preview .hljs-type,
+.dark .v-md-editor-preview .hljs-built_in {
+    color: #ffa657 !important;
+}
+
+.dark .v-md-editor-preview .hljs-number {
+    color: #79c0ff !important;
+}
+
+.dark .v-md-editor-preview .hljs-comment {
+    color: #8b949e !important;
+    font-style: italic;
+}
+
+.dark .v-md-editor-preview .hljs-meta,
+.dark .v-md-editor-preview .hljs-attribute {
+    color: #d2a8ff !important;
+}
+
+.dark .v-md-editor-preview .hljs-function {
+    color: #d2a8ff !important;
+}
+
+.dark .v-md-editor-preview .hljs-params {
+    color: #e6edf3 !important;
+}
+
+.dark .v-md-editor-preview .hljs-property {
+    color: #79c0ff !important;
+}
+
+.dark .v-md-editor-preview .hljs-variable {
+    color: #ffa657 !important;
+}
+
+.dark .v-md-editor-preview .hljs-operator {
+    color: #ff7b72 !important;
+}
+
+.dark .v-md-editor-preview .hljs-tag {
+    color: #7ee787 !important;
+}
+
+.dark .v-md-editor-preview .hljs-name {
+    color: #7ee787 !important;
+}
+
+.dark .v-md-editor-preview .hljs-literal {
+    color: #79c0ff !important;
+}
+
+.dark .v-md-editor-preview .hljs-symbol {
+    color: #ffa657 !important;
+}
+
+.dark .v-md-editor-preview .hljs-selector-tag {
+    color: #7ee787 !important;
+}
+
+.dark .v-md-editor-preview .hljs-selector-id {
+    color: #ffa657 !important;
+}
+
+.dark .v-md-editor-preview .hljs-regexp {
+    color: #a5d6ff !important;
+}
+
+.dark .v-md-editor-preview .hljs-deletion {
+    color: #ffa198 !important;
+    background-color: rgba(248, 81, 73, 0.15) !important;
+}
+
+.dark .v-md-editor-preview .hljs-addition {
+    color: #7ee787 !important;
+    background-color: rgba(46, 160, 67, 0.15) !important;
+}
+
+.dark .v-md-editor-preview blockquote {
+    border-left-color: #4b5563 !important;
+    color: #9ca3af !important;
+}
+
+.v-md-editor-preview mark {
+    background-color: #fef08a;
+    color: inherit;
+    padding: 0 0.15em;
+    border-radius: 0.2em;
+}
+
+.dark .v-md-editor-preview mark {
+    background-color: #854d0e;
+    color: #fef3c7;
+}
+
+/* 极简表格样式覆盖 */
+.v-md-editor-preview table,
+.md-editor-preview table {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    border-collapse: separate !important;
+    border-spacing: 0;
+    overflow: hidden;
+    width: 100% !important;
+    display: table !important;
+    /* 确保以表格模式显示 */
+    margin: 1.5rem 0 !important;
+    background-color: transparent !important;
+}
+
+/* 覆盖可能导致宽度受限的 max-width 限制 */
+.v-md-editor-preview .v-md-editor__preview-wrapper,
+.v-md-editor-preview .github-markdown-body,
+.md-editor-preview table {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+.v-md-editor-preview table th,
+.v-md-editor-preview table td,
+.md-editor-preview table th,
+.md-editor-preview table td {
+    border: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    /* 极细水平线 */
+    padding: 14px 16px !important;
+    text-align: left !important;
+    background-color: transparent !important;
+    /* 强制透明，移除条纹背景 */
+    word-break: break-word !important;
+}
+
+/* 移除最后一行底边框 */
+.v-md-editor-preview table tr:last-child td,
+.md-editor-preview table tr:last-child td {
+    border-bottom: none !important;
+}
+
+.v-md-editor-preview table th,
+.md-editor-preview table th {
+    background-color: transparent !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    border-bottom: 2px solid #f1f5f9 !important;
+    /* 表头下方线条稍粗 */
+    border-top: none !important;
+    white-space: nowrap !important; /* 避免表头被长内容列挤压成竖排 */
+}
+
+/* 移除表格头部或首行内部多余的横线和斑马形背景色 */
+.v-md-editor-preview table thead,
+.v-md-editor-preview table tr:first-child,
+.v-md-editor-preview table tr:first-child th,
+.v-md-editor-preview table tr:first-child td,
+.md-editor-preview table thead,
+.md-editor-preview table tr,
+.md-editor-preview table tr:nth-child(2n),
+.md-editor-preview table tr:first-child,
+.md-editor-preview table tr:first-child th,
+.md-editor-preview table tr:first-child td {
+    border-top: none !important;
+    background-color: transparent !important;
+}
+
+/* 暗黑模式适配 */
+.dark .v-md-editor-preview table,
+.dark .md-editor-preview table {
+    border-color: #374151 !important;
+}
+
+.dark .v-md-editor-preview table th,
+.dark .v-md-editor-preview table td,
+.dark .md-editor-preview table th,
+.dark .md-editor-preview table td {
+    border-bottom-color: #374151 !important;
+    color: #e5e7eb !important;
+    background-color: transparent !important;
+}
+
+.dark .v-md-editor-preview table th,
+.dark .md-editor-preview table th {
+    color: #f3f4f6 !important;
+    border-bottom-color: #4b5563 !important;
+}
+
+.dark .v-md-editor-preview table tr:last-child td,
+.dark .md-editor-preview table tr:last-child td {
+    border-bottom: none !important;
+}
+
+.dark .md-editor-preview table tr,
+.dark .md-editor-preview table tr:nth-child(2n) {
+    background-color: transparent !important;
+}
+
+/* 极简分割线 */
+.v-md-editor-preview hr {
+    height: 1px !important;
+    border: none !important;
+    background-color: #f1f5f9 !important;
+    margin: 2rem 0 !important;
+}
+
+.dark .v-md-editor-preview hr {
+    background-color: #374151 !important;
+}
+
+.dark .v-md-editor-preview img {
+    opacity: 0.9;
+}
+
+/* Image Preview Styling */
+.v-md-editor-preview img,
+.v-md-preview img {
+    cursor: pointer;
+    border-radius: 0.75rem;
+    /* Reduced to rounded-xl */
+    transition: opacity 0.2s ease;
+}
+
+.v-md-editor-preview img:hover,
+.v-md-preview img:hover {
+    opacity: 0.9;
+}
+
+/* 确保代码块拥有正确的中文字体回退，防止在 Windows 下显示为宋体 */
+.md-editor pre,
+.md-editor code,
+.v-md-editor-preview pre,
+.v-md-editor-preview code {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, 'Courier New', 'PingFang SC', 'Microsoft YaHei', monospace !important;
+}
+
+/* 移除代码预览顶部的 Mac 控制栏及复制按钮区域 */
+.md-editor-code .md-editor-code-head {
+    display: none !important;
+}
+
+/* 隐藏头部后，给代码块顶部补充对应的圆角，并确保代码块上下内边距一致 */
+.md-editor-code pre code {
+    border-top-left-radius: var(--md-theme-code-block-radius, 4px) !important;
+    border-top-right-radius: var(--md-theme-code-block-radius, 4px) !important;
+    border-start-start-radius: var(--md-theme-code-block-radius, 4px) !important;
+    border-start-end-radius: var(--md-theme-code-block-radius, 4px) !important;
+    padding: 16px !important;
+    border: 1px solid var(--md-border-color, #e2e8f0) !important;
+}
+

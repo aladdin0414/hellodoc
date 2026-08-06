@@ -1,0 +1,21 @@
+services:
+  hellodoc-server:
+    build: .
+    image: hellodoc-server:latest
+    container_name: hellodoc-server
+    restart: always
+    ports:
+      - "${SERVER_PORT:-8899}:8080"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:?Please set SPRING_DATASOURCE_URL in deploy/.env}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:?Please set SPRING_DATASOURCE_USERNAME in deploy/.env}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:?Please set SPRING_DATASOURCE_PASSWORD in deploy/.env}
+      - SPRING_SQL_INIT_MODE=never
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=none
+      - FILE_UPLOAD_DIR=/app/data
+      - JWT_SECRET=${JWT_SECRET:?Please set JWT_SECRET in deploy/.env}
+      - SERVER_SERVLET_CONTEXT_PATH=/
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Please set ADMIN_PASSWORD in deploy/.env}

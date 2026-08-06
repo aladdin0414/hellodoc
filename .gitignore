@@ -1,0 +1,27 @@
+# 构建产物
+dist/
+
+# IDE & AI Config
+.idea/
+.vscode/
+.trae/
+.claude/
+*.iml
+*.ipr
+*.iws
+
+# MacOS
+.DS_Store
+
+# 环境配置
+.env
+.env.*
+!.env.example
+deploy/.env
+
+# 日志
+*.log
+logs/
+
+# Uploads
+uploads

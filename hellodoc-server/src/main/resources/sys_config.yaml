@@ -1,0 +1,66 @@
+permit-paths:
+  - /
+  - /error
+  - /index.html
+  - /favicon.ico
+  - /logo.svg
+  - /logo.png
+  - /apple-touch-icon.png
+  - /apple-touch-icon-precomposed.png
+  - /manifest.json
+  - /manifest.webmanifest
+  - /site.webmanifest
+  - /vite.svg
+  - /empty-state.png
+  - /assets/**
+  - /v3/api-docs/**
+  - /swagger-ui/**
+  - /swagger-ui.html
+  - /api/auth/**
+  - /api/test/**
+  - /api/tool/**
+  - /api/files/avatar
+  - /api/files/avatars/**
+  - /api/assets/**
+  - /api/storage/public
+  - /api/public/**
+  - /api/system/info
+  - /login
+  - /register
+  - /view/**
+  - /kb/**
+  - /shared
+  - /favorites
+  - /recent
+  - /admin
+  - /m
+  - /m/**
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION_MS:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+
+auth:
+  password:
+    encoder: bcrypt
+
+app:
+  logging:
+    request:
+      enabled: false
+  cors:
+    enabled: true
+  db-init-script: ${DB_INIT_SCRIPT:classpath:/data/hellodoc_schema.sql}
+
+admin:
+  password: ${ADMIN_PASSWORD:}
+
+
+ai:
+  openai:
+    api-key: ${OPENAI_API_KEY}
+    base-url: ${OPENAI_BASE_URL}
+    model: ${OPENAI_MODEL}
+    timeout: ${OPENAI_TIMEOUT:60000}
+    agent: ${AI_AGENT}

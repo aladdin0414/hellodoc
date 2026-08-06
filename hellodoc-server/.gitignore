@@ -1,0 +1,40 @@
+# Gradle
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IntelliJ IDEA
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# Visual Studio Code
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Generated files
+data/
+
+.claude/
+
+# 前端构建产物（由 vite build 生成）
+src/main/resources/static/*
+!src/main/resources/static/.gitkeep

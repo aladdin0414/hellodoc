@@ -1,0 +1,67 @@
+{
+  "name": "hellodoc-desktop",
+  "version": "2.0.4",
+  "description": "Desktop client for HelloDoc",
+  "main": "main.js",
+  "scripts": {
+    "dev": "npx concurrently -k -n CLIENT,ELECTRON \"npm:dev:client\" \"npm:dev:electron\"",
+    "dev:client": "npm run dev --prefix ../hellodoc-client",
+    "dev:electron": "npx wait-on tcp:3000 && NODE_ENV=development electron .",
+    "prebuild": "node build-sync.js",
+    "build": "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder",
+    "build:win:x64": "npm run prebuild && ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win portable --x64",
+    "build:win:arm64": "npm run prebuild && ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win portable --arm64"
+  },
+  "keywords": [],
+  "author": "liyc",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3",
+    "fs-extra": "^11.3.0",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.hellodoc.desktop",
+    "productName": "HelloDoc",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "dist-app/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icons/icon.icns"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icons/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icons/icon-512.png"
+    }
+  }
+}

@@ -1,0 +1,374 @@
+.ProseMirror {
+    @apply outline-none min-h-[400px] w-full max-w-none text-[16px] leading-[1.75];
+}
+
+.ProseMirror > *:first-child {
+    margin-top: 0;
+}
+
+/* ===== Tiptap 排版样式 ===== */
+.ProseMirror p {
+    margin: 0.75em 0;
+    color: #1e293b;
+}
+.dark .ProseMirror p {
+    color: #cbd5e1;
+}
+
+.ProseMirror .resizable-image-wrapper {
+    margin: 0.85em 0;
+}
+
+.ProseMirror video {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0.9em 0;
+    border-radius: 0.5rem;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+    margin: 0.85em 0;
+    padding-left: 1.5em;
+}
+.ProseMirror ul {
+    list-style-type: disc;
+}
+.ProseMirror ol {
+    list-style-type: decimal;
+}
+
+.ProseMirror li p {
+    margin: 0.3em 0;
+}
+
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
+    margin: 1.1em 0 0.45em;
+    color: #0f172a;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+.dark .ProseMirror h1,
+.dark .ProseMirror h2,
+.dark .ProseMirror h3,
+.dark .ProseMirror h4,
+.dark .ProseMirror h5,
+.dark .ProseMirror h6 {
+    color: #f8fafc;
+}
+
+.ProseMirror h1,
+.ProseMirror h2 {
+    margin-top: 1.1em;
+    margin-bottom: 0.45em;
+}
+
+.ProseMirror h1 {
+    font-size: 1.7em;
+    line-height: 1.3;
+}
+
+.ProseMirror h2 {
+    font-size: 1.38em;
+    line-height: 1.4;
+}
+
+.ProseMirror h3 {
+    font-size: 1.16em;
+    line-height: 1.45;
+}
+
+.ProseMirror h4 {
+    font-size: 1.02em;
+    line-height: 1.45;
+}
+
+.ProseMirror h5 {
+    font-size: 0.95em;
+    line-height: 1.45;
+}
+
+.ProseMirror h6 {
+    font-size: 0.9em;
+    line-height: 1.45;
+}
+
+.ProseMirror code {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #0f172a;
+    font-size: 0.92em;
+    padding: 0.12em 0.4em;
+}
+.dark .ProseMirror mark {
+    background: #854d0e;
+    color: #fef9c3;
+}
+.ProseMirror mark {
+    background: #fef08a;
+    color: #713f12;
+    border-radius: 3px;
+    padding: 0 2px;
+}
+.dark .ProseMirror code {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+.ProseMirror pre {
+    margin: 1em 0;
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    overflow-x: auto;
+}
+.dark .ProseMirror pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-color: #1e293b;
+}
+
+.ProseMirror pre code {
+    background: none !important;
+    color: inherit !important;
+    font-size: 0.8rem !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+}
+
+/* ===== 语法高亮 - 白天模式 (Light Theme) ===== */
+.ProseMirror pre .hljs-comment,
+.ProseMirror pre .hljs-quote {
+    color: #64748b;
+    font-style: italic;
+}
+.ProseMirror pre .hljs-variable,
+.ProseMirror pre .hljs-template-variable,
+.ProseMirror pre .hljs-attribute,
+.ProseMirror pre .hljs-tag,
+.ProseMirror pre .hljs-name,
+.ProseMirror pre .hljs-regexp,
+.ProseMirror pre .hljs-link,
+.ProseMirror pre .hljs-selector-id,
+.ProseMirror pre .hljs-selector-class {
+    color: #9333ea; /* Purple */
+}
+.ProseMirror pre .hljs-number,
+.ProseMirror pre .hljs-meta,
+.ProseMirror pre .hljs-built_in,
+.ProseMirror pre .hljs-builtin-name,
+.ProseMirror pre .hljs-literal,
+.ProseMirror pre .hljs-type,
+.ProseMirror pre .hljs-params {
+    color: #ea580c; /* Orange */
+}
+.ProseMirror pre .hljs-string,
+.ProseMirror pre .hljs-symbol,
+.ProseMirror pre .hljs-bullet {
+    color: #16a34a; /* Green */
+}
+.ProseMirror pre .hljs-title,
+.ProseMirror pre .hljs-section {
+    color: #2563eb; /* Blue */
+}
+.ProseMirror pre .hljs-keyword,
+.ProseMirror pre .hljs-selector-tag {
+    color: #dc2626; /* Red */
+}
+.ProseMirror pre .hljs-emphasis {
+    font-style: italic;
+}
+.ProseMirror pre .hljs-strong {
+    font-weight: 700;
+}
+
+/* ===== 语法高亮 - 暗色模式 (Dark Theme) ===== */
+.dark .ProseMirror pre .hljs-comment,
+.dark .ProseMirror pre .hljs-quote {
+    color: #94a3b8;
+}
+.dark .ProseMirror pre .hljs-variable,
+.dark .ProseMirror pre .hljs-template-variable,
+.dark .ProseMirror pre .hljs-attribute,
+.dark .ProseMirror pre .hljs-tag,
+.dark .ProseMirror pre .hljs-name,
+.dark .ProseMirror pre .hljs-regexp,
+.dark .ProseMirror pre .hljs-link,
+.dark .ProseMirror pre .hljs-selector-id,
+.dark .ProseMirror pre .hljs-selector-class {
+    color: #fca5a5;
+}
+.dark .ProseMirror pre .hljs-number,
+.dark .ProseMirror pre .hljs-meta,
+.dark .ProseMirror pre .hljs-built_in,
+.dark .ProseMirror pre .hljs-builtin-name,
+.dark .ProseMirror pre .hljs-literal,
+.dark .ProseMirror pre .hljs-type,
+.dark .ProseMirror pre .hljs-params {
+    color: #fdba74;
+}
+.dark .ProseMirror pre .hljs-string,
+.dark .ProseMirror pre .hljs-symbol,
+.dark .ProseMirror pre .hljs-bullet {
+    color: #86efac;
+}
+.dark .ProseMirror pre .hljs-title,
+.dark .ProseMirror pre .hljs-section {
+    color: #fde68a;
+}
+.dark .ProseMirror pre .hljs-keyword,
+.dark .ProseMirror pre .hljs-selector-tag {
+    color: #7dd3fc;
+}
+
+.ProseMirror blockquote {
+    margin: 1em 0;
+    padding: 0.25em 0 0.25em 0.9em;
+    border-left: 3px solid #94a3b8;
+    color: #334155;
+    background: #f8fafc;
+    border-radius: 0 8px 8px 0;
+}
+.dark .ProseMirror blockquote {
+    border-left-color: #64748b;
+    color: #cbd5e1;
+    background: #1e293b;
+}
+
+.ProseMirror hr {
+    border: none;
+    @apply border-t border-gray-200 dark:border-gray-700;
+    margin: 2rem 0;
+}
+
+.ProseMirror a {
+    color: #2563eb;
+    text-decoration: underline;
+    text-decoration-color: rgba(37, 99, 235, 0.45);
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+.ProseMirror a:hover {
+    color: #1d4ed8;
+}
+.dark .ProseMirror a {
+    color: #60a5fa;
+    text-decoration-color: rgba(96, 165, 250, 0.5);
+}
+.dark .ProseMirror a:hover {
+    color: #93c5fd;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply float-left text-gray-400 pointer-events-none h-0;
+}
+.ProseMirror table {
+    border-collapse: collapse;
+    margin: 1.1em 0;
+    overflow: hidden;
+    table-layout: fixed;
+    width: 100%;
+    border-radius: 0;
+    border: 1px solid #cbd5e1;
+}
+.dark .ProseMirror table {
+    border-color: #475569;
+}
+
+.ProseMirror td, .ProseMirror th {
+    border: 1px solid #cbd5e1;
+    box-sizing: border-box;
+    min-width: 1em;
+    padding: 4px 8px;
+    position: relative;
+    vertical-align: top;
+    font-size: 15px;
+}
+.dark .ProseMirror td, .dark .ProseMirror th {
+    border-color: #475569;
+}
+
+.ProseMirror td > *, .ProseMirror th > * {
+    margin-bottom: 0;
+}
+.ProseMirror td > *:first-child, .ProseMirror th > *:first-child {
+    margin-top: 0;
+}
+
+.ProseMirror th {
+    background: #f8fafc;
+    font-weight: 600;
+    text-align: left;
+}
+.dark .ProseMirror th {
+    background: #1e293b;
+}
+
+.ProseMirror .selectedCell:after {
+    background: rgba(200, 200, 255, 0.4);
+    content: '';
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+}
+
+.ProseMirror .column-resize-handle {
+    background-color: #a855f7; /* purple-500 */
+    bottom: -2px;
+    pointer-events: none;
+    position: absolute;
+    right: -2px;
+    top: 0;
+    width: 4px;
+}
+
+.tableWrapper {
+    margin: 1.1em 0;
+    overflow-x: auto;
+}
+
+.resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+    @apply list-none pl-0;
+}
+.ProseMirror ul[data-type="taskList"] li {
+    @apply flex items-start mb-1;
+}
+.ProseMirror ul[data-type="taskList"] li > label {
+    @apply flex-none mr-2 flex items-center justify-center pt-1.5;
+}
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+    @apply m-0 w-4 h-4 cursor-pointer;
+}
+.ProseMirror ul[data-type="taskList"] li > div {
+    @apply flex-1;
+}
+.ProseMirror ul[data-type="taskList"] li > div > p {
+    @apply mt-0 mb-1;
+}
+
+/* 格式刷模式光标 */
+.format-brush-cursor,
+.format-brush-cursor .ProseMirror {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%233b82f6' d='M18 4V3c0-.55-.45-1-1-1H5c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V6h1v4H9v11c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-9h8V4h-3z'/%3E%3C/svg%3E") 8 20, crosshair !important;
+}

@@ -1,0 +1,113 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.7'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.nopkg'
+version = '2.0.4'
+description = 'hellodoc-server'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-parameters"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot Core & Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // Database & Persistence
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Security & Auth
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    implementation 'org.mindrot:jbcrypt:0.4'
+
+    // Markdown & HTML & Diff Processing
+    implementation 'com.vladsch.flexmark:flexmark-all:0.64.8'
+    implementation 'org.jsoup:jsoup:1.18.3'
+    implementation 'org.bitbucket.cowwoc:diff-match-patch:1.2'
+
+    // Swagger / OpenAPI
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15'
+
+    // Apache Commons & Utilities
+    implementation 'org.apache.commons:commons-lang3:3.17.0'
+
+    // S3 Storage (MinIO / AWS S3)
+    implementation 'software.amazon.awssdk:s3:2.29.35'
+
+    // Lombok (Optional developer productivity)
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'com.h2database:h2'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// JAR 打包配置
+bootJar {
+    archiveFileName = 'hellodoc.jar'
+}
+
+jar {
+    enabled = false
+}
+
+tasks.withType(JavaExec) {
+    // 这种方式比直接写在 bootRun 块中优先级更高
+    jvmArgs = [
+            "-Dsun.net.inetaddr.ttl=0",
+            "-Dhttp.proxyHost=",
+            "-Dhttp.proxyPort=",
+            "-Dhttps.proxyHost=",
+            "-Dhttps.proxyPort=",
+            "-DsocksProxyHost=",
+            "-DsocksProxyPort=",
+            "-Djava.net.preferIPv4Stack=true" // 建议加上，防止 IPv6 引起的超时
+    ]
+}
+
+// 自动打入最新工程版本号到资源配置文件中
+processResources {
+    filesMatching('**/application.properties') {
+        filter { line ->
+            if (line.startsWith('app.version=')) {
+                return "app.version=${project.version}"
+            }
+            return line
+        }
+    }
+}
+
