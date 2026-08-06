@@ -53,24 +53,30 @@ if [ ! -f "$SOURCE_JAR" ]; then
      echo "Found latest fallback JAR: $SOURCE_JAR"
 fi
 
+# SSH Common Options (Enable connection multiplexing to ask for password ONCE only)
+SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ControlMaster=auto -o ControlPath=/tmp/ssh_mux_%h_%p_%r -o ControlPersist=60s"
+if [ -n "${DEPLOY_SSH_KEY:-}" ]; then
+    SSH_OPTS="$SSH_OPTS -i $DEPLOY_SSH_KEY"
+fi
+
 # 2. 确保远程服务器部署目录存在
 echo "Ensuring remote directory exists ($REMOTE_DIR)..."
-ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$REMOTE_DIR'" || { echo "Error: Failed to connect via SSH or create remote directory '$REMOTE_DIR'. Please check DEPLOY_HOST, DEPLOY_USER and SSH credentials/permissions."; exit 1; }
+ssh $SSH_OPTS -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$REMOTE_DIR'" || { echo "Error: Failed to connect via SSH or create remote directory '$REMOTE_DIR'. Please check DEPLOY_HOST, DEPLOY_USER and SSH credentials/permissions."; exit 1; }
 
 # 3. Copy JAR file and Deployment configs via SCP
 echo "Copying JAR file and deployment configurations to $DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR..."
-scp -P "$DEPLOY_PORT" "$SOURCE_JAR" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/$REMOTE_JAR" || { echo "Error: Failed to copy JAR file via SCP."; exit 1; }
+scp $SSH_OPTS -P "$DEPLOY_PORT" "$SOURCE_JAR" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/$REMOTE_JAR" || { echo "Error: Failed to copy JAR file via SCP."; exit 1; }
 
 if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
-    scp -P "$DEPLOY_PORT" "$SCRIPT_DIR/docker-compose.yml" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/docker-compose.yml" || { echo "Error: Failed to copy docker-compose.yml via SCP."; exit 1; }
+    scp $SSH_OPTS -P "$DEPLOY_PORT" "$SCRIPT_DIR/docker-compose.yml" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/docker-compose.yml" || { echo "Error: Failed to copy docker-compose.yml via SCP."; exit 1; }
 fi
 if [ -f "$SCRIPT_DIR/Dockerfile" ]; then
-    scp -P "$DEPLOY_PORT" "$SCRIPT_DIR/Dockerfile" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/Dockerfile" || { echo "Error: Failed to copy Dockerfile via SCP."; exit 1; }
+    scp $SSH_OPTS -P "$DEPLOY_PORT" "$SCRIPT_DIR/Dockerfile" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/Dockerfile" || { echo "Error: Failed to copy Dockerfile via SCP."; exit 1; }
 fi
 if [ -f "$ROOT_DIR/.env" ]; then
-    scp -P "$DEPLOY_PORT" "$ROOT_DIR/.env" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/.env" || { echo "Error: Failed to copy .env via SCP."; exit 1; }
+    scp $SSH_OPTS -P "$DEPLOY_PORT" "$ROOT_DIR/.env" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/.env" || { echo "Error: Failed to copy .env via SCP."; exit 1; }
 elif [ -f "$SCRIPT_DIR/.env" ]; then
-    scp -P "$DEPLOY_PORT" "$SCRIPT_DIR/.env" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/.env" || { echo "Error: Failed to copy .env via SCP."; exit 1; }
+    scp $SSH_OPTS -P "$DEPLOY_PORT" "$SCRIPT_DIR/.env" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/.env" || { echo "Error: Failed to copy .env via SCP."; exit 1; }
 else
     echo "Notice: No local .env file found to sync. The remote deployment will rely on existing remote .env."
 fi
@@ -80,7 +86,7 @@ echo "Files copied successfully."
 # 3. Execute remote commands via SSH
 echo "Executing remote deployment commands..."
 # Use -tt to force TTY allocation for sudo password prompt
-ssh -tt -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
+ssh $SSH_OPTS -tt -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
     # Add common binary paths
     export PATH=\$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/packages/Docker/target/usr/bin
 

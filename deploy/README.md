@@ -77,6 +77,7 @@ cp .env.example .env
 | `DEPLOY_HOST` | 远程服务器的 IP 地址或域名 | 必填 |
 | `DEPLOY_PORT` | 远程服务器 SSH 服务的端口号 | `22` |
 | `DEPLOY_USER` | 远程服务器 SSH 登录用户名 | 必填 |
+| `DEPLOY_SSH_KEY` | SSH 私钥文件路径 (用于免密登录) | 选填 (如 `~/.ssh/id_rsa`) |
 | `REMOTE_DIR` | 远程部署与 Docker 执行目录 | `/opt/hellodoc` |
 
 ---

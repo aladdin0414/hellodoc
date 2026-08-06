@@ -4,6 +4,7 @@ dist/
 # IDE & AI Config
 .idea/
 .vscode/
+.local/
 .trae/
 .claude/
 *.iml
