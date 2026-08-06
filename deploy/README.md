@@ -13,8 +13,7 @@ deploy/
 ├── Dockerfile              # Docker 镜像构建文件 (基于 JRE 17)
 ├── docker-compose.yml      # Docker 服务编排文件
 ├── deploy.sh               # NAS 远程一键部署脚本
-├── backup-db.sh            # 数据库 Schema 导出/备份工具
-└── .env.example            # 部署环境变量配置示例
+└── backup-db.sh            # 数据库 Schema 导出/备份工具
 ```
 
 ---
@@ -52,10 +51,10 @@ npm run build
 
 若要修改 NAS 的 IP、端口、数据库连接或部署目录，无需修改 Shell 脚本。
 
-只需在 `deploy/` 目录下（或项目根目录下）创建 `.env` 文件：
+只需要在**项目根目录**下创建并维护 `.env` 文件（可参考根目录 `.env.example`）：
 
 ```bash
-cp deploy/.env.example deploy/.env
+cp .env.example .env
 ```
 
 `.env` 可配置参数说明：

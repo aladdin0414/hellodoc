@@ -13,14 +13,14 @@ if [ -z "$VERSION" ]; then
     VERSION="2.0.0"
 fi
 
-# 加载部署配置文件（优先 deploy/.env，其次项目根目录 .env）
-if [ -f "$SCRIPT_DIR/.env" ]; then
-    set -a
-    source "$SCRIPT_DIR/.env"
-    set +a
-elif [ -f "$ROOT_DIR/.env" ]; then
+# 加载部署配置文件（根目录 .env）
+if [ -f "$ROOT_DIR/.env" ]; then
     set -a
     source "$ROOT_DIR/.env"
+    set +a
+elif [ -f "$SCRIPT_DIR/.env" ]; then
+    set -a
+    source "$SCRIPT_DIR/.env"
     set +a
 fi
 
@@ -65,10 +65,10 @@ fi
 if [ -f "$SCRIPT_DIR/Dockerfile" ]; then
     scp -O -P "$NAS_PORT" "$SCRIPT_DIR/Dockerfile" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/Dockerfile"
 fi
-if [ -f "$SCRIPT_DIR/.env" ]; then
-    scp -O -P "$NAS_PORT" "$SCRIPT_DIR/.env" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/.env"
-elif [ -f "$ROOT_DIR/.env" ]; then
+if [ -f "$ROOT_DIR/.env" ]; then
     scp -O -P "$NAS_PORT" "$ROOT_DIR/.env" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/.env"
+elif [ -f "$SCRIPT_DIR/.env" ]; then
+    scp -O -P "$NAS_PORT" "$SCRIPT_DIR/.env" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/.env"
 fi
 
 if [ $? -eq 0 ]; then

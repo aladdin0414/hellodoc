@@ -87,15 +87,13 @@ npm run build
 ```
 
 ### 2. Docker Compose 部署
-请先在 `deploy/` 目录下准备专用环境变量文件：
+确保项目根目录下已配置好 `.env` 文件（可参考 `.env.example`）：
 ```bash
-cd deploy
-
-# 复制部署模板并填写数据库 / JWT / 管理员密码
+# 复制部署模板并填写实际参数
 cp .env.example .env
 
-# 运行容器
-docker compose up -d --build
+# 运行容器 (deploy/deploy.sh 会自动读取并拷贝根目录 .env)
+npm run deploy
 ```
 
 ---
