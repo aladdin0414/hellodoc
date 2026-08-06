@@ -28,7 +28,7 @@ fi
 NAS_USER="${NAS_USER:-}"
 NAS_HOST="${NAS_HOST:-}"
 NAS_PORT="${NAS_PORT:-22}"
-REMOTE_DIR="${REMOTE_DIR:-/volume1/docker/deploy-hellodoc}"
+REMOTE_DIR="${REMOTE_DIR:-/volume1/docker/hellodoc}"
 
 if [ -z "$NAS_HOST" ] || [ -z "$NAS_USER" ]; then
     echo "Error: NAS_HOST and NAS_USER environment variables are required."
@@ -52,14 +52,29 @@ if [ ! -f "$SOURCE_JAR" ]; then
      echo "Found latest fallback JAR: $SOURCE_JAR"
 fi
 
-# 2. Copy JAR file via SCP
-echo "Copying JAR file to $NAS_USER@$NAS_HOST:$REMOTE_DIR/$REMOTE_JAR..."
+# 2. 确保远程 NAS 目录存在
+echo "Ensuring remote directory exists ($REMOTE_DIR)..."
+ssh -p "$NAS_PORT" "$NAS_USER@$NAS_HOST" "mkdir -p '$REMOTE_DIR'"
+
+# 3. Copy JAR file and Deployment configs via SCP
+echo "Copying JAR file and deployment configurations to $NAS_USER@$NAS_HOST:$REMOTE_DIR..."
 scp -O -P "$NAS_PORT" "$SOURCE_JAR" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/$REMOTE_JAR"
+if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+    scp -O -P "$NAS_PORT" "$SCRIPT_DIR/docker-compose.yml" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/docker-compose.yml"
+fi
+if [ -f "$SCRIPT_DIR/Dockerfile" ]; then
+    scp -O -P "$NAS_PORT" "$SCRIPT_DIR/Dockerfile" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/Dockerfile"
+fi
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    scp -O -P "$NAS_PORT" "$SCRIPT_DIR/.env" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/.env"
+elif [ -f "$ROOT_DIR/.env" ]; then
+    scp -O -P "$NAS_PORT" "$ROOT_DIR/.env" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/.env"
+fi
 
 if [ $? -eq 0 ]; then
-    echo "Copy successful."
+    echo "Files copied successfully."
 else
-    echo "Error: Failed to copy file via SCP."
+    echo "Error: Failed to copy deployment files via SCP."
     exit 1
 fi
 
@@ -95,7 +110,7 @@ ssh -tt -p "$NAS_PORT" "$NAS_USER@$NAS_HOST" "
     fi
 
     echo \"Using command: \$DOCKER_COMPOSE_CMD\"
-    \$DOCKER_COMPOSE_CMD down
+    \$DOCKER_COMPOSE_CMD down --remove-orphans
     \$DOCKER_COMPOSE_CMD up -d --build
 "
 DEPLOY_EXIT_CODE=$?
