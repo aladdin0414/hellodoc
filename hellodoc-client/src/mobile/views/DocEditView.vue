@@ -171,7 +171,7 @@ const kbId = Number(route.params.kbId)
 const docId = Number(route.params.docId)
 
 const isReadOnly = ref(false)
-const isEditing = ref(true)
+const isEditing = ref(route.query.mode === 'edit' || route.query.autoFocus === 'true')
 const loadingDoc = ref(true)
 const saving = ref(false)
 const isDirty = ref(false)

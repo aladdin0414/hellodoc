@@ -75,7 +75,7 @@ export function useQuickNote() {
         sessionStorage.setItem('active_doc_back', String(docId))
         options.router.push({
           path: `/m/kb/${kbId}/doc/${docId}`,
-          query: { from: '/m', autoFocus: 'true' }
+          query: { from: '/m', mode: 'edit', autoFocus: 'true' }
         })
       }
     } catch (err) {

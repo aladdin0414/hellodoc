@@ -698,7 +698,7 @@ const handleToggleExpand = (id: number | string) => {
   }
 }
 
-const handleSelectDoc = (docId: number) => {
+const handleSelectDoc = (docId: number, options?: { mode?: 'edit' | 'preview'; autoFocus?: boolean }) => {
   // 乐观高亮：点击节点的瞬间立即响应高亮，无需等待页面返回
   selectedDocId.value = docId
   try {
@@ -712,9 +712,19 @@ const handleSelectDoc = (docId: number) => {
   }
   sessionStorage.setItem(`last_doc_${kbId}`, String(docId))
   sessionStorage.setItem('active_doc_back', String(docId))
+  const query: Record<string, string> = {}
+  if (route.query.from) {
+    query.from = String(route.query.from)
+  }
+  if (options?.mode) {
+    query.mode = options.mode
+  }
+  if (options?.autoFocus) {
+    query.autoFocus = 'true'
+  }
   router.push({
     path: `/m/kb/${kbId}/doc/${docId}`,
-    query: route.query.from ? { from: String(route.query.from) } : {}
+    query
   })
 }
 
@@ -924,7 +934,7 @@ const handleCreateNode = async () => {
       }
 
       if (newDocType.value === 'file') {
-        handleSelectDoc(res.id)
+        handleSelectDoc(res.id, { mode: 'edit', autoFocus: true })
       }
     } else {
       await fetchData()
