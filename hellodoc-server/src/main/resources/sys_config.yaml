@@ -37,7 +37,7 @@ permit-paths:
   - /m/**
 
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET:change_this_to_a_secure_jwt_secret_key_at_least_512_bits_long_123456}
   expiration: ${JWT_EXPIRATION_MS:86400000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION_MS:604800000}
 
@@ -54,7 +54,7 @@ app:
   db-init-script: ${DB_INIT_SCRIPT:classpath:/data/hellodoc_schema.sql}
 
 admin:
-  password: ${ADMIN_PASSWORD:}
+  password: ${ADMIN_PASSWORD:admin123}
 
 
 ai:
