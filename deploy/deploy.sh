@@ -24,15 +24,15 @@ elif [ -f "$SCRIPT_DIR/.env" ]; then
     set +a
 fi
 
-# Remote NAS Configuration
-NAS_USER="${NAS_USER:-}"
-NAS_HOST="${NAS_HOST:-}"
-NAS_PORT="${NAS_PORT:-22}"
-REMOTE_DIR="${REMOTE_DIR:-/volume1/docker/hellodoc}"
+# Remote Server / Host Configuration
+DEPLOY_USER="${DEPLOY_USER:-}"
+DEPLOY_HOST="${DEPLOY_HOST:-}"
+DEPLOY_PORT="${DEPLOY_PORT:-22}"
+REMOTE_DIR="${REMOTE_DIR:-/opt/hellodoc}"
 
-if [ -z "$NAS_HOST" ] || [ -z "$NAS_USER" ]; then
-    echo "Error: NAS_HOST and NAS_USER environment variables are required."
-    echo "Please configure them in deploy/.env or set them in your environment."
+if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_USER" ]; then
+    echo "Error: DEPLOY_HOST and DEPLOY_USER environment variables are required."
+    echo "Please configure them in your .env file or set them in your environment."
     exit 1
 fi
 REMOTE_JAR="hellodoc.jar"
@@ -52,23 +52,23 @@ if [ ! -f "$SOURCE_JAR" ]; then
      echo "Found latest fallback JAR: $SOURCE_JAR"
 fi
 
-# 2. 确保远程 NAS 目录存在
+# 2. 确保远程服务器部署目录存在
 echo "Ensuring remote directory exists ($REMOTE_DIR)..."
-ssh -p "$NAS_PORT" "$NAS_USER@$NAS_HOST" "mkdir -p '$REMOTE_DIR'"
+ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$REMOTE_DIR'"
 
 # 3. Copy JAR file and Deployment configs via SCP
-echo "Copying JAR file and deployment configurations to $NAS_USER@$NAS_HOST:$REMOTE_DIR..."
-scp -O -P "$NAS_PORT" "$SOURCE_JAR" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/$REMOTE_JAR"
+echo "Copying JAR file and deployment configurations to $DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR..."
+scp -O -P "$DEPLOY_PORT" "$SOURCE_JAR" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/$REMOTE_JAR"
 if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
-    scp -O -P "$NAS_PORT" "$SCRIPT_DIR/docker-compose.yml" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/docker-compose.yml"
+    scp -O -P "$DEPLOY_PORT" "$SCRIPT_DIR/docker-compose.yml" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/docker-compose.yml"
 fi
 if [ -f "$SCRIPT_DIR/Dockerfile" ]; then
-    scp -O -P "$NAS_PORT" "$SCRIPT_DIR/Dockerfile" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/Dockerfile"
+    scp -O -P "$DEPLOY_PORT" "$SCRIPT_DIR/Dockerfile" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/Dockerfile"
 fi
 if [ -f "$ROOT_DIR/.env" ]; then
-    scp -O -P "$NAS_PORT" "$ROOT_DIR/.env" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/.env"
+    scp -O -P "$DEPLOY_PORT" "$ROOT_DIR/.env" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/.env"
 elif [ -f "$SCRIPT_DIR/.env" ]; then
-    scp -O -P "$NAS_PORT" "$SCRIPT_DIR/.env" "$NAS_USER@$NAS_HOST:$REMOTE_DIR/.env"
+    scp -O -P "$DEPLOY_PORT" "$SCRIPT_DIR/.env" "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_DIR/.env"
 fi
 
 if [ $? -eq 0 ]; then
@@ -81,8 +81,8 @@ fi
 # 3. Execute remote commands via SSH
 echo "Executing remote deployment commands..."
 # Use -tt to force TTY allocation for sudo password prompt
-ssh -tt -p "$NAS_PORT" "$NAS_USER@$NAS_HOST" "
-    # Add common paths for Synology NAS
+ssh -tt -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
+    # Add common binary paths
     export PATH=\$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/packages/Docker/target/usr/bin
 
     cd $REMOTE_DIR || exit 1
@@ -100,7 +100,7 @@ ssh -tt -p "$NAS_PORT" "$NAS_USER@$NAS_HOST" "
     elif docker compose version &> /dev/null; then
         DOCKER_COMPOSE_CMD=\"\$SUDO_PREFIX docker compose\"
     else
-        # Try direct path for Synology
+        # Try direct path fallback
         if [ -f /usr/local/bin/docker-compose ]; then
             DOCKER_COMPOSE_CMD=\"\$SUDO_PREFIX /usr/local/bin/docker-compose\"
         else
@@ -122,7 +122,7 @@ if [ $DEPLOY_EXIT_CODE -eq 0 ]; then
 else
     echo "----------------------------------------"
     echo "❌ Error: Remote deployment failed (Exit Code: $DEPLOY_EXIT_CODE)."
-    echo "If sudo timed out, please ensure you are ready to input the NAS password."
+    echo "If sudo timed out, please ensure you are ready to input the remote user password."
     echo "----------------------------------------"
     exit $DEPLOY_EXIT_CODE
 fi

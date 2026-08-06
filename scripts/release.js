@@ -374,8 +374,8 @@ async function main() {
 
   console.log(colors.bold('\n[4/4] 发版流程全部完成！🎉'));
   console.log(`全工程现已升级为版本: ${colors.green('v' + targetVersion)}`);
-  console.log(`提示：发版与打包部署完全独立。如需上传并部署到 NAS，请运行命令：`);
-  console.log(`      ${colors.cyan('npm run deploy:nas')}`);
+  console.log(`提示：发版与打包部署完全独立。如需上传并部署到远程服务器，请运行命令：`);
+  console.log(`      ${colors.cyan('npm run deploy')}`);
 
   process.exit(0);
 }
