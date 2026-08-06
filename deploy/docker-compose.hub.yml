@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # HelloDoc PostgreSQL 数据库
+  hellodoc-db:
+    image: postgres:15-alpine
+    container_name: hellodoc-db
+    restart: always
+    environment:
+      POSTGRES_DB: hellodoc
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hellodoc_password_123}
+      TZ: Asia/Shanghai
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+
+  # HelloDoc Web/后端 统一容器服务 (来自 Docker Hub)
+  hellodoc:
+    image: ${DOCKER_IMAGE:-aladdin0414/hellodoc:latest}
+    container_name: hellodoc
+    restart: always
+    depends_on:
+      - hellodoc-db
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - DB_URL=jdbc:postgresql://hellodoc-db:5432/hellodoc
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-hellodoc_password_123}
+      - JWT_SECRET=${JWT_SECRET:-your_custom_jwt_secret_must_be_long_enough_string}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - TZ=Asia/Shanghai
