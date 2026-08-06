@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.0.8] - 2026-08-06
+
+- refactor: simplify database initialization logic in DatabaseInitializer
+- feat: add host gateway mapping and simplify database environment variable configuration
+- feat: optimize deployment SSH/SCP performance with connection multiplexing and key authentication support
+- chore: improve error handling, add build suggestions, and optimize deployment script in deploy.sh
+- refactor: rename NAS configuration variables to generic DEPLOY variables and update deployment commands
+- docs: update deployment instructions in README
+- docs: update project description and setup instructions in README
+
 All notable changes to HelloDoc will be documented in this file.
 
 ## [v2.0.7] - 2026-08-06
