@@ -11,11 +11,11 @@ SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
 
 --
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
@@ -90,22 +90,6 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
---
--- Name: flyway_schema_history; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.flyway_schema_history (
-    installed_rank integer NOT NULL,
-    version character varying(50),
-    description character varying(200) NOT NULL,
-    type character varying(20) NOT NULL,
-    script character varying(1000) NOT NULL,
-    checksum integer,
-    installed_by character varying(100) NOT NULL,
-    installed_on timestamp without time zone DEFAULT now() NOT NULL,
-    execution_time integer NOT NULL,
-    success boolean NOT NULL
-);
 
 
 --
@@ -2810,12 +2794,7 @@ ALTER TABLE ONLY public.sys_user ALTER COLUMN id SET DEFAULT nextval('public.sys
 ALTER TABLE ONLY public.sys_user_auth ALTER COLUMN id SET DEFAULT nextval('public.sys_user_auth_id_seq'::regclass);
 
 
---
--- Name: flyway_schema_history flyway_schema_history_pk; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.flyway_schema_history
-    ADD CONSTRAINT flyway_schema_history_pk PRIMARY KEY (installed_rank);
 
 
 --
@@ -3098,11 +3077,7 @@ ALTER TABLE ONLY public.kb_doc_permission
     ADD CONSTRAINT uniq_doc_permission UNIQUE (doc_id, target_type, target_id);
 
 
---
--- Name: flyway_schema_history_s_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX flyway_schema_history_s_idx ON public.flyway_schema_history USING btree (success);
 
 
 --
@@ -3956,11 +3931,12 @@ ALTER TABLE ONLY public.sys_dict_data
 -- Initial Data Seeding (基础角色与基础系统配置)
 --
 
-INSERT INTO public.sys_role (role_name, role_code, sort, status, create_time)
+INSERT INTO public.sys_role (role_name, role_code, status, create_time)
 VALUES 
-  ('管理员', 'admin', 1, 0, CURRENT_TIMESTAMP),
-  ('普通用户', 'user', 2, 0, CURRENT_TIMESTAMP)
+  ('管理员', 'admin', 0, CURRENT_TIMESTAMP),
+  ('普通用户', 'user', 0, CURRENT_TIMESTAMP)
 ON CONFLICT (role_code) DO NOTHING;
+
 
 INSERT INTO public.sys_config (config_name, config_key, config_value, value_type, description, config_group, is_system, is_frontend, status, config_name_i18n, description_i18n)
 VALUES 

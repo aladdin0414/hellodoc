@@ -5,10 +5,13 @@
   "description": "HelloDoc monorepo workspace",
   "scripts": {
     "dev": "bash dev.sh",
+    "dev:server": "bash -c 'set -a; [ -f .env ] && source .env; set +a; cd hellodoc-server && ./gradlew bootRun'",
+    "dev:client": "cd hellodoc-client && npm run dev",
     "build": "bash build.sh",
     "release": "node scripts/release.js",
     "deploy": "bash deploy/deploy.sh",
     "build:deploy": "npm run build && npm run deploy",
     "sync": "bash update-deploy.sh"
   }
+
 }

@@ -56,20 +56,16 @@ npm install
 npm run dev
 ```
 
-#### (3) 分别单独启动后端服务 (`hellodoc-server`)
+#### (3) 单独启动后端服务 (`hellodoc-server`)
 ```bash
+# 根目录下直接运行 (会自动自动加载根目录 .env 环境变量并启动后端)
+npm run dev:server
+
+# 或进入后端目录手动启动
 cd hellodoc-server
-
-# 通过环境变量配置数据库连接信息（如未修改根目录 .env，bootRun 会读取默认环境变量）
-export DB_URL=jdbc:postgresql://localhost:5432/hellodoc
-export DB_USERNAME=postgres
-export DB_PASSWORD=<your-db-password>
-export JWT_SECRET=<your-64-byte-secret>
-export ADMIN_PASSWORD=<your-admin-password>
-
-# 编译并运行
 ./gradlew bootRun
 ```
+
 
 #### (4) 启动前端服务 (`hellodoc-client`)
 ```bash

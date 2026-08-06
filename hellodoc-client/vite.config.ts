@@ -30,6 +30,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, envDir, '')
   const apiTarget = env.VITE_API_TARGET || 'http://localhost:8080'
   const wsTarget = env.VITE_WS_TARGET || 'ws://localhost:8080'
+  console.log(`[Vite Proxy Target] => apiTarget: ${apiTarget}, wsTarget: ${wsTarget}`)
+
 
   return {
     envDir,

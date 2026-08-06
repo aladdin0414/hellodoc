@@ -115,9 +115,13 @@ public class DatabaseInitializer {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         String trimmedLine = line.trim();
-                        if (!trimmedLine.startsWith("\\") && !trimmedLine.toLowerCase().startsWith("set transaction_timeout")) {
+                        if (!trimmedLine.startsWith("\\") &&
+                            !trimmedLine.toLowerCase().startsWith("set transaction_timeout")) {
                             processedSql.append(line).append("\n");
                         }
+
+
+
                     }
                 }
 
@@ -125,10 +129,12 @@ public class DatabaseInitializer {
                     ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
                     byte[] sqlBytes = processedSql.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     populator.addScript(new org.springframework.core.io.ByteArrayResource(sqlBytes));
-                    populator.setSeparator(ScriptUtils.EOF_STATEMENT_SEPARATOR);
+                    populator.setSeparator(";\n");
                     populator.populate(bootstrapConn);
                 }
                 logger.info("数据库 schema.sql 导入完成");
+
+
             } else {
                 logger.warn("未找到 schema.sql 文件，跳过表结构初始化");
             }
@@ -140,28 +146,29 @@ public class DatabaseInitializer {
     }
 
     /**
-     * 判断 public schema 是否为空（是否有业务表）
+     * 判断业务表结构是否未初始化（检查核心业务表 sys_user 是否存在）
      */
     private boolean isPublicSchemaEmpty() {
         String query = "SELECT COUNT(*) FROM information_schema.tables " +
-                "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'";
+                "WHERE table_schema = 'public' AND table_name = 'sys_user'";
 
         try (Connection conn = DriverManager.getConnection(datasourceUrl, username, password);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(query)) {
 
             if (rs.next()) {
-                long tableCount = rs.getLong(1);
-                logger.info("当前数据库 public schema 表数量: {}", tableCount);
-                return tableCount == 0;
+                long count = rs.getLong(1);
+                logger.info("检查核心业务表 sys_user 结果 count = {}", count);
+                return count == 0;
             }
 
             return true;
         } catch (Exception e) {
-            logger.error("检查数据库是否为空失败", e);
-            throw new RuntimeException("检查数据库是否为空失败: " + e.getMessage(), e);
+            logger.error("检查业务表结构是否存在失败", e);
+            throw new RuntimeException("检查业务表结构是否存在失败: " + e.getMessage(), e);
         }
     }
+
 
     /**
      * 创建管理员账户
@@ -174,13 +181,15 @@ public class DatabaseInitializer {
         }
 
         try {
-            if (userService.getUserByUsername("admin").isPresent()) {
-                logger.info("管理员账户 'admin' 已存在");
-                return;
-            }
-
             if (!StringUtils.hasText(adminPassword)) {
                 throw new IllegalStateException("admin.password 未配置，请通过 ADMIN_PASSWORD 环境变量显式提供初始管理员密码");
+            }
+
+            var existingAdmin = userService.getUserByUsername("admin");
+            if (existingAdmin.isPresent()) {
+                userService.resetPassword(existingAdmin.get().getId(), adminPassword);
+                logger.info("管理员账户 'admin' 密码已成功与 ADMIN_PASSWORD 环境变量同步更新");
+                return;
             }
 
             SysUser adminUser = new SysUser();
@@ -192,8 +201,9 @@ public class DatabaseInitializer {
             logger.info("管理员账户创建成功: username=admin");
 
         } catch (Exception e) {
-            logger.error("创建管理员账户失败", e);
-            throw new RuntimeException("创建管理员账户失败: " + e.getMessage(), e);
+            logger.error("创建/同步管理员账户失败", e);
+            throw new RuntimeException("创建/同步管理员账户失败: " + e.getMessage(), e);
         }
     }
+
 }
