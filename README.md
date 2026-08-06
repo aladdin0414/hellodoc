@@ -37,7 +37,15 @@ cd <your-repo-dir>
 cp .env.example .env
 ```
 
-#### (2) 启动后端服务 (`hellodoc-server`)
+#### (2) 一键启动前后端服务 (推荐)
+```bash
+# 读取根目录 .env 文件并一键同时启动后端 (hellodoc-server) 与前端 (hellodoc-client)
+./dev.sh
+# 或者
+npm run dev
+```
+
+#### (3) 分别单独启动后端服务 (`hellodoc-server`)
 ```bash
 cd hellodoc-server
 
