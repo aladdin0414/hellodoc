@@ -17,13 +17,14 @@ npm run build
 
 ## 环境变量
 
-复制环境模板并按需调整：
+前端已接入根目录全栈统一配置，开发时请在**项目根目录**的 `.env` 文件中按需调整（模板可参考根目录 `.env.example`）：
 
 ```bash
-cp .env.example .env.development
+# 项目根目录下
+cp .env.example .env
 ```
 
-关键变量：
+关键前端配置项：
 
 | 变量名 | 说明 | 默认值 |
 | :--- | :--- | :--- |
@@ -33,4 +34,6 @@ cp .env.example .env.development
 ## 说明
 
 - 本模块为 HelloDoc 的 Web 前端客户端。
+- Vite 已配置 `envDir` 读取项目根目录 `.env`。
 - 生产构建产物会由根目录构建脚本同步到后端静态资源目录。
+

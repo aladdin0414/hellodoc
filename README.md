@@ -123,6 +123,8 @@ npm run deploy
 | `OPENAI_API_KEY` | 否 | OpenAI API Key (开启 AI 文档/问答助手功能) | - |
 | `OPENAI_BASE_URL` | 否 | OpenAI API Proxy/Base URL | `https://api.openai.com/v1` |
 | `OPENAI_MODEL` | 否 | 使用的大模型名称 | `gpt-4o` |
+| `VITE_API_TARGET` | 否 | 前端开发服务代理的目标 API 地址 | `http://localhost:8080` |
+| `VITE_WS_TARGET` | 否 | 前端开发服务代理的目标 WebSocket 地址 | `ws://localhost:8080` |
 
 ---
 

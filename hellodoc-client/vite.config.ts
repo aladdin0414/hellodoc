@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import VueDevTools from 'vite-plugin-vue-devtools'
+import path from 'path'
 
 // 自动在终端打印移动端 H5 快捷访问 URL 的插件
 const mobileUrlPlugin = () => {
@@ -25,11 +26,13 @@ import packageJson from './package.json'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  const envDir = path.resolve(__dirname, '..')
+  const env = loadEnv(mode, envDir, '')
   const apiTarget = env.VITE_API_TARGET || 'http://localhost:8080'
   const wsTarget = env.VITE_WS_TARGET || 'ws://localhost:8080'
 
   return {
+    envDir,
     define: {
       __APP_VERSION__: JSON.stringify(packageJson.version),
       __BUILD_TIME__: JSON.stringify(new Date().toLocaleString('zh-CN', { hour12: false }))
