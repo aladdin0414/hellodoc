@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.0.9] - 2026-08-07
+
+- feat(mobile): 优化移动端知识库页面交互与缓存体验
+
 ## [v2.0.8] - 2026-08-06
 
 - refactor: simplify database initialization logic in DatabaseInitializer
