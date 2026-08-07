@@ -54,7 +54,7 @@ description: Compare git main branch against the latest tag (or specified base t
 ### 🚀 新特性与优化 (Features & Enhancements)
 
 * **<模块/主题 1>**
-  * <具体的改动说明，保留英文技术术语，重要文件加行内代码>
+  * <具体的改动说明，保留英文技术术语，重要组件或文件名使用行内代码如 `DocTreeNode`，切勿包含本地绝对路径 `file:///...`>
   * <具体的改动说明>
 
 * **<模块/主题 2>**
