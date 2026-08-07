@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.0.10] - 2026-08-07
+
+- test: 更改构建发布的docker hub账户
+- docs: update release notes generator skill documentation
+
 ## [v2.0.9] - 2026-08-07
 
 - feat(mobile): 优化移动端知识库页面交互与缓存体验
