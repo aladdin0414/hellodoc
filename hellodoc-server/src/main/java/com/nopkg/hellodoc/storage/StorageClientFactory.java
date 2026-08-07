@@ -36,19 +36,19 @@ public class StorageClientFactory {
             try {
                 Files.createDirectories(root);
             } catch (Exception e) {
-                throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "创建本地存储目录失败: " + e.getMessage());
+                throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("legacy.storage.local_dir_create_failed", e.getMessage()));
             }
             return new LocalStorageClient(root, storageUrlSigner);
         }
         if (provider == StorageProvider.S3 || provider == StorageProvider.MINIO) {
             if (!StringUtils.hasText(config.getBucket())) {
-                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "bucket 不能为空");
+                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("legacy.field.required", "bucket"));
             }
             if (!StringUtils.hasText(config.getAccessKeyId())) {
-                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "accessKeyId 不能为空");
+                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("legacy.field.required", "accessKeyId"));
             }
             if (!StringUtils.hasText(config.getSecretKeyEncrypted())) {
-                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "secretKey 不能为空");
+                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("legacy.field.required", "secretKey"));
             }
             String secretKey = secretCrypto.decrypt(config.getSecretKeyEncrypted());
             if (!StringUtils.hasText(secretKey)) {
@@ -63,6 +63,6 @@ public class StorageClientFactory {
                     secretKey
             );
         }
-        throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "暂不支持的存储提供商: " + provider.getCode());
+        throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("legacy.storage.unsupported_provider", provider.getCode()));
     }
 }

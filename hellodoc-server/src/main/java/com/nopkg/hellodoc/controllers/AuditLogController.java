@@ -21,13 +21,13 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@Tag(name = "审计日志", description = "审计日志查询接口")
+@Tag(name = "Audit Logs", description = "Audit log query APIs")
 public class AuditLogController {
 
     private final AuditLogService auditLogService;
 
     @GetMapping("/audit-logs")
-    @Operation(summary = "全部日志", description = "管理员查看全部审计日志")
+    @Operation(summary = "All logs", description = "Admin query for all audit logs")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<Page<AuditLogVO>> getAll(@RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "20") int pageSize) {
@@ -36,7 +36,7 @@ public class AuditLogController {
     }
 
     @GetMapping("/audit-logs/user/{userId}")
-    @Operation(summary = "用户日志", description = "按用户查询审计日志")
+    @Operation(summary = "User logs", description = "Query audit logs by user ID")
     @PreAuthorize("hasRole('admin') or #userId == authentication.principal.id")
     public ApiResponse<Page<AuditLogVO>> getByUser(@PathVariable Long userId,
             @RequestParam(defaultValue = "1") int pageNum,
@@ -46,7 +46,7 @@ public class AuditLogController {
     }
 
     @GetMapping("/kb/{kbId}/audit-logs")
-    @Operation(summary = "知识库日志", description = "按知识库查询审计日志")
+    @Operation(summary = "Knowledge Base logs", description = "Query audit logs by Knowledge Base ID")
     @RequireKbRole(KbRole.VIEWER)
     public ApiResponse<Page<AuditLogVO>> getByKb(@PathVariable Long kbId,
             @RequestParam(defaultValue = "1") int pageNum,
@@ -57,7 +57,7 @@ public class AuditLogController {
     }
 
     @GetMapping("/docs/{docId}/audit-logs")
-    @Operation(summary = "文档日志", description = "按文档查询审计日志")
+    @Operation(summary = "Document logs", description = "Query audit logs by Document ID")
     @RequireDocRole(DocRole.VIEWER)
     public ApiResponse<Page<AuditLogVO>> getByDoc(@PathVariable Long docId,
             @RequestParam(defaultValue = "1") int pageNum,

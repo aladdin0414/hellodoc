@@ -38,31 +38,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 username = jwtTokenProvider.getUsernameFromToken(token);
             } catch (JwtException e) {
-                sendOAuthError(response, "invalid_token", "无效的 JWT token", false);
+                sendOAuthError(response, "invalid_token", com.nopkg.hellodoc.utils.MessageUtils.get("api.code.TOKEN_INVALID"), false);
                 return;
             }
 
             // 1. Token 解析失败
             if (username == null) {
-                sendOAuthError(response, "invalid_token", "无效的 JWT token", false);
+                sendOAuthError(response, "invalid_token", com.nopkg.hellodoc.utils.MessageUtils.get("api.code.TOKEN_INVALID"), false);
                 return;
             }
 
             // 2. Token 过期 → 返回 OAuth2 标准格式，前端会用 refresh_token 自动刷新
             if (jwtTokenProvider.isTokenExpired(token)) {
-                sendOAuthError(response, "invalid_token", "已过期", true);
+                sendOAuthError(response, "invalid_token", com.nopkg.hellodoc.utils.MessageUtils.get("legacy.storage.link_expired"), true);
                 return;
             }
 
             // 3. 其他非法 Token 情况
             if (!jwtTokenProvider.validateTokenStrict(token)) {
-                sendOAuthError(response, "invalid_token", "签名验证失败", false);
+                sendOAuthError(response, "invalid_token", com.nopkg.hellodoc.utils.MessageUtils.get("legacy.storage.invalid_signature"), false);
                 return;
             }
 
             // 4. 限制 Refresh Token 不能直接用于业务 API 认证
             if (jwtTokenProvider.isRefreshToken(token)) {
-                sendOAuthError(response, "invalid_token", "Refresh Token 不能直接用于请求业务 API", false);
+                sendOAuthError(response, "invalid_token", com.nopkg.hellodoc.utils.MessageUtils.get("api.code.TOKEN_TYPE_ERROR"), false);
                 return;
             }
 
@@ -70,7 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 if (!userDetails.isEnabled()) {
-                    sendOAuthError(response, "invalid_token", "账号已被禁用", false);
+                    sendOAuthError(response, "invalid_token", com.nopkg.hellodoc.utils.MessageUtils.get("api.code.ACCOUNT_DISABLED"), false);
                     return;
                 }
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

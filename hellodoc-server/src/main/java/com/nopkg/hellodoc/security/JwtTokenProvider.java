@@ -34,10 +34,10 @@ public class JwtTokenProvider {
     @PostConstruct
     public void validateSecret() {
         if (!StringUtils.hasText(secret)) {
-            throw new IllegalStateException("jwt.secret 不能为空");
+            throw new IllegalStateException("jwt.secret cannot be empty");
         }
         if (secret.getBytes(StandardCharsets.UTF_8).length < 64) {
-            throw new IllegalStateException("jwt.secret 长度不足，HS512 至少需要 64 字节");
+            throw new IllegalStateException("jwt.secret length insufficient, HS512 requires at least 64 bytes");
         }
     }
 
@@ -159,7 +159,7 @@ public class JwtTokenProvider {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         } catch (Exception e) {
-            throw new RuntimeException("无效的 JWT token", e);
+            throw new RuntimeException("Invalid JWT token", e);
         }
     }
 

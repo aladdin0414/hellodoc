@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/docs/{docId}")
 @RequiredArgsConstructor
-@Tag(name = "文档关系", description = "文档链接、反向链接与关系图谱接口")
+@Tag(name = "Document Relations", description = "Document links, backlinks and relationship graph APIs")
 public class DocRelationController {
 
     private final DocRelationService relationService;
@@ -27,7 +27,7 @@ public class DocRelationController {
     }
 
     @GetMapping("/links")
-    @Operation(summary = "引用的文档", description = "获取我引用的文档列表")
+    @Operation(summary = "Referenced documents", description = "List documents referenced by this document")
     @RequireDocRole(DocRole.VIEWER)
     public ApiResponse<List<DocRelationService.DocLinkVO>> links(@PathVariable Long docId) {
         Long userId = currentUserId();
@@ -35,7 +35,7 @@ public class DocRelationController {
     }
 
     @GetMapping("/backlinks")
-    @Operation(summary = "反向链接", description = "获取引用我的文档列表")
+    @Operation(summary = "Backlinks", description = "List documents referencing this document")
     @RequireDocRole(DocRole.VIEWER)
     public ApiResponse<List<DocRelationService.DocLinkVO>> backlinks(@PathVariable Long docId) {
         Long userId = currentUserId();
@@ -43,7 +43,7 @@ public class DocRelationController {
     }
 
     @GetMapping("/graph")
-    @Operation(summary = "关系图谱", description = "获取文档关系图谱")
+    @Operation(summary = "Relationship graph", description = "Get document relationship graph")
     @RequireDocRole(DocRole.VIEWER)
     public ApiResponse<DocRelationService.DocGraphVO> graph(@PathVariable Long docId,
             @RequestParam(defaultValue = "2") int depth) {
@@ -52,7 +52,7 @@ public class DocRelationController {
     }
 
     @PostMapping("/links")
-    @Operation(summary = "手动添加链接", description = "手动创建文档引用关系")
+    @Operation(summary = "Add link manually", description = "Manually create document reference relation")
     @RequireDocRole(DocRole.EDITOR)
     public ApiResponse<Void> createLink(@PathVariable Long docId, @RequestBody CreateLinkRequest request) {
         relationService.createRelation(docId, request.targetDocId(),
@@ -61,7 +61,7 @@ public class DocRelationController {
     }
 
     @DeleteMapping("/links/{targetDocId}")
-    @Operation(summary = "删除链接", description = "删除文档引用关系")
+    @Operation(summary = "Delete link", description = "Delete document reference relation")
     @RequireDocRole(DocRole.EDITOR)
     public ApiResponse<Void> deleteLink(@PathVariable Long docId, @PathVariable Long targetDocId) {
         relationService.removeRelation(docId, targetDocId);

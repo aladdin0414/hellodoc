@@ -24,14 +24,14 @@ import java.nio.file.Paths;
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
-@Tag(name = "文件上传", description = "文件上传下载接口")
+@Tag(name = "File Upload", description = "File upload and download APIs")
 public class FileController {
 
     @Value("${file.upload-dir:./uploads}")
     private String uploadDir;
 
     @GetMapping("/avatars/{filename}")
-    @Operation(summary = "获取头像", description = "获取头像图片")
+    @Operation(summary = "Get avatar", description = "Get user avatar image")
     public ResponseEntity<Resource> getAvatar(@PathVariable String filename) {
 
         try {
@@ -70,7 +70,7 @@ public class FileController {
     }
 
     @GetMapping("/public/proxy-image")
-    @Operation(summary = "代理外部图片", description = "用于浏览器端导出文档时中转外部图片，避免跨域限制")
+    @Operation(summary = "Proxy external image", description = "Proxy external image URL for browser side document export to avoid CORS restriction")
     public ResponseEntity<Resource> proxyImage(@RequestParam("url") String url) {
         try {
             URI uri = URI.create(url.trim());

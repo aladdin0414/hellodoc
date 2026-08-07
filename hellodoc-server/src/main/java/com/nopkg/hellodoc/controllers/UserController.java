@@ -32,7 +32,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@Tag(name = "用户管理", description = "用户增删改查及密码重置")
+@Tag(name = "User Management", description = "User CRUD and password management APIs")
 public class UserController {
 
     private final UserService userService;
@@ -42,7 +42,7 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "获取用户列表", description = "获取所有用户列表")
+    @Operation(summary = "Get user list", description = "Get list of all registered users")
     public ApiResponse<Page<SysUserDetailVO>> listUsers(
             @ParameterObject @ModelAttribute SysUser user,
             @RequestParam(defaultValue = "1") int pageNum,
@@ -52,7 +52,7 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "搜索用户", description = "根据关键字（昵称、姓名、用户名）搜索用户")
+    @Operation(summary = "Search users", description = "Search users by keyword (nickname, real name, username)")
     public ApiResponse<Page<SysUserDetailVO>> searchUsers(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "1") int pageNum,
@@ -62,7 +62,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "获取当前用户", description = "获取当前登录用户的信息")
+    @Operation(summary = "Get current user", description = "Get currently authenticated user info")
     public ApiResponse<UserInfo> getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userService.getUserByUsername(username)
@@ -87,7 +87,7 @@ public class UserController {
     }
 
     @GetMapping("/getUserInfo/{username}")
-    @Operation(summary = "获取用户详情", description = "根据用户名获取用户详情")
+    @Operation(summary = "Get user details", description = "Get user details by username")
     public ApiResponse<UserInfo> getUserInfo(@PathVariable String username) {
         return userService.getUserByUsername(username)
                 .map(user -> {
@@ -112,7 +112,7 @@ public class UserController {
 
     @PostMapping
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "创建用户", description = "创建新用户，支持指定角色（admin/user），密码为空默认为11111")
+    @Operation(summary = "Create user", description = "Create new user with role (admin/user)")
     public ApiResponse<SysUserDetailVO> createUser(@RequestBody CreateUserRequest request) {
         SysUser user = new SysUser();
         user.setNickname(request.nickname());
@@ -128,7 +128,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "更新用户", description = "更新用户信息")
+    @Operation(summary = "Update user", description = "Update user profile and status")
     public ApiResponse<SysUserDetailVO> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
         SysUser user = new SysUser();
         user.setNickname(request.nickname());
@@ -142,7 +142,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "删除用户", description = "删除指定用户")
+    @Operation(summary = "Delete user", description = "Delete specified user")
     public ApiResponse<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ApiResponse.success(null);
@@ -150,7 +150,7 @@ public class UserController {
 
     @PutMapping("/{id}/reset-pwd")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "重置密码", description = "重置用户密码")
+    @Operation(summary = "Reset password", description = "Reset user password")
     public ApiResponse<Void> resetPassword(@PathVariable Long id, @RequestBody String newPassword) {
         userService.resetPassword(id, newPassword);
         return ApiResponse.success(null);
@@ -158,7 +158,7 @@ public class UserController {
 
     @PutMapping("/{id}/init-pwd")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "初始化密码", description = "将用户密码初始化为默认密码 11111")
+    @Operation(summary = "Initialize password", description = "Initialize user password to default 11111")
     public ApiResponse<Void> initPassword(@PathVariable Long id) {
         userService.initPassword(id);
         return ApiResponse.success(null);
@@ -168,7 +168,7 @@ public class UserController {
     }
 
     @PutMapping("/change-pwd")
-    @Operation(summary = "修改密码", description = "用户修改自己的密码")
+    @Operation(summary = "Change password", description = "Change current user password")
     public ApiResponse<Void> changePassword(@RequestBody ChangePasswordRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean success = userService.changePassword(username, request.oldPassword(), request.newPassword());
@@ -183,7 +183,7 @@ public class UserController {
     }
 
     @PutMapping("/profile")
-    @Operation(summary = "更新个人资料", description = "用户更新自己的基本资料")
+    @Operation(summary = "Update profile", description = "Update current user profile info")
     public ApiResponse<Void> updateProfile(@RequestBody UpdateProfileRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         userService.updateProfile(username, request.nickname(), request.realName(), request.email(), request.phone());
@@ -194,7 +194,7 @@ public class UserController {
     }
 
     @PutMapping("/language")
-    @Operation(summary = "更新语言偏好", description = "更新当前用户语言偏好：AUTO/zh-CN/en-US")
+    @Operation(summary = "Update language preference", description = "Update current user language preference: AUTO/zh-CN/en-US")
     public ApiResponse<Void> updateLanguage(@RequestBody UpdateLanguageRequest request) {
         if (request == null || request.languageMode() == null) {
             return ApiResponse.error(ApiResponse.Code.INVALID_REQUEST);
@@ -208,7 +208,7 @@ public class UserController {
     }
 
     @PutMapping("/avatar")
-    @Operation(summary = "更新头像网址", description = "用户更新自己的头像网址")
+    @Operation(summary = "Update avatar URL", description = "Update current user avatar URL")
     public ApiResponse<Void> updateAvatarUrl(@RequestBody UpdateAvatarRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         userService.updateAvatar(username, request.avatar());
@@ -216,7 +216,7 @@ public class UserController {
     }
 
     @PostMapping("/avatar")
-    @Operation(summary = "上传并更新头像", description = "上传头像文件并自动更新个人资料")
+    @Operation(summary = "Upload and update avatar", description = "Upload avatar image file and update profile")
     public ApiResponse<Map<String, String>> uploadAvatar(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ApiResponse.error(ApiResponse.Code.UPLOAD_FILE_REQUIRED);

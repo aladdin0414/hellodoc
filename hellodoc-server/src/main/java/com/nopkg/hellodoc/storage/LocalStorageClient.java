@@ -1,6 +1,7 @@
 package com.nopkg.hellodoc.storage;
 
 import com.nopkg.hellodoc.exceptions.BusinessException;
+import com.nopkg.hellodoc.utils.MessageUtils;
 import com.nopkg.hellodoc.web.ApiResponse;
 
 import java.io.IOException;
@@ -30,7 +31,7 @@ public class LocalStorageClient implements StorageClient {
             Files.copy(is, target, StandardCopyOption.REPLACE_EXISTING);
             return key;
         } catch (IOException e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "本地存储上传失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, MessageUtils.get("legacy.storage.local_upload_failed", e.getMessage()));
         }
     }
 
@@ -40,7 +41,7 @@ public class LocalStorageClient implements StorageClient {
             Path target = resolveKeyToPath(key);
             Files.deleteIfExists(target);
         } catch (IOException e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "本地存储删除失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, MessageUtils.get("legacy.storage.local_delete_failed", e.getMessage()));
         }
     }
 
@@ -70,11 +71,11 @@ public class LocalStorageClient implements StorageClient {
         try {
             Path target = resolveKeyToPath(key);
             if (!Files.exists(target)) {
-                throw new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "文件不存在");
+                throw new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, MessageUtils.get("api.code.RESOURCE_NOT_FOUND"));
             }
             return Files.newInputStream(target);
         } catch (IOException e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "读取本地文件失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, MessageUtils.get("legacy.storage.local_read_failed", e.getMessage()));
         }
     }
 
@@ -83,7 +84,7 @@ public class LocalStorageClient implements StorageClient {
         String normalized = k.startsWith("/") ? k.substring(1) : k;
         Path p = rootDir.resolve(normalized).normalize();
         if (!p.startsWith(rootDir.normalize())) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "非法的存储键");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, MessageUtils.get("legacy.storage.invalid_key"));
         }
         return p;
     }

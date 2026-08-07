@@ -14,7 +14,7 @@ export const buildCommonRequestHeaders = (
     const includeAuth = options.includeAuth !== false
 
     if (options.requireAuth && !token) {
-        throw new Error('未登录或登录超时')
+        throw new Error(i18n.global.t('auth.loginExpired') || 'Not logged in or session expired')
     }
     if (includeAuth && token) {
         headers.Authorization = `Bearer ${token}`

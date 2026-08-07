@@ -15,31 +15,31 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "认证管理", description = "用户登录、注册等接口")
+@Tag(name = "Authentication Management", description = "User login, registration and session APIs")
 public class AuthController {
 
     private final AuthService authService;
 
     @PostMapping("/login")
-    @Operation(summary = "用户登录", description = "通过用户名和密码登录，返回 AccessToken 和 RefreshToken")
+    @Operation(summary = "User login", description = "Login with username and password to get AccessToken and RefreshToken")
     public ApiResponse<AuthResponse> login(@RequestBody LoginRequest request) {
         return ApiResponse.success(authService.login(request));
     }
 
     @PostMapping("/refresh-token")
-    @Operation(summary = "刷新 Token", description = "通过 Refresh Token 获取新的 Access Token 和 Refresh Token")
+    @Operation(summary = "Refresh Token", description = "Get new Access Token and Refresh Token via Refresh Token")
     public ApiResponse<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
         return ApiResponse.success(authService.refreshToken(request.getRefreshToken()));
     }
 
     @PostMapping("/register")
-    @Operation(summary = "用户注册", description = "注册新用户")
+    @Operation(summary = "User registration", description = "Register new user account")
     public ApiResponse<SysUser> register(@RequestBody RegisterRequest request) {
         return ApiResponse.success(authService.register(request));
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "用户登出", description = "登出当前用户，使当前 Token 失效")
+    @Operation(summary = "User logout", description = "Logout current user and invalidate active tokens")
     public ApiResponse<Void> logout(@RequestBody(required = false) RefreshTokenRequest request) {
         String username = null;
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();

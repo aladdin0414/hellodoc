@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/docs/{docId}/share")
 @RequiredArgsConstructor
-@Tag(name = "文档分享管理", description = "文档权限及分享链接管理接口")
+@Tag(name = "Document Share Management", description = "Document permission and share link management APIs")
 public class DocShareController {
 
     private final KbDocPermissionService permissionService;
@@ -40,7 +40,7 @@ public class DocShareController {
     }
 
     @GetMapping
-    @Operation(summary = "分享列表", description = "获取文档的所有分享及权限设置")
+    @Operation(summary = "Share list", description = "Get all shares and permission settings for document")
     @RequireDocRole(DocRole.VIEWER)
     public ApiResponse<List<DocPermissionVO>> listPermissions(@PathVariable Long docId) {
         List<KbDocPermission> permissions = permissionService.listPermissions(docId);
@@ -63,7 +63,7 @@ public class DocShareController {
                             avatar = user.getAvatar();
                         }
                     } else if (p.getTargetType() == TargetType.LINK) {
-                        name = "公开链接";
+                        name = com.nopkg.hellodoc.utils.MessageUtils.get("share.public_link", "Public Link");
                     }
 
                     return new DocPermissionVO(p.getId(), p.getTargetType(), p.getTargetId(),
@@ -76,7 +76,7 @@ public class DocShareController {
     }
 
     @PostMapping
-    @Operation(summary = "添加权限", description = "为用户或分组添加文档权限")
+    @Operation(summary = "Add permission", description = "Add document permission for user or group")
     @RequireDocRole(DocRole.EDITOR)
     public ApiResponse<DocPermissionVO> addPermission(@PathVariable Long docId,
             @RequestBody AddPermissionRequest request) {
@@ -109,20 +109,20 @@ public class DocShareController {
     }
 
     @PostMapping("/link")
-    @Operation(summary = "创建分享链接", description = "创建文档公开分享链接")
+    @Operation(summary = "Create share link", description = "Create public share link for document")
     @RequireDocRole(DocRole.EDITOR)
     public ApiResponse<DocPermissionVO> createLink(@PathVariable Long docId, @RequestBody CreateLinkRequest request) {
         KbDocPermission p = permissionService.createShareLink(docId, request.role(), request.expiresAt());
 
         DocPermissionVO response = new DocPermissionVO(p.getId(), p.getTargetType(), null,
-                "公开链接", "", p.getLinkToken(), p.getRole(),
+                com.nopkg.hellodoc.utils.MessageUtils.get("share.public_link", "Public Link"), "", p.getLinkToken(), p.getRole(),
                 p.getExpiresAt() != null ? p.getExpiresAt().toString() : null);
 
         return ApiResponse.success(response);
     }
 
     @DeleteMapping("/{permissionId}")
-    @Operation(summary = "取消分享", description = "删除指定的权限或分享链接")
+    @Operation(summary = "Revoke share", description = "Delete specified permission or share link")
     @RequireDocRole(DocRole.EDITOR)
     public ApiResponse<Void> removePermission(@PathVariable Long docId, @PathVariable Long permissionId) {
         permissionService.removePermission(permissionId);

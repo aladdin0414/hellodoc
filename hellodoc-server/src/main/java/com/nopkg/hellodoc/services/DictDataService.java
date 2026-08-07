@@ -53,9 +53,9 @@ public class DictDataService {
     @CacheEvict(value = "dict", key = "#dictDatum.dictCode")
     public SysDictDatum createDictData(SysDictDatum dictDatum) {
         SysDictType type = dictTypeRepository.findById(dictDatum.getDictType().getId())
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "字典类型不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("dict.type_not_found", "Dictionary type not found")));
         if (dictDataRepository.existsByDictTypeIdAndValue(type.getId(), dictDatum.getValue())) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "该字典类型下已存在相同的字典键值: " + dictDatum.getValue());
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("dict.value_exists", "Dictionary value already exists under this type: ") + dictDatum.getValue());
         }
 
         dictDatum.setDictType(type);
@@ -69,13 +69,13 @@ public class DictDataService {
     @CacheEvict(value = "dict", key = "#dictDatumDetails.dictCode")
     public SysDictDatum updateDictData(Long id, SysDictDatum dictDatumDetails) {
         SysDictDatum dictDatum = dictDataRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "字典数据不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("dict.data_not_found", "Dictionary data not found")));
 
         if (!dictDatum.getValue().equals(dictDatumDetails.getValue()) &&
                 dictDataRepository.existsByDictTypeIdAndValue(dictDatum.getDictType().getId(),
                         dictDatumDetails.getValue())) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR,
-                    "该字典类型下已存在相同的字典键值: " + dictDatumDetails.getValue());
+                    com.nopkg.hellodoc.utils.MessageUtils.get("dict.value_exists", "Dictionary value already exists under this type: ") + dictDatumDetails.getValue());
         }
 
         dictDatum.setLabel(dictDatumDetails.getLabel());

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "系统字典数据", description = "字典数据管理")
+@Tag(name = "System Dictionary Data", description = "Dictionary Data Management APIs")
 @RestController
 @RequestMapping("/api/system/dict/data")
 @RequiredArgsConstructor
@@ -34,14 +34,14 @@ public class DictDataController {
             String remark) {
     }
 
-    @Operation(summary = "根据类型获取字典数据")
+    @Operation(summary = "Get dictionary data by type ID")
     @GetMapping("/type/{typeId}")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<List<DictDataVO>> listByTypeId(@PathVariable Long typeId) {
         return ApiResponse.success(dictDataService.listLocalizedDictDataByType(typeId));
     }
 
-    @Operation(summary = "创建字典数据")
+    @Operation(summary = "Create dictionary data")
     @PostMapping
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<SysDictDatum> create(@RequestBody CreateDictDataRequest request) {
@@ -64,14 +64,14 @@ public class DictDataController {
         return ApiResponse.success(dictDataService.createDictData(dictDatum));
     }
 
-    @Operation(summary = "更新字典数据")
+    @Operation(summary = "Update dictionary data")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<SysDictDatum> update(@PathVariable Long id, @RequestBody SysDictDatum dictDatum) {
         return ApiResponse.success(dictDataService.updateDictData(id, dictDatum));
     }
 
-    @Operation(summary = "删除字典数据")
+    @Operation(summary = "Delete dictionary data")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<Void> delete(@PathVariable Long id) {

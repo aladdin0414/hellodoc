@@ -26,13 +26,13 @@ public class DictTypeService {
 
     public SysDictType getDictType(Long id) {
         return dictTypeRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "字典类型不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("dict.type_not_found", "Dictionary type not found")));
     }
 
     @Transactional
     public SysDictType createDictType(SysDictType dictType) {
         if (dictTypeRepository.existsByDictCode(dictType.getDictCode())) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "字典编码已存在");
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("dict.code_exists", "Dictionary code already exists"));
         }
         dictType.setCreateTime(Instant.now());
         dictType.setUpdateTime(Instant.now());
@@ -60,7 +60,7 @@ public class DictTypeService {
     public void deleteDictType(Long id) {
         SysDictType dictType = getDictType(id);
         if (Boolean.TRUE.equals(dictType.getIsSystem())) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "系统内置字典不可删除");
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("dict.system_dict_cannot_delete", "System built-in dictionary cannot be deleted"));
         }
         dictDataRepository.deleteByDictTypeId(id);
         dictTypeRepository.delete(dictType);

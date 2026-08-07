@@ -17,13 +17,13 @@ public class Sha256PasswordEncoder implements PasswordEncoder {
     @Override
     public String encode(CharSequence rawPassword) {
         if (rawPassword == null) {
-            throw new IllegalArgumentException("rawPassword 不能为空");
+            throw new IllegalArgumentException("rawPassword cannot be null");
         }
         String s = pepper + rawPassword.toString();
         try {
             return DigestUtil.sha256(s, base64);
         } catch (Exception e) {
-            throw new IllegalStateException("SHA-256 加密失败", e);
+            throw new IllegalStateException("SHA-256 encryption failed", e);
         }
     }
 

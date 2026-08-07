@@ -31,7 +31,7 @@ import com.nopkg.hellodoc.utils.ByteArrayMultipartFile;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "附件管理", description = "附件上传与管理接口")
+@Tag(name = "Asset Management", description = "Asset upload and management APIs")
 public class AssetController {
 
     private final AssetService assetService;
@@ -54,7 +54,7 @@ public class AssetController {
 
     @PostMapping("/api/kb/{kbId}/assets")
     @RequireKbRole(com.nopkg.hellodoc.enums.KbRole.EDITOR)
-    @Operation(summary = "上传知识库附件")
+    @Operation(summary = "Upload knowledge base asset")
     public ApiResponse<AssetVO> uploadToKb(
             @PathVariable Long kbId,
             @RequestParam("file") MultipartFile file,
@@ -67,7 +67,7 @@ public class AssetController {
 
     @PostMapping("/api/kb/{kbId}/docs/{docId}/assets")
     @RequireKbRole(com.nopkg.hellodoc.enums.KbRole.EDITOR)
-    @Operation(summary = "上传文档附件")
+    @Operation(summary = "Upload document asset")
     public ApiResponse<AssetVO> uploadToDoc(
             @PathVariable Long kbId,
             @PathVariable Long docId,
@@ -81,32 +81,32 @@ public class AssetController {
 
     @PostMapping("/api/kb/{kbId}/docs/{docId}/assets/from-url")
     @RequireKbRole(com.nopkg.hellodoc.enums.KbRole.EDITOR)
-    @Operation(summary = "从外部URL抓取并作为文档附件上传")
+    @Operation(summary = "Fetch from external URL and upload as document asset")
     public ApiResponse<AssetVO> uploadToDocFromUrl(
             @PathVariable Long kbId,
             @PathVariable Long docId,
             @RequestBody UrlAssetRequest request) {
         String url = request.url();
         if (url == null || url.isBlank()) {
-            return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "URL不能为空");
+            return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "URL cannot be empty");
         }
 
         try {
             URI uri = URI.create(url.trim());
             String scheme = uri.getScheme();
             if (scheme == null || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
-                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "不支持的URL协议");
+                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Unsupported URL protocol");
             }
 
             String host = uri.getHost();
             if (host == null || host.isBlank()) {
-                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "无效的主机名");
+                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Invalid hostname");
             }
 
             InetAddress address = InetAddress.getByName(host);
             if (address.isAnyLocalAddress() || address.isLoopbackAddress()
                     || address.isSiteLocalAddress() || address.isLinkLocalAddress()) {
-                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "禁止访问内网地址");
+                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Access to internal address is restricted");
             }
 
             URLConnection conn = uri.toURL().openConnection();
@@ -116,7 +116,7 @@ public class AssetController {
 
             String contentType = conn.getContentType();
             if (contentType == null || (!contentType.toLowerCase().startsWith("image/") && !contentType.toLowerCase().startsWith("video/"))) {
-                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "只支持抓取图片或视频内容");
+                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Only image or video content is supported");
             }
 
             String path = uri.getPath();
@@ -143,7 +143,7 @@ public class AssetController {
                     buffer.write(data, 0, nRead);
                     totalRead += nRead;
                     if (totalRead > maxSize) {
-                        return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "文件过大，无法抓取");
+                        return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "File is too large to fetch");
                     }
                 }
             }
@@ -155,13 +155,13 @@ public class AssetController {
             KbAsset asset = assetService.uploadAsset(kbId, docId, multipartFile, userId, fileName, null);
             return ApiResponse.success(toVo(asset));
         } catch (Exception e) {
-            return ApiResponse.error(ApiResponse.Code.SYSTEM_ERROR, "抓取URL失败: " + e.getMessage());
+            return ApiResponse.error(ApiResponse.Code.SYSTEM_ERROR, "Failed to fetch URL: " + e.getMessage());
         }
     }
 
     @GetMapping("/api/kb/{kbId}/assets")
     @RequireKbRole(com.nopkg.hellodoc.enums.KbRole.VIEWER)
-    @Operation(summary = "知识库附件列表")
+    @Operation(summary = "Knowledge Base asset list")
     public ApiResponse<List<AssetVO>> listKbAssets(@PathVariable Long kbId) {
         Long userId = currentUserIdOrNull();
         return ApiResponse.success(assetService.getKbAssets(kbId, userId).stream().map(this::toVo).toList());
@@ -169,21 +169,21 @@ public class AssetController {
 
     @GetMapping("/api/docs/{docId}/assets")
     @RequireDocRole(com.nopkg.hellodoc.enums.DocRole.VIEWER)
-    @Operation(summary = "文档附件列表")
+    @Operation(summary = "Document asset list")
     public ApiResponse<List<AssetVO>> listDocAssets(@PathVariable Long docId) {
         Long userId = currentUserIdOrNull();
         return ApiResponse.success(assetService.getDocumentAssets(docId, userId).stream().map(this::toVo).toList());
     }
 
     @GetMapping("/api/assets/{id}")
-    @Operation(summary = "附件详情")
+    @Operation(summary = "Asset details")
     public ApiResponse<AssetVO> getAsset(@PathVariable Long id) {
         Long userId = currentUserIdOrNull();
         return ApiResponse.success(toVo(assetService.getAsset(id, userId)));
     }
 
     @GetMapping("/api/assets/{id}/url")
-    @Operation(summary = "获取附件访问URL")
+    @Operation(summary = "Get asset access URL")
     public ApiResponse<Map<String, String>> getAssetUrl(@PathVariable Long id) {
         Long userId = currentUserIdOrNull();
         String url = assetService.getAssetUrl(id, userId);
@@ -191,7 +191,7 @@ public class AssetController {
     }
 
     @GetMapping("/api/assets/{id}/raw")
-    @Operation(summary = "获取附件原始内容")
+    @Operation(summary = "Get raw asset content")
     public ResponseEntity<Void> getAssetRaw(@PathVariable Long id) {
         String url = assetService.getAssetUrlPublic(id);
         return ResponseEntity.status(HttpStatus.FOUND)
@@ -200,7 +200,7 @@ public class AssetController {
     }
 
     @GetMapping("/api/assets/{id}/download")
-    @Operation(summary = "下载附件")
+    @Operation(summary = "Download asset")
     public ResponseEntity<Resource> downloadAsset(@PathVariable Long id) {
         InputStream is = assetService.getAssetContentPublic(id);
         KbAsset asset = assetService.getAssetPublic(id);
@@ -221,7 +221,7 @@ public class AssetController {
     }
 
     @DeleteMapping("/api/assets/{id}")
-    @Operation(summary = "删除附件")
+    @Operation(summary = "Delete asset")
     public ApiResponse<Void> deleteAsset(@PathVariable Long id) {
         Long userId = currentUserId();
         assetService.deleteAsset(id, userId);

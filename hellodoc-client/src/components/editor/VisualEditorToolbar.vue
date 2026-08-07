@@ -156,7 +156,8 @@ const handleFileChange = (event: Event) => {
                 if (isImage) {
                     htmlContent += `<img src="${url}" />`
                 } else {
-                    const fileName = file?.name || url.split('/').pop()?.split('?')[0] || '文件'
+                    const defaultFileText = t('toolbar.file') || 'File'
+                    const fileName = file?.name || url.split('/').pop()?.split('?')[0] || defaultFileText
                     htmlContent += `<p><a href="${url}" target="_blank" class="file-link">${fileName}</a></p>`
                 }
             })
@@ -351,7 +352,7 @@ defineExpose({ closeDropdowns })
             <div class="relative" v-if="!isPlainTextMode && (showPaperColorButton ?? true)">
                 <button
                     @click="openPaperColorPicker"
-                    :title="'纸张颜色'"
+                    :title="t('toolbar.paperColor')"
                     class="toolbar-btn"
                     :class="{ 'is-active': !!paperBgColor && paperBgColor !== '#ffffff' }"
                 >

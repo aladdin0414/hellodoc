@@ -4,10 +4,10 @@ package com.nopkg.hellodoc.enums;
  * 用户状态枚举
  */
 public enum UserStatus {
-    NORMAL(0, "正常"),
-    FROZEN(1, "冻结"),
-    CANCELLED(2, "注销"),
-    DELETED(3, "删除");
+    NORMAL(0, "Normal"),
+    FROZEN(1, "Frozen"),
+    CANCELLED(2, "Cancelled"),
+    DELETED(3, "Deleted");
 
     private final int code;
     private final String description;

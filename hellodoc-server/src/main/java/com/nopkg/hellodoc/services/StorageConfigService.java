@@ -51,13 +51,13 @@ public class StorageConfigService {
     @Transactional
     public KbStorageConfig create(StorageConfigUpdate dto) {
         if (!StringUtils.hasText(dto.name())) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "name 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.name_required", "name cannot be empty"));
         }
         if (!StringUtils.hasText(dto.provider())) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "provider 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.provider_required", "provider cannot be empty"));
         }
         if (storageConfigRepository.existsByName(dto.name().trim())) {
-            throw new BusinessException(ApiResponse.Code.USERNAME_CONFLICT, "存储配置名称已存在");
+            throw new BusinessException(ApiResponse.Code.USERNAME_CONFLICT, com.nopkg.hellodoc.utils.MessageUtils.get("storage.name_exists", "Storage configuration name already exists"));
         }
 
         StorageProvider provider = StorageProvider.fromCode(dto.provider().trim());
@@ -89,12 +89,12 @@ public class StorageConfigService {
     @Transactional
     public KbStorageConfig update(Long id, StorageConfigUpdate dto) {
         KbStorageConfig existing = storageConfigRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "存储配置不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("storage.config_not_found", "Storage configuration not found")));
 
         if (StringUtils.hasText(dto.name())) {
             String name = dto.name().trim();
             if (!name.equals(existing.getName()) && storageConfigRepository.existsByName(name)) {
-                throw new BusinessException(ApiResponse.Code.USERNAME_CONFLICT, "存储配置名称已存在");
+                throw new BusinessException(ApiResponse.Code.USERNAME_CONFLICT, com.nopkg.hellodoc.utils.MessageUtils.get("storage.name_exists", "Storage configuration name already exists"));
             }
             existing.setName(name);
         }
@@ -125,7 +125,7 @@ public class StorageConfigService {
         if (dto.isActive() != null) {
             existing.setIsActive(dto.isActive());
             if (!Boolean.TRUE.equals(dto.isActive()) && Boolean.TRUE.equals(existing.getIsDefault())) {
-                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "默认配置不能禁用");
+                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.cannot_disable_default", "Default storage configuration cannot be disabled"));
             }
         }
 
@@ -136,9 +136,9 @@ public class StorageConfigService {
     @Transactional
     public void delete(Long id) {
         KbStorageConfig existing = storageConfigRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "存储配置不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("storage.config_not_found", "Storage configuration not found")));
         if (Boolean.TRUE.equals(existing.getIsDefault())) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "默认配置不能删除");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.cannot_delete_default", "Default storage configuration cannot be deleted"));
         }
         storageConfigRepository.delete(existing);
     }
@@ -159,7 +159,7 @@ public class StorageConfigService {
                     // If still none, create a new "Default Local Storage" config
                     OffsetDateTime now = OffsetDateTime.now();
                     KbStorageConfig config = new KbStorageConfig();
-                    config.setName("默认本地存储");
+                    config.setName(com.nopkg.hellodoc.utils.MessageUtils.get("storage.default_local_name", "Default Local Storage"));
                     config.setProvider(StorageProvider.LOCAL.getCode());
                     config.setIsActive(true);
                     config.setIsDefault(true);
@@ -172,9 +172,9 @@ public class StorageConfigService {
     @Transactional
     public void setDefault(Long id) {
         KbStorageConfig target = storageConfigRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "存储配置不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("storage.config_not_found", "Storage configuration not found")));
         if (!Boolean.TRUE.equals(target.getIsActive())) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "不能将未启用的配置设为默认");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.cannot_set_inactive_default", "Inactive storage configuration cannot be set as default"));
         }
 
         storageConfigRepository.findFirstByIsDefaultTrue().ifPresent(cfg -> {
@@ -192,7 +192,7 @@ public class StorageConfigService {
 
     public boolean testConnection(Long id) {
         KbStorageConfig cfg = storageConfigRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "存储配置不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("storage.config_not_found", "Storage configuration not found")));
         StorageProvider provider = StorageProvider.fromCode(cfg.getProvider());
         if (provider == StorageProvider.LOCAL) {
             Path root = Paths.get(uploadDir, "storage");

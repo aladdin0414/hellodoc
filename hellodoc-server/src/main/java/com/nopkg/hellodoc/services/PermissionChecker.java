@@ -25,7 +25,7 @@ public class PermissionChecker {
     public void checkKbRole(Long userId, Long kbId, KbRole requiredRole) {
         if (hasKbRole(userId, kbId, requiredRole))
             return;
-        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "需要知识库角色: " + requiredRole);
+        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, com.nopkg.hellodoc.utils.MessageUtils.get("auth.kb_role_required", "Requires knowledge base role: ") + requiredRole);
     }
 
     public boolean hasKbRole(Long userId, Long kbId, KbRole requiredRole) {
@@ -62,7 +62,7 @@ public class PermissionChecker {
     public void checkDocRole(Long userId, Long docId, DocRole requiredRole) {
         if (hasDocRole(userId, docId, requiredRole))
             return;
-        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "需要文档角色: " + requiredRole);
+        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, com.nopkg.hellodoc.utils.MessageUtils.get("auth.doc_role_required", "Requires document role: ") + requiredRole);
     }
 
     public boolean hasDocRole(Long userId, Long docId, DocRole requiredRole) {

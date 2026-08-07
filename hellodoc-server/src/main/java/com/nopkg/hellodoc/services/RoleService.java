@@ -44,7 +44,7 @@ public class RoleService {
     @Transactional
     public SysRole createRole(SysRole role) {
         if (role.getRoleCode() != null && "SUPER_ADMIN".equalsIgnoreCase(role.getRoleCode())) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "不允许创建 SUPER_ADMIN 角色，请使用 admin");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("role.super_admin_not_allowed", "Creating SUPER_ADMIN role is not allowed, please use admin"));
         }
         role.setCreateTime(Instant.now());
         return roleRepository.save(role);
@@ -55,12 +55,12 @@ public class RoleService {
         return roleRepository.findById(id).map(role -> {
             role.setRoleName(roleDetails.getRoleName());
             if (roleDetails.getRoleCode() != null && "SUPER_ADMIN".equalsIgnoreCase(roleDetails.getRoleCode())) {
-                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "不允许设置 SUPER_ADMIN 角色，请使用 admin");
+                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("role.super_admin_not_allowed", "Creating SUPER_ADMIN role is not allowed, please use admin"));
             }
             role.setRoleCode(roleDetails.getRoleCode());
             role.setStatus(roleDetails.getStatus());
             return roleRepository.save(role);
-        }).orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "角色不存在"));
+        }).orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("role.not_found", "Role not found")));
     }
 
     @Transactional
@@ -77,9 +77,9 @@ public class RoleService {
     public void assignRole(Long userId, Long roleId) {
         // 验证角色和用户存在
         SysRole role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "角色不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("role.not_found", "Role not found")));
         SysUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "用户不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("user.not_found", "User not found")));
 
         SysUserRoleId id = new SysUserRoleId();
         id.setUserId(userId);

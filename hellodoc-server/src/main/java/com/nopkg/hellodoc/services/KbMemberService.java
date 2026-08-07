@@ -29,7 +29,7 @@ public class KbMemberService {
     @Transactional
     public KbKbMember addMember(Long operatorId, Long kbId, Long targetUserId, KbRole role) {
         if (kbId == null) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "kbId 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("kb.id_cannot_be_empty", "kbId cannot be empty"));
         }
         KbKnowledgeBase kb = kbRepository.findById(kbId)
                 .orElseThrow(() -> new ResourceNotFoundException("KnowledgeBase", kbId));

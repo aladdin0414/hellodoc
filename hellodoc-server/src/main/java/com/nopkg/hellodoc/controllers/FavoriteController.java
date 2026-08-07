@@ -15,34 +15,34 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/docs")
 @RequiredArgsConstructor
-@Tag(name = "收藏管理", description = "文档收藏与取消收藏接口")
+@Tag(name = "Favorite Management", description = "Document favorite and unfavorite APIs")
 public class FavoriteController {
 
     private final FavoriteService favoriteService;
     private final KbService kbService;
 
     @GetMapping("/favorites")
-    @Operation(summary = "获取收藏列表", description = "获取当前用户的收藏文档列表")
+    @Operation(summary = "List favorites", description = "Get favorite documents for current user")
     public ApiResponse<List<FavoriteVO>> getFavorites() {
         return ApiResponse.success(favoriteService.getFavorites(currentUserId()));
     }
 
     @PostMapping("/{docId}/favorite")
-    @Operation(summary = "切换收藏状态", description = "添加或取消文档收藏")
+    @Operation(summary = "Toggle favorite status", description = "Add or remove document favorite")
     public ApiResponse<Void> toggleFavorite(@PathVariable Long docId) {
         favoriteService.toggleFavorite(currentUserId(), docId);
         return ApiResponse.success(null);
     }
 
     @DeleteMapping("/{docId}/favorite")
-    @Operation(summary = "移除收藏", description = "将文档从收藏列表中移除")
+    @Operation(summary = "Remove favorite", description = "Remove document from favorite list")
     public ApiResponse<Void> removeFavorite(@PathVariable Long docId) {
         favoriteService.removeFavorite(currentUserId(), docId);
         return ApiResponse.success(null);
     }
 
     @GetMapping("/{docId}/favorite")
-    @Operation(summary = "检查是否已收藏", description = "检查指定文档是否已被当前用户收藏")
+    @Operation(summary = "Check favorite status", description = "Check if specific document is favorited by current user")
     public ApiResponse<Boolean> isFavorite(@PathVariable Long docId) {
         return ApiResponse.success(favoriteService.isFavorite(currentUserId(), docId));
     }

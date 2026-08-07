@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/kb/{kbId}/members")
 @RequiredArgsConstructor
-@Tag(name = "知识库成员管理", description = "知识库协作成员管理接口")
+@Tag(name = "Knowledge Base Member Management", description = "Knowledge base collaborator management APIs")
 public class KbMemberController {
 
     private final KbMemberService memberService;
@@ -43,7 +43,7 @@ public class KbMemberController {
     }
 
     @GetMapping
-    @Operation(summary = "成员列表", description = "获取知识库成员列表")
+    @Operation(summary = "Member list", description = "Get list of members in knowledge base")
     @RequireKbRole(KbRole.VIEWER)
     public ApiResponse<List<KbMemberVO>> listMembers(@PathVariable Long kbId) {
         List<KbKbMember> members = memberService.listMembers(kbId);
@@ -63,7 +63,7 @@ public class KbMemberController {
     }
 
     @PostMapping
-    @Operation(summary = "添加成员", description = "添加知识库协作成员")
+    @Operation(summary = "Add member", description = "Add collaborator to knowledge base")
     @RequireKbRole(KbRole.ADMIN)
     public ApiResponse<KbMemberVO> addMember(@PathVariable Long kbId, @RequestBody AddMemberRequest request) {
         Long operatorId = currentUserId();
@@ -86,7 +86,7 @@ public class KbMemberController {
     }
 
     @PutMapping("/{userId}")
-    @Operation(summary = "修改角色", description = "修改知识库成员角色")
+    @Operation(summary = "Update member role", description = "Update role of knowledge base member")
     @RequireKbRole(KbRole.ADMIN)
     public ApiResponse<KbMemberVO> updateMember(@PathVariable Long kbId, @PathVariable Long userId,
             @RequestBody UpdateMemberRequest request) {
@@ -102,7 +102,7 @@ public class KbMemberController {
     }
 
     @DeleteMapping("/{userId}")
-    @Operation(summary = "移除成员", description = "移除知识库成员")
+    @Operation(summary = "Remove member", description = "Remove member from knowledge base")
     @RequireKbRole(KbRole.ADMIN)
     public ApiResponse<Void> removeMember(@PathVariable Long kbId, @PathVariable Long userId) {
         Long operatorId = currentUserId();
@@ -111,7 +111,7 @@ public class KbMemberController {
     }
 
     @PostMapping("/leave")
-    @Operation(summary = "主动退出", description = "主动退出知识库")
+    @Operation(summary = "Leave knowledge base", description = "Leave knowledge base voluntarily")
     public ApiResponse<Void> leave(@PathVariable Long kbId) {
         Long operatorId = currentUserId();
         memberService.removeMember(operatorId, kbId, operatorId);

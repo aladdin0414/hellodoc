@@ -69,28 +69,19 @@ public class AiService {
         String dbValue = configService.getConfigValue("ai.openai.agent");
         String agent = StringUtils.hasText(dbValue) ? dbValue : aiProperties.getAgent();
         if (!StringUtils.hasText(agent)) {
-            return "你是一个专业的AI助手。请以规范的 Github-flavored markdown (GFM) 格式直接输出回复内容。请遵循以下规则：\n" +
-                   "1. 不要包含任何多余的客套话（如“好的，这是为您生成的……”）、前言、过渡句或自我介绍，直接输出正文内容。\n" +
-                   "2. 结构合理，使用规范的标题层级（#、## 等，且 # 后必须有且仅有一个空格）。\n" +
-                   "3. 代码必须使用标准的 Markdown 代码围栏（```）包裹，并显式指定编程语言标识（如 ```javascript）。\n" +
-                   "4. 表格、列表和块引用前后需各留空行，以保证渲染正常。\n" +
-                   "5. 不要输出非标准的文本控制标签。";
+            return "You are a professional AI assistant. Please output response content directly using standard Github-flavored markdown (GFM) format. Please adhere to the following rules:\n" +
+                   "1. Do not include extraneous pleasantries, prefaces, transitions, or self-introductions. Output main content directly.\n" +
+                   "2. Ensure proper structure using standard heading hierarchy (#, ##, etc., with exactly one space after #).\n" +
+                   "3. Code must be wrapped in standard Markdown code blocks (```) with explicit language identifiers.\n" +
+                   "4. Tables, lists, and blockquotes must have blank lines before and after to ensure clean rendering.\n" +
+                   "5. Do not output non-standard text control tags.";
         }
         return agent;
     }
 
     private String buildUserContent(String context, String prompt, String lang) {
-        boolean isEn = false;
-        if (StringUtils.hasText(lang)) {
-            isEn = lang.toLowerCase().startsWith("en");
-        } else {
-            java.util.Locale currentLocale = org.springframework.context.i18n.LocaleContextHolder.getLocale();
-            if (currentLocale != null && "en".equalsIgnoreCase(currentLocale.getLanguage())) {
-                isEn = true;
-            }
-        }
-        String promptLabel = isEn ? "Instruction: " : "指令：";
-        String contextLabel = isEn ? "Text Context: " : "文本：";
+        String promptLabel = "Instruction: ";
+        String contextLabel = "Text Context: ";
         return promptLabel + prompt + "\n\n" + contextLabel + context;
     }
 
@@ -149,12 +140,12 @@ public class AiService {
             }
             throw new com.nopkg.hellodoc.exceptions.BusinessException(com.nopkg.hellodoc.web.ApiResponse.Code.SYSTEM_ERROR, "AI response parsing failed or empty choices.");
         } catch (org.springframework.web.client.RestClientResponseException e) {
-            String errorMsg = "AI API 响应异常: " + e.getStatusCode();
+            String errorMsg = "AI API response exception: " + e.getStatusCode();
             try {
                 String responseBody = e.getResponseBodyAsString();
                 JsonNode errorNode = objectMapper.readTree(responseBody);
                 if (errorNode.has("error") && errorNode.get("error").has("message")) {
-                    errorMsg = "AI 服务提示: " + errorNode.get("error").get("message").asText();
+                    errorMsg = "AI service notice: " + errorNode.get("error").get("message").asText();
                 }
             } catch (Exception parseEx) {
                 // ignore
@@ -217,12 +208,12 @@ public class AiService {
                 if (errorStream != null) {
                     errorBody = new String(errorStream.readAllBytes(), StandardCharsets.UTF_8);
                 }
-                String errorMsg = "AI API 响应异常: " + statusCode;
+                String errorMsg = "AI API response exception: " + statusCode;
                 if (StringUtils.hasText(errorBody)) {
                     try {
                         JsonNode errorNode = objectMapper.readTree(errorBody);
                         if (errorNode.has("error") && errorNode.get("error").has("message")) {
-                            errorMsg = "AI 服务提示: " + errorNode.get("error").get("message").asText();
+                            errorMsg = "AI service notice: " + errorNode.get("error").get("message").asText();
                         }
                     } catch (Exception ignored) {
                         // ignore parse error

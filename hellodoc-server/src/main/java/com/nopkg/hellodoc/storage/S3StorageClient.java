@@ -1,6 +1,7 @@
 package com.nopkg.hellodoc.storage;
 
 import com.nopkg.hellodoc.exceptions.BusinessException;
+import com.nopkg.hellodoc.utils.MessageUtils;
 import com.nopkg.hellodoc.web.ApiResponse;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -34,13 +35,13 @@ public class S3StorageClient implements StorageClient {
             String accessKeyId,
             String secretKey) {
         if (bucket == null || bucket.isBlank()) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "bucket 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, MessageUtils.get("legacy.field.required", "bucket"));
         }
         if (accessKeyId == null || accessKeyId.isBlank()) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "accessKeyId 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, MessageUtils.get("legacy.field.required", "accessKeyId"));
         }
         if (secretKey == null || secretKey.isBlank()) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "secretKey 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, MessageUtils.get("legacy.field.required", "secretKey"));
         }
         this.bucket = bucket;
 
@@ -85,7 +86,7 @@ public class S3StorageClient implements StorageClient {
             s3.putObject(req, RequestBody.fromBytes(bytes));
             return key;
         } catch (Exception e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "S3 上传失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, MessageUtils.get("legacy.storage.s3_upload_failed", e.getMessage()));
         }
     }
 
@@ -97,7 +98,7 @@ public class S3StorageClient implements StorageClient {
                     .key(normalizeKey(key))
                     .build());
         } catch (Exception e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "S3 删除失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, MessageUtils.get("legacy.storage.s3_delete_failed", e.getMessage()));
         }
     }
 
@@ -126,7 +127,7 @@ public class S3StorageClient implements StorageClient {
                     .build();
             return presigner.presignGetObject(presign).url().toString();
         } catch (Exception e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "S3 生成预签名URL失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, MessageUtils.get("legacy.storage.s3_presign_failed", e.getMessage()));
         }
     }
 
@@ -153,18 +154,18 @@ public class S3StorageClient implements StorageClient {
                     .key(normalizeKey(key))
                     .build());
         } catch (Exception e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "S3 下载失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, MessageUtils.get("legacy.storage.s3_download_failed", e.getMessage()));
         }
     }
 
     private static String normalizeKey(String key) {
         if (key == null) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "key 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, MessageUtils.get("legacy.field.required", "key"));
         }
         String k = key.trim();
         String normalized = k.startsWith("/") ? k.substring(1) : k;
         if (normalized.isBlank()) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "key 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, MessageUtils.get("legacy.field.required", "key"));
         }
         return normalized;
     }

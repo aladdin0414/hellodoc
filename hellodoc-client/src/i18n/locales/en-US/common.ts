@@ -9,11 +9,13 @@ export default {
         all: 'View all',
         saveFailed: 'Save failed, please try again',
         operationFailed: 'Operation failed, please try again',
+        retry: 'Retry',
         noData: '-'
     },
     nav: {
         lightMode: 'Switch to light mode',
         darkMode: 'Switch to dark mode',
+        menu: 'Menu',
         home: 'Home',
         shared: 'Shared with me',
         favorites: 'Favorites',
@@ -202,6 +204,8 @@ export default {
         quote: 'Quote',
         code: 'Code',
         image: 'Image',
+        file: 'File',
+        paperColor: 'Paper color',
         table: 'Table',
         link: 'Link'
     },
@@ -236,6 +240,7 @@ export default {
         uploadingImage: 'Uploading image...',
         startWriting: 'Start writing content...',
         noContent: '(No content yet)',
+        diagramRenderFailed: 'Diagram render failed',
         inputTitle: 'Please enter a title',
         user: 'User ',
         revisions: 'Revisions',
@@ -415,6 +420,7 @@ export default {
         systemError: 'System error'
     },
     auth: {
+        loginExpired: 'Not logged in or session expired',
         appSlogan: 'Your personal knowledge base',
         username: 'Username',
         password: 'Password',
@@ -605,6 +611,7 @@ export default {
             tryAgain: 'Try Again'
         },
         comments: {
+            resolved: 'Resolved',
             published: 'Comment published',
             publishFailed: 'Failed to publish',
             replyPublished: 'Reply published',
@@ -621,8 +628,7 @@ export default {
             loginRequiredPrefix: 'Please ',
             loginRequiredLink: 'login',
             loginRequiredSuffix: ' before joining the discussion.',
-            anonymous: 'Anonymous',
-            resolved: 'Resolved',
+            anonymous: 'Anonymous User',
             reply: 'Reply',
             cancelResolve: 'Cancel resolve',
             delete: 'Delete',

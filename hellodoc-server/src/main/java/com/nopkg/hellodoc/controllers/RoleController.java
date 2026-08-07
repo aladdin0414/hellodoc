@@ -17,21 +17,21 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/system/roles")
 @RequiredArgsConstructor
-@Tag(name = "角色管理", description = "角色 CRUD 及用户角色分配")
+@Tag(name = "Role Management", description = "Role CRUD and user role assignment APIs")
 public class RoleController {
 
     private final RoleService roleService;
 
     @GetMapping
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "角色列表", description = "获取所有角色")
+    @Operation(summary = "Role list", description = "Get all roles")
     public ApiResponse<List<SysRole>> listRoles() {
         return ApiResponse.success(roleService.listRoles());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "角色详情", description = "根据ID获取角色")
+    @Operation(summary = "Role details", description = "Get role by ID")
     public ApiResponse<SysRole> getRole(@PathVariable Long id) {
         return roleService.getRole(id)
                 .map(ApiResponse::success)
@@ -40,7 +40,7 @@ public class RoleController {
 
     @PostMapping
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "创建角色", description = "创建新角色")
+    @Operation(summary = "Create role", description = "Create new role")
     public ApiResponse<SysRole> createRole(@RequestBody RoleRequest request) {
         SysRole role = new SysRole();
         role.setRoleCode(request.roleCode());
@@ -51,7 +51,7 @@ public class RoleController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "更新角色", description = "更新角色信息")
+    @Operation(summary = "Update role", description = "Update role information")
     public ApiResponse<SysRole> updateRole(@PathVariable Long id, @RequestBody RoleRequest request) {
         SysRole roleDetails = new SysRole();
         roleDetails.setRoleCode(request.roleCode());
@@ -62,24 +62,24 @@ public class RoleController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "删除角色", description = "删除角色")
+    @Operation(summary = "Delete role", description = "Delete role")
     public ApiResponse<Void> deleteRole(@PathVariable Long id) {
         roleService.deleteRole(id);
         return ApiResponse.success(null);
     }
 
-    // ==================== 用户角色分配 ====================
+    // ==================== User Role Assignment ====================
 
     @GetMapping("/users/{userId}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "用户角色列表", description = "获取用户的所有角色")
+    @Operation(summary = "User role list", description = "Get all roles assigned to user")
     public ApiResponse<List<SysRole>> getUserRoles(@PathVariable Long userId) {
         return ApiResponse.success(roleService.getUserRoles(userId));
     }
 
     @PostMapping("/users/{userId}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "分配角色", description = "给用户分配角色")
+    @Operation(summary = "Assign role", description = "Assign role to user")
     public ApiResponse<Void> assignRole(@PathVariable Long userId, @RequestBody AssignRoleRequest request) {
         roleService.assignRole(userId, request.roleId());
         return ApiResponse.success(null);
@@ -87,7 +87,7 @@ public class RoleController {
 
     @DeleteMapping("/users/{userId}/roles/{roleId}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "撤销角色", description = "撤销用户的角色")
+    @Operation(summary = "Revoke role", description = "Revoke role from user")
     public ApiResponse<Void> revokeRole(@PathVariable Long userId, @PathVariable Long roleId) {
         roleService.revokeRole(userId, roleId);
         return ApiResponse.success(null);

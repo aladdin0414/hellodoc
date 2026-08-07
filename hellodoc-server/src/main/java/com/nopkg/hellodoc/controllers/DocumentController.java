@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping
 @RequiredArgsConstructor
-@Tag(name = "文档管理", description = "文档树与内容管理接口")
+@Tag(name = "Document Management", description = "Document tree and content management APIs")
 public class DocumentController {
 
         private final DocumentService documentService;
@@ -66,7 +66,7 @@ public class DocumentController {
         }
 
         @GetMapping("/api/kb/{kbId}/documents/{docId}")
-        @Operation(summary = "获取文档详情", description = "获取文档详细信息并记录访问历史")
+        @Operation(summary = "Get document details", description = "Get document details and record visit history")
         @RequireDocRole(DocRole.VIEWER)
         public ApiResponse<KbDocItem> getDocument(@PathVariable Long kbId, @PathVariable Long docId) {
                 KbDocument doc = documentService.getById(docId);
@@ -80,20 +80,20 @@ public class DocumentController {
         }
 
         @GetMapping("/api/docs/recent")
-        @Operation(summary = "最近访问列表", description = "获取当前用户最近访问的文档列表")
+        @Operation(summary = "Recent documents", description = "Get recently accessed documents for current user")
         public ApiResponse<List<RecentDocVO>> getRecentDocuments(@RequestParam(defaultValue = "20") int limit) {
                 return ApiResponse.success(recentService.getRecentDocuments(currentUserId(), limit));
         }
 
         @DeleteMapping("/api/docs/recent")
-        @Operation(summary = "清空访问历史", description = "清空当前用户最近访问记录")
+        @Operation(summary = "Clear visit history", description = "Clear recent visit history for current user")
         public ApiResponse<Void> clearRecentHistory() {
                 recentService.clearRecentHistory(currentUserId());
                 return ApiResponse.success(null);
         }
 
         @GetMapping("/api/kb/{kbId}/documents")
-        @Operation(summary = "获取文档列表", description = "获取知识库文档树列表")
+        @Operation(summary = "List documents", description = "Get document tree list for knowledge base")
         @RequireKbRole(KbRole.VIEWER)
         public ApiResponse<List<KbDocItem>> listDocuments(@PathVariable Long kbId) {
                 List<KbDocument> docs = documentService.getTree(kbId);
@@ -104,7 +104,7 @@ public class DocumentController {
         }
 
         @PostMapping("/api/kb/{kbId}/documents")
-        @Operation(summary = "创建文档", description = "创建知识库文档或文件夹")
+        @Operation(summary = "Create document", description = "Create knowledge base document or folder")
         @RequireKbRole(KbRole.EDITOR)
         public ApiResponse<KbDocItem> createDocument(@PathVariable Long kbId, @RequestBody CreateDocRequest request) {
                 DocCreateDTO dto = new DocCreateDTO();
@@ -122,7 +122,7 @@ public class DocumentController {
         }
 
         @PutMapping("/api/kb/{kbId}/documents/{docId}")
-        @Operation(summary = "更新文档", description = "更新文档信息或内容")
+        @Operation(summary = "Update document", description = "Update document information or content")
         @RequireDocRole(DocRole.EDITOR)
         public ApiResponse<KbDocItem> updateDocument(@PathVariable Long kbId, @PathVariable Long docId,
                         @RequestBody UpdateDocRequest request) {
@@ -147,7 +147,7 @@ public class DocumentController {
         }
 
         @DeleteMapping("/api/kb/{kbId}/documents/{docId}")
-        @Operation(summary = "删除文档", description = "删除文档或文件夹（移入回收站）")
+        @Operation(summary = "Delete document", description = "Delete document or folder (move to trash)")
         @RequireDocRole(DocRole.EDITOR)
         public ApiResponse<Void> deleteDocument(@PathVariable Long kbId, @PathVariable Long docId) {
                 documentService.delete(currentUserId(), kbId, docId);
@@ -155,7 +155,7 @@ public class DocumentController {
         }
 
         @GetMapping("/api/kb/{kbId}/trash")
-        @Operation(summary = "获取回收站列表", description = "获取已被移入回收站的项目列表")
+        @Operation(summary = "Get trash list", description = "List items in trash for knowledge base")
         @RequireKbRole(KbRole.VIEWER)
         public ApiResponse<List<KbDocItem>> getTrashList(@PathVariable Long kbId) {
                 List<KbDocument> docs = documentService.getTrashList(currentUserId(), kbId);
@@ -166,7 +166,7 @@ public class DocumentController {
         }
 
         @PostMapping("/api/kb/{kbId}/documents/{docId}/restore")
-        @Operation(summary = "还原文档/文件夹", description = "从回收站级联还原文档或文件夹")
+        @Operation(summary = "Restore document or folder", description = "Cascade restore document or folder from trash")
         @RequireKbRole(KbRole.EDITOR)
         public ApiResponse<Void> restoreDocument(@PathVariable Long kbId, @PathVariable Long docId) {
                 documentService.restore(currentUserId(), kbId, docId);
@@ -174,7 +174,7 @@ public class DocumentController {
         }
 
         @DeleteMapping("/api/kb/{kbId}/documents/{docId}/permanent")
-        @Operation(summary = "彻底删除文档", description = "从数据库物理彻底删除文档或文件夹")
+        @Operation(summary = "Permanently delete document", description = "Permanently delete document or folder from database")
         @RequireKbRole(KbRole.ADMIN)
         public ApiResponse<Void> permanentlyDeleteDocument(@PathVariable Long kbId, @PathVariable Long docId) {
                 documentService.permanentlyDelete(currentUserId(), kbId, docId);
@@ -182,7 +182,7 @@ public class DocumentController {
         }
 
         @DeleteMapping("/api/kb/{kbId}/trash")
-        @Operation(summary = "清空回收站", description = "清空当前知识库回收站中的所有删除项目")
+        @Operation(summary = "Clear trash", description = "Clear all deleted items in knowledge base trash")
         @RequireKbRole(KbRole.ADMIN)
         public ApiResponse<Void> clearTrash(@PathVariable Long kbId) {
                 documentService.clearTrash(currentUserId(), kbId);
@@ -190,7 +190,7 @@ public class DocumentController {
         }
 
         @GetMapping("/api/kb/{kbId}/documents/{docId}/revisions")
-        @Operation(summary = "获取修订历史", description = "获取文档修订历史")
+        @Operation(summary = "Get revision history", description = "Get document revision history list")
         @RequireDocRole(DocRole.VIEWER)
         public ApiResponse<List<KbRevision>> listRevisions(@PathVariable Long kbId, @PathVariable Long docId) {
                 List<KbDocumentRevision> revisions = documentService.listRevisions(currentUserId(), kbId, docId);
@@ -210,7 +210,7 @@ public class DocumentController {
         }
 
         @PostMapping("/api/kb/{kbId}/documents/{docId}/revisions")
-        @Operation(summary = "创建修订", description = "创建文档修订并更新正文")
+        @Operation(summary = "Create revision", description = "Create document revision and update body content")
         @RequireDocRole(DocRole.EDITOR)
         public ApiResponse<KbRevision> createRevision(@PathVariable Long kbId, @PathVariable Long docId,
                         @RequestBody CreateRevisionRequest request) {
@@ -225,7 +225,7 @@ public class DocumentController {
         }
 
         @PostMapping("/api/kb/{kbId}/documents/{docId}/duplicate")
-        @Operation(summary = "创建副本", description = "创建文档的副本并放置在原文档下方")
+        @Operation(summary = "Duplicate document", description = "Create duplicate of document and place underneath")
         @RequireDocRole(DocRole.EDITOR)
         public ApiResponse<KbDocItem> duplicateDocument(@PathVariable Long kbId, @PathVariable Long docId) {
                 KbDocument doc = documentService.duplicate(currentUserId(), kbId, docId);
@@ -233,7 +233,7 @@ public class DocumentController {
         }
 
         @PostMapping("/api/kb/{kbId}/documents/{docId}/copy-to/{targetKbId}")
-        @Operation(summary = "拷贝到另一知识库", description = "将文档或文件夹及其子项移动到目标知识库的根目录")
+        @Operation(summary = "Copy to another KB", description = "Copy document or folder and its children to target knowledge base root")
         @RequireDocRole(DocRole.VIEWER)
         public ApiResponse<KbDocItem> copyToKb(@PathVariable Long kbId, @PathVariable Long docId,
                         @PathVariable Long targetKbId) {
@@ -242,7 +242,7 @@ public class DocumentController {
         }
 
         @PostMapping("/api/kb/{kbId}/documents/{docId}/unlock")
-        @Operation(summary = "验证密码", description = "验证加密文档的密码")
+        @Operation(summary = "Unlock document", description = "Verify password for encrypted document")
         @RequireDocRole(DocRole.VIEWER)
         public ApiResponse<KbDocItem> unlockDocument(@PathVariable Long kbId, @PathVariable Long docId,
                         @RequestBody UnlockRequest request) {
@@ -251,7 +251,7 @@ public class DocumentController {
         }
 
         @GetMapping("/api/kb/{kbId}/documents/{docId}/export")
-        @Operation(summary = "导出文档/文件夹", description = "导出文档或文件夹为ZIP (Markdown)")
+        @Operation(summary = "Export document or folder", description = "Export document or folder as ZIP (Markdown)")
         @RequireDocRole(DocRole.EDITOR)
         public void exportDocument(@PathVariable Long kbId, @PathVariable Long docId,
                         jakarta.servlet.http.HttpServletResponse response) {

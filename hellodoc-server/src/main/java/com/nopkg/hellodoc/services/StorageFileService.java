@@ -42,13 +42,13 @@ public class StorageFileService {
 
     public KbStorageFile upload(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "请选择要上传的文件");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.file_required", "Please select a file to upload"));
         }
         String hash;
         try (InputStream is = file.getInputStream()) {
             hash = sha256Hex(is);
         } catch (Exception e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "计算文件哈希失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.calc_hash_failed", "Failed to calculate file hash: ") + e.getMessage());
         }
 
         OffsetDateTime now = OffsetDateTime.now();
@@ -68,10 +68,10 @@ public class StorageFileService {
                     try (InputStream is = file.getInputStream()) {
                         client.upload(is, key, file.getContentType());
                     } catch (Exception e) {
-                        throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "上传文件失败: " + e.getMessage());
+                        throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.upload_failed", "Upload file failed: ") + e.getMessage());
                     }
                     if (!client.exists(key)) {
-                        throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "上传文件失败: 写入存储后校验不存在");
+                        throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.verify_not_found", "Upload file failed: object does not exist after writing to storage"));
                     }
 
                     KbStorageFile created = new KbStorageFile();
@@ -98,14 +98,14 @@ public class StorageFileService {
                         return storageFileRepository.findFirstByContentHashOrderByIdAsc(hash)
                                 .map(existing -> updateRefCount(existing.getId()))
                                 .orElseThrow(() -> new BusinessException(ApiResponse.Code.SYSTEM_ERROR,
-                                        "并发上传冲突处理失败: " + e.getMessage()));
+                                        com.nopkg.hellodoc.utils.MessageUtils.get("storage.concurrent_conflict", "Concurrent upload conflict resolution failed: ") + e.getMessage()));
                     }
                 });
     }
 
     private KbStorageFile ensureObjectExistsAndUpdateRefCount(KbStorageFile existing, MultipartFile file) {
         if (existing == null || existing.getId() == null) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "存储文件记录异常");
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.record_abnormal", "Storage file record is abnormal"));
         }
         try {
             StorageClient client = storageClientFactory.create(existing.getStorageConfig());
@@ -118,20 +118,20 @@ public class StorageFileService {
                 client.upload(is, key, file.getContentType());
             }
             if (!client.exists(key)) {
-                throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "上传文件失败: 写入存储后校验不存在");
+                throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.verify_not_found", "Upload file failed: object does not exist after writing to storage"));
             }
             return updateRefCount(existing.getId());
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "上传文件失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.upload_failed", "Upload file failed: ") + e.getMessage());
         }
     }
 
     @Transactional
     public KbStorageFile updateRefCount(Long fileId) {
         KbStorageFile file = storageFileRepository.findByIdForUpdate(fileId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "文件不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("common.file_not_found", "File not found")));
         int current = file.getRefCount() == null ? 0 : file.getRefCount();
         file.setRefCount(Math.max(0, current) + 1);
         file.setDeletedAt(null);
@@ -144,7 +144,7 @@ public class StorageFileService {
 
     public String generateAccessUrl(Long fileId, String filename) {
         KbStorageFile file = storageFileRepository.findById(fileId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "文件不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("common.file_not_found", "File not found")));
 
         StorageProvider provider = null;
         try {
@@ -177,7 +177,7 @@ public class StorageFileService {
     @Transactional
     public void incrementRefCount(Long fileId) {
         KbStorageFile file = storageFileRepository.findByIdForUpdate(fileId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "文件不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("common.file_not_found", "File not found")));
         int current = file.getRefCount() == null ? 0 : file.getRefCount();
         file.setRefCount(Math.max(0, current) + 1);
         file.setDeletedAt(null);
@@ -187,7 +187,7 @@ public class StorageFileService {
     @Transactional
     public void decrementRefCount(Long fileId) {
         KbStorageFile file = storageFileRepository.findByIdForUpdate(fileId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "文件不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("common.file_not_found", "File not found")));
         int current = file.getRefCount() == null ? 0 : file.getRefCount();
         int next = Math.max(0, current - 1);
         file.setRefCount(next);

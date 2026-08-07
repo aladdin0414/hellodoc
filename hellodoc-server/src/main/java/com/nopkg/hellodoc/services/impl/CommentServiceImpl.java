@@ -158,7 +158,7 @@ public class CommentServiceImpl implements CommentService {
             notificationService.createNotification(
                     templateFor(NotifyType.RESOLVE),
                     contextFor(NotifyType.RESOLVE, comment.getUserId(), userId, comment.getDocId(), comment.getId(),
-                            "已解决评论"));
+                            com.nopkg.hellodoc.utils.MessageUtils.get("comment.resolved", "Resolved comment")));
         }
         return saved;
     }

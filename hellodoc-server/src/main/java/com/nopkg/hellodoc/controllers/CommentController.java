@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@Tag(name = "评论管理", description = "文档评论相关接口")
+@Tag(name = "Comment Management", description = "Document comment APIs")
 public class CommentController {
 
     private final CommentService commentService;
@@ -29,7 +29,7 @@ public class CommentController {
     private final ConfigService configService;
 
     @PostMapping("/docs/{docId}/comments")
-    @Operation(summary = "发表评论", description = "在指定文档中发表新评论或针对锚点发表评论")
+    @Operation(summary = "Add comment", description = "Add new comment or anchor comment in specific document")
     public ApiResponse<DocCommentVO> addComment(
             @PathVariable Long docId,
             @RequestBody CommentCreateDTO dto) {
@@ -40,7 +40,7 @@ public class CommentController {
     }
 
     @GetMapping("/docs/{docId}/comments")
-    @Operation(summary = "获取文档评论列表", description = "获取指定文档的所有评论，包括回复")
+    @Operation(summary = "List document comments", description = "Get all comments including replies for specific document")
     public ApiResponse<List<DocCommentVO>> getDocumentComments(@PathVariable Long docId) {
         List<DocComment> comments = commentService.getDocumentComments(docId);
         return ApiResponse.success(comments.stream()
@@ -49,7 +49,7 @@ public class CommentController {
     }
 
     @PutMapping("/comments/{id}")
-    @Operation(summary = "更新评论", description = "修改已发表的评论内容")
+    @Operation(summary = "Update comment", description = "Update published comment content")
     public ApiResponse<DocCommentVO> updateComment(
             @PathVariable Long id,
             @RequestBody Map<String, String> payload) {
@@ -58,7 +58,7 @@ public class CommentController {
     }
 
     @DeleteMapping("/comments/{id}")
-    @Operation(summary = "删除评论", description = "删除指定的评论")
+    @Operation(summary = "Delete comment", description = "Delete specific comment")
     public ApiResponse<Void> deleteComment(@PathVariable Long id) {
         Long userId = currentUserId();
         commentService.deleteComment(id, userId);
@@ -66,7 +66,7 @@ public class CommentController {
     }
 
     @PostMapping("/comments/{id}/reply")
-    @Operation(summary = "回复评论", description = "针对指定的评论进行回复")
+    @Operation(summary = "Reply to comment", description = "Reply to specific comment")
     public ApiResponse<DocCommentVO> replyComment(
             @PathVariable Long id,
             @RequestBody Map<String, String> payload) {
@@ -76,21 +76,21 @@ public class CommentController {
     }
 
     @PostMapping("/comments/{id}/resolve")
-    @Operation(summary = "解决评论", description = "将评论标记为已解决状态")
+    @Operation(summary = "Resolve comment", description = "Mark comment as resolved")
     public ApiResponse<DocCommentVO> resolveComment(@PathVariable Long id) {
         Long userId = currentUserId();
         return ApiResponse.success(DocCommentVO.from(commentService.resolveComment(id, userId)));
     }
 
     @PostMapping("/comments/{id}/unresolve")
-    @Operation(summary = "取消解决评论", description = "将评论恢复为未解决状态")
+    @Operation(summary = "Unresolve comment", description = "Revert comment to unresolved status")
     public ApiResponse<DocCommentVO> unresolveComment(@PathVariable Long id) {
         Long userId = currentUserId();
         return ApiResponse.success(DocCommentVO.from(commentService.unresolveComment(id, userId)));
     }
 
     @GetMapping("/docs/{docId}/comments/unresolved-count")
-    @Operation(summary = "获取未解决评论数", description = "统计指定文档中未解决的评论数量")
+    @Operation(summary = "Get unresolved count", description = "Count unresolved comments in specific document")
     public ApiResponse<Integer> getUnresolvedCount(@PathVariable Long docId) {
         return ApiResponse.success(commentService.getUnresolvedCount(docId));
     }
@@ -98,7 +98,7 @@ public class CommentController {
     private void checkGuestbookEnabled() {
         Boolean enabled = configService.getConfigValue("app.enable_guestbook", Boolean.class);
         if (Boolean.FALSE.equals(enabled)) {
-            throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.SYSTEM_ERROR, "留言功能已关闭");
+            throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("guestbook.disabled"));
         }
     }
 

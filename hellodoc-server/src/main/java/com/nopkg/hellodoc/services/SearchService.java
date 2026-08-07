@@ -10,6 +10,7 @@ import com.nopkg.hellodoc.web.dto.search.SearchResultVO;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -28,6 +29,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchService {
@@ -306,9 +308,8 @@ public class SearchService {
                 contentRepository.findById(doc.getId()).map(KbDocumentContent::getContent).orElse(""));
 
         // Debug Log
-        if (doc.getName().contains("自律") || query.contains("自律")) {
-            System.out.println(
-                    "DEBUG SEARCH: docId=" + doc.getId() + " query=" + query + " contentLen=" + content.length());
+        if (log.isDebugEnabled()) {
+            log.debug("DEBUG SEARCH: docId={} query={} contentLen={}", doc.getId(), query, content.length());
         }
 
         String snippet = buildSnippet(content, query, 100);
@@ -367,9 +368,8 @@ public class SearchService {
         // 如果还是找不到,返回文档开头
         if (idx < 0) {
             String ret = truncate(src, maxLen);
-            // Debug Log
-            if (query.contains("自律")) {
-                System.out.println("DEBUG SEARCH: Snippet Fallback to Start. idx=" + idx + " snippet=" + ret);
+            if (log.isDebugEnabled()) {
+                log.debug("DEBUG SEARCH: Snippet Fallback to Start. idx={} snippet={}", idx, ret);
             }
             return ret;
         }

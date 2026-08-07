@@ -62,7 +62,7 @@ public class ConfigService {
     @Transactional
     public SysConfig updateConfig(SysConfig config) {
         SysConfig existing = configRepository.findByConfigKey(config.getConfigKey())
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "配置项不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("config.item_not_found", "Configuration item not found")));
 
         existing.setConfigValue(config.getConfigValue());
         if (config.getConfigName() != null) {
@@ -84,7 +84,7 @@ public class ConfigService {
     @Transactional
     public SysConfig createConfig(SysConfig config) {
         if (configRepository.existsByConfigKey(config.getConfigKey())) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "配置键已存在");
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("config.key_exists", "Configuration key already exists"));
         }
         config.setCreateTime(Instant.now());
         config.setUpdateTime(Instant.now());

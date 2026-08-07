@@ -9,11 +9,13 @@ export default {
         all: '查看全部',
         saveFailed: '保存失败，请重试',
         operationFailed: '操作失败，请重试',
+        retry: '重新尝试',
         noData: '-'
     },
     nav: {
         lightMode: '切换亮色模式',
         darkMode: '切换深色模式',
+        menu: '菜单',
         home: '首页',
         shared: '共享给我',
         favorites: '我的收藏',
@@ -202,6 +204,8 @@ export default {
         quote: '引用',
         code: '代码',
         image: '图片',
+        file: '文件',
+        paperColor: '纸张颜色',
         table: '表格',
         link: '链接'
     },
@@ -236,6 +240,7 @@ export default {
         uploadingImage: '图片上传中...',
         startWriting: '开始书写内容...',
         noContent: '（暂无正文内容）',
+        diagramRenderFailed: '图表渲染失败',
         inputTitle: '请输入标题',
         user: '用户',
         revisions: '修订记录',
@@ -415,6 +420,7 @@ export default {
         systemError: '系统异常'
     },
     auth: {
+        loginExpired: '未登录或登录超时',
         appSlogan: '您的个人知识库',
         username: '用户名',
         password: '密码',
@@ -605,6 +611,7 @@ export default {
             tryAgain: '重新尝试'
         },
         comments: {
+            resolved: '已解决',
             published: '评论已发表',
             publishFailed: '发表失败',
             replyPublished: '回复已发表',
@@ -622,7 +629,6 @@ export default {
             loginRequiredLink: '登录',
             loginRequiredSuffix: '后再参与讨论',
             anonymous: '匿名用户',
-            resolved: '已解决',
             reply: '回复',
             cancelResolve: '取消解决',
             delete: '删除',

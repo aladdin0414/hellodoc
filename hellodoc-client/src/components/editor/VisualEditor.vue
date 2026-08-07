@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { watch, onBeforeUnmount, ref, nextTick, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { i18n } from '../../i18n'
+
+const { t } = useI18n()
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
@@ -140,7 +144,7 @@ const editor = useEditor({
             types: ['heading', 'paragraph'],
         }),
         Placeholder.configure({
-            placeholder: props.placeholder || '开始创作...',
+            placeholder: props.placeholder || i18n.global.t('editor.startWriting') || 'Start writing...',
         }),
     ],
     content: normalizeMathMarkdown(props.modelValue),
@@ -213,7 +217,8 @@ const editor = useEditor({
                             if (isImage) {
                                 htmlContent += `<img src="${url}" />`
                             } else {
-                                const fileName = file?.name || url.split('/').pop()?.split('?')[0] || '文件'
+                                const defaultFileText = i18n.global.t('toolbar.file') || 'File'
+                                const fileName = file?.name || url.split('/').pop()?.split('?')[0] || defaultFileText
                                 htmlContent += `<p><a href="${url}" target="_blank" class="file-link">${fileName}</a></p>`
                             }
                         })
@@ -283,7 +288,8 @@ const editor = useEditor({
                             if (isImage) {
                                 htmlContent += `<img src="${url}" />`
                             } else {
-                                const fileName = file?.name || url.split('/').pop()?.split('?')[0] || '文件'
+                                const defaultFileText = i18n.global.t('toolbar.file') || 'File'
+                                const fileName = file?.name || url.split('/').pop()?.split('?')[0] || defaultFileText
                                 htmlContent += `<p><a href="${url}" target="_blank" class="file-link">${fileName}</a></p>`
                             }
                         })
@@ -721,7 +727,7 @@ defineExpose({
                     v-if="isPlainTextMode"
                     ref="plainTextRef"
                     :value="plainTextValue"
-                    :placeholder="placeholder || '开始创作...'"
+                    :placeholder="placeholder || t('editor.startWriting')"
                     :readonly="isReadOnly || isPreviewMode"
                     class="w-full min-h-[860px] bg-transparent text-base leading-relaxed text-gray-900 dark:text-gray-100 outline-none resize-none overflow-hidden"
                     @input="onPlainTextInput"

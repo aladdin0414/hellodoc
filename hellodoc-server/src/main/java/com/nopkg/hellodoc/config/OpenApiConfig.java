@@ -18,7 +18,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("HelloDoc API")
                         .version("1.0")
-                        .description("基于 Spring Boot 3 + JPA + Spring Security 实现")
+                        .description("HelloDoc Knowledge Base & Document RESTful API Services")
                         .termsOfService("http://swagger.io/terms/")
                         .license(new License().name("Apache 2.0").url("http://springdoc.org")))
                 .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))

@@ -1,6 +1,7 @@
 package com.nopkg.hellodoc.controllers;
 
 import com.nopkg.hellodoc.exceptions.BusinessException;
+import com.nopkg.hellodoc.utils.MessageUtils;
 import com.nopkg.hellodoc.storage.StorageUrlSigner;
 import com.nopkg.hellodoc.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,7 +35,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/storage")
 @RequiredArgsConstructor
-@Tag(name = "存储公开接口", description = "用于访问私有存储文件的公开带签名链接接口")
+@Tag(name = "Public Storage APIs", description = "Public signed URL access APIs for private storage files")
 public class StoragePublicController {
 
     private final StorageUrlSigner signer;
@@ -45,7 +46,7 @@ public class StoragePublicController {
     private static final long MAX_REGION_SIZE = 10L * 1024 * 1024;
 
     @GetMapping("/public")
-    @Operation(summary = "获取公开资源", description = "通过签名和有效期验证后，直接读取服务器本地存储的文件")
+    @Operation(summary = "Get public resource", description = "Read local server storage file after validating signature and expiration")
     public ResponseEntity<?> getPublic(
             @RequestParam String key,
             @RequestParam long exp,
@@ -54,17 +55,17 @@ public class StoragePublicController {
             @RequestHeader HttpHeaders requestHeaders) {
         long now = Instant.now().getEpochSecond();
         if (exp < now) {
-            throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "链接已过期");
+            throw new BusinessException(ApiResponse.Code.NO_PERMISSION, MessageUtils.get("auth.link_expired", "Link has expired"));
         }
         String expected = signer.sign(key, exp);
         if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), sig.getBytes(StandardCharsets.UTF_8))) {
-            throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "签名无效");
+            throw new BusinessException(ApiResponse.Code.NO_PERMISSION, MessageUtils.get("auth.invalid_signature", "Invalid signature"));
         }
 
         Path rootDir = Paths.get(uploadDir, "storage").normalize();
         Path file = resolveKeyToPath(rootDir, key);
         if (!Files.exists(file) || Files.isDirectory(file)) {
-            throw new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "文件不存在");
+            throw new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, MessageUtils.get("common.file_not_found", "File not found"));
         }
 
         try {
@@ -140,7 +141,7 @@ public class StoragePublicController {
 
             return builder.body(resource);
         } catch (Exception e) {
-            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "读取文件失败: " + e.getMessage());
+            throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.read_failed", "Failed to read file: ") + e.getMessage());
         }
     }
 
@@ -149,7 +150,7 @@ public class StoragePublicController {
         String normalized = k.startsWith("/") ? k.substring(1) : k;
         Path p = rootDir.resolve(normalized).normalize();
         if (!p.startsWith(rootDir)) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "非法的存储键");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("storage.invalid_key", "Invalid storage key"));
         }
         return p;
     }

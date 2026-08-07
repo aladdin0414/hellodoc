@@ -30,8 +30,11 @@ const ERROR_I18N_MAP: Record<string, string> = {
     '9999': 'error.systemError'
 }
 
+const LEGACY_SYS_ERR_ZH = '系统异常'
+
 const resolveErrorMessage = (code: unknown, fallbackMessage?: string) => {
-    if (String(code) === '9999' && fallbackMessage && fallbackMessage !== '系统异常') {
+    const systemErrorText = i18n.global.t('error.systemError')
+    if (String(code) === '9999' && fallbackMessage && fallbackMessage !== LEGACY_SYS_ERR_ZH && fallbackMessage !== systemErrorText) {
         return fallbackMessage
     }
     const key = ERROR_I18N_MAP[String(code)]
@@ -169,9 +172,9 @@ request.interceptors.response.use(
         }
 
         if (!response) {
-            message.error(i18n.global.t('error.networkError') || '网络连接异常，请检查网络设置')
+            message.error(i18n.global.t('error.networkError'))
         } else if (response.status >= 500) {
-            message.error(i18n.global.t('error.systemError') || '服务器异常，请稍后再试')
+            message.error(i18n.global.t('error.systemError'))
         }
 
         console.error('API Error:', error)

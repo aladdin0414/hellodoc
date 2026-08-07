@@ -3,6 +3,7 @@ package com.nopkg.hellodoc.security;
 import com.nopkg.hellodoc.exceptions.BusinessException;
 import com.nopkg.hellodoc.services.KbService;
 import com.nopkg.hellodoc.services.PermissionChecker;
+import com.nopkg.hellodoc.utils.MessageUtils;
 import com.nopkg.hellodoc.web.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ public class PermissionAspect {
         Long kbId = getResourceId(joinPoint, requireKbRole.idParam());
 
         if (kbId == null) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "在参数中未找到知识库 ID");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, MessageUtils.get("legacy.permission.parameter_id_missing", "KB"));
         }
 
         permissionChecker.checkKbRole(userId, kbId, requireKbRole.value());
@@ -42,7 +43,7 @@ public class PermissionAspect {
         Long docId = getResourceId(joinPoint, requireDocRole.idParam());
 
         if (docId == null) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "在参数中未找到文档 ID");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, MessageUtils.get("legacy.permission.parameter_id_missing", "DOC"));
         }
 
         permissionChecker.checkDocRole(userId, docId, requireDocRole.value());

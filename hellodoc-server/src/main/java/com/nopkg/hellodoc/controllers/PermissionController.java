@@ -18,52 +18,52 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/system/permissions")
 @RequiredArgsConstructor
-@Tag(name = "权限管理", description = "权限 CRUD 及角色权限分配")
+@Tag(name = "Permission Management", description = "Permission CRUD and role permission assignment APIs")
 public class PermissionController {
 
     private final PermissionService permissionService;
 
     @GetMapping
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "权限列表", description = "获取所有权限")
+    @Operation(summary = "Permission list", description = "Get list of all permissions")
     public ApiResponse<List<SysPermission>> listPermissions() {
         return ApiResponse.success(permissionService.listPermissions());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "权限详情", description = "根据ID获取权限")
+    @Operation(summary = "Permission details", description = "Get permission by ID")
     public ApiResponse<SysPermission> getPermission(@PathVariable Long id) {
         return ApiResponse.success(permissionService.getPermission(id));
     }
 
     @PostMapping
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "创建权限", description = "创建新权限")
+    @Operation(summary = "Create permission", description = "Create new permission")
     public ApiResponse<SysPermission> createPermission(@RequestBody PermissionRequest request) {
         return ApiResponse.success(permissionService.createPermission(request.permCode(), request.permName()));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "删除权限", description = "删除权限")
+    @Operation(summary = "Delete permission", description = "Delete permission")
     public ApiResponse<Void> deletePermission(@PathVariable Long id) {
         permissionService.deletePermission(id);
         return ApiResponse.success(null);
     }
 
-    // ==================== 角色权限分配 ====================
+    // ==================== Role Permission Assignment ====================
 
     @GetMapping("/roles/{roleId}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "角色权限列表", description = "获取角色的所有权限")
+    @Operation(summary = "Role permission list", description = "Get all permissions assigned to role")
     public ApiResponse<List<SysPermission>> getRolePermissions(@PathVariable Long roleId) {
         return ApiResponse.success(permissionService.getRolePermissions(roleId));
     }
 
     @PostMapping("/roles/{roleId}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "授予权限", description = "给角色授予权限")
+    @Operation(summary = "Grant permission", description = "Grant permission to role")
     public ApiResponse<Void> grantPermission(@PathVariable Long roleId, @RequestBody GrantPermissionRequest request) {
         permissionService.grantPermission(roleId, request.permId());
         return ApiResponse.success(null);
@@ -71,17 +71,17 @@ public class PermissionController {
 
     @DeleteMapping("/roles/{roleId}/permissions/{permId}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "撤销权限", description = "撤销角色的权限")
+    @Operation(summary = "Revoke permission", description = "Revoke permission from role")
     public ApiResponse<Void> revokePermission(@PathVariable Long roleId, @PathVariable Long permId) {
         permissionService.revokePermission(roleId, permId);
         return ApiResponse.success(null);
     }
 
-    // ==================== 用户权限查询 ====================
+    // ==================== User Permission Query ====================
 
     @GetMapping("/users/{userId}")
     @PreAuthorize("hasRole('admin') or #userId == authentication.principal.id")
-    @Operation(summary = "用户权限列表", description = "获取用户的所有权限编码")
+    @Operation(summary = "User permission list", description = "Get all permission codes assigned to user")
     public ApiResponse<Set<String>> getUserPermissions(@PathVariable Long userId) {
         return ApiResponse.success(permissionService.getUserPermissions(userId));
     }

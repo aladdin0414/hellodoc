@@ -13,7 +13,7 @@ import com.nopkg.hellodoc.web.dto.config.SysConfigVO;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Tag(name = "系统配置管理", description = "系统参数配置")
+@Tag(name = "System Configuration", description = "System Parameter Configuration APIs")
 @RestController
 @RequestMapping("/api/system/configs")
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class ConfigController {
 
     private final ConfigService configService;
 
-    @Operation(summary = "配置列表")
+    @Operation(summary = "List configurations")
     @GetMapping
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<List<SysConfigVO>> list() {
@@ -30,21 +30,21 @@ public class ConfigController {
                 .collect(Collectors.toList()));
     }
 
-    @Operation(summary = "更新配置")
+    @Operation(summary = "Update configuration")
     @PutMapping
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<SysConfigVO> update(@RequestBody SysConfig config) {
         return ApiResponse.success(SysConfigVO.from(configService.updateConfig(config)));
     }
 
-    @Operation(summary = "创建配置项")
+    @Operation(summary = "Create configuration")
     @PostMapping
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<SysConfigVO> create(@RequestBody SysConfig config) {
         return ApiResponse.success(SysConfigVO.from(configService.createConfig(config)));
     }
 
-    @Operation(summary = "刷新配置缓存")
+    @Operation(summary = "Refresh configuration cache")
     @PostMapping("/refresh")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<Void> refresh() {

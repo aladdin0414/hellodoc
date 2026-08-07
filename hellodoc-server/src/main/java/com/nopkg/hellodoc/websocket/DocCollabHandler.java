@@ -8,6 +8,7 @@ import com.nopkg.hellodoc.enums.LockType;
 import com.nopkg.hellodoc.services.DocLockService;
 import com.nopkg.hellodoc.services.DocSessionService;
 import com.nopkg.hellodoc.services.PermissionChecker;
+import com.nopkg.hellodoc.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -111,7 +112,7 @@ public class DocCollabHandler extends TextWebSocketHandler {
                 case "operation":
                     sendMessage(safe, new WsMessage("error", Map.of(
                             "code", "MVP_READONLY",
-                            "message", "当前仅支持互斥编辑（DOCUMENT 锁）。operation 暂不支持多人同时编辑。")));
+                            "message", MessageUtils.get("ws.collab.lock_only"))));
                     break;
                 case "cursor":
                     handleCursor(sessionId, wsMsg);
@@ -343,7 +344,7 @@ public class DocCollabHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             sendMessage(session, new WsMessage("error", Map.of(
                     "code", "NO_PERMISSION",
-                    "message", "没有文档编辑权限")));
+                    "message", MessageUtils.get("ws.collab.no_edit_permission"))));
             return;
         }
 
@@ -372,7 +373,7 @@ public class DocCollabHandler extends TextWebSocketHandler {
                     .orElse(null);
             Map<String, Object> err = new HashMap<>();
             err.put("code", "LOCKED");
-            err.put("message", "文档正在被其他人编辑");
+            err.put("message", MessageUtils.get("ws.collab.editing_by_other"));
             err.put("currentLock", current);
             sendMessage(session, new WsMessage("error", err));
             return;

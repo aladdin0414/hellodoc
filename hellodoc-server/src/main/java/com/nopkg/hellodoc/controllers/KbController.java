@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/kb")
 @RequiredArgsConstructor
-@Tag(name = "知识库管理", description = "知识库与文档管理接口")
+@Tag(name = "Knowledge Base Management", description = "Knowledge base and document management APIs")
 public class KbController {
 
         private final KbService kbService;
@@ -61,7 +61,7 @@ public class KbController {
         }
 
         @GetMapping("/listKnowledgeBases")
-        @Operation(summary = "获取知识库列表", description = "获取当前用户可访问的知识库列表")
+        @Operation(summary = "List knowledge bases", description = "Get list of knowledge bases accessible by current user")
         public ApiResponse<List<KbSummary>> listKnowledgeBases() {
                 Long userId = currentUserId();
                 List<KbKnowledgeBase> bases = kbService.listAccessibleKnowledgeBases(userId);
@@ -132,12 +132,13 @@ public class KbController {
                                         return 0;
                                 })
                                 .toList();
-                return ApiResponse.success(summaries);
-        }
 
-        @PostMapping("/createKnowledgeBase")
-        @Operation(summary = "创建知识库", description = "创建新的知识库")
-        public ApiResponse<KbSummary> createKnowledgeBase(@RequestBody CreateKbRequest request) {
+        return ApiResponse.success(summaries);
+    }
+
+    @PostMapping("/createKnowledgeBase")
+    @Operation(summary = "Create knowledge base", description = "Create a new knowledge base")
+    public ApiResponse<KbSummary> createKnowledgeBase(@RequestBody CreateKbRequest request) {
                 Long userId = currentUserId();
                 KbCreateDTO dto = new KbCreateDTO();
                 dto.setTitle(request.title());
@@ -159,7 +160,7 @@ public class KbController {
         }
 
         @GetMapping("/{kbId}")
-        @Operation(summary = "获取知识库详情", description = "获取指定知识库的详细信息")
+        @Operation(summary = "Get knowledge base details", description = "Get detailed information for specific knowledge base")
         @RequireKbRole(KbRole.VIEWER)
         public ApiResponse<KbSummary> getKnowledgeBase(@PathVariable Long kbId) {
                 Long userId = currentUserId();
@@ -195,7 +196,7 @@ public class KbController {
         }
 
         @PutMapping("/{kbId}")
-        @Operation(summary = "更新知识库", description = "更新知识库信息")
+        @Operation(summary = "Update knowledge base", description = "Update knowledge base information")
         @RequireKbRole(KbRole.ADMIN)
         public ApiResponse<KbSummary> updateKnowledgeBase(@PathVariable Long kbId,
                         @RequestBody UpdateKbRequest request) {
@@ -230,7 +231,7 @@ public class KbController {
         }
 
         @DeleteMapping("/{kbId}")
-        @Operation(summary = "删除知识库", description = "删除指定知识库")
+        @Operation(summary = "Delete knowledge base", description = "Delete specific knowledge base")
         @RequireKbRole(KbRole.ADMIN)
         public ApiResponse<Void> deleteKnowledgeBase(@PathVariable Long kbId) {
                 Long userId = currentUserId();
@@ -239,7 +240,7 @@ public class KbController {
         }
 
         @PostMapping("/{kbId}/restore")
-        @Operation(summary = "恢复知识库", description = "恢复被软删除的知识库")
+        @Operation(summary = "Restore knowledge base", description = "Restore soft deleted knowledge base")
         @RequireKbRole(KbRole.OWNER)
         public ApiResponse<Void> restoreKnowledgeBase(@PathVariable Long kbId) {
                 Long userId = currentUserId();
@@ -248,14 +249,14 @@ public class KbController {
         }
 
         @GetMapping("/trash")
-        @Operation(summary = "回收站列表", description = "获取我的回收站列表")
+        @Operation(summary = "Trash list", description = "Get list of items in trash")
         public ApiResponse<List<KbSummary>> listTrash() {
                 Long userId = currentUserId();
                 List<KbKnowledgeBase> bases = kbService.listTrash(userId);
                 List<KbSummary> summaries = bases.stream()
                                 .map(kb -> {
                                         String lastModified = Optional.ofNullable(kb.getUpdatedAt())
-                                                        .map(OffsetDateTime::toString).orElse("");
+                                                         .map(OffsetDateTime::toString).orElse("");
                                         return new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(),
                                                         kb.getIcon(), kb.getColor(),
                                                         kb.getOwnerId(), "", "", false, false, lastModified,
@@ -267,7 +268,7 @@ public class KbController {
         }
 
         @PostMapping("/{kbId}/pin")
-        @Operation(summary = "置顶知识库", description = "设置知识库置顶状态")
+        @Operation(summary = "Pin knowledge base", description = "Toggle pinned status for knowledge base")
         @RequireKbRole(KbRole.VIEWER)
         public ApiResponse<Boolean> pinKnowledgeBase(@PathVariable Long kbId, @RequestBody PinRequest request) {
                 Long userId = currentUserId();
@@ -277,7 +278,7 @@ public class KbController {
         }
 
         @PostMapping("/reorder")
-        @Operation(summary = "重排知识库", description = "设置我的知识库排序顺序")
+        @Operation(summary = "Reorder knowledge bases", description = "Set sort order for user knowledge bases")
         public ApiResponse<Void> reorderKnowledgeBases(@RequestBody ReorderKbsRequest request) {
                 Long userId = currentUserId();
                 kbService.updateSortOrders(userId, request.kbIds());

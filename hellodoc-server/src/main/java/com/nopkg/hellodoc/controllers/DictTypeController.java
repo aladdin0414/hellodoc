@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "系统字典类型", description = "字典类型管理")
+@Tag(name = "System Dictionary Types", description = "Dictionary Type Management APIs")
 @RestController
 @RequestMapping("/api/system/dict/types")
 @RequiredArgsConstructor
@@ -19,14 +19,14 @@ public class DictTypeController {
 
     private final DictTypeService dictTypeService;
 
-    @Operation(summary = "字典类型列表")
+    @Operation(summary = "List dictionary types")
     @GetMapping
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<List<SysDictType>> list() {
         return ApiResponse.success(dictTypeService.listDictTypes());
     }
 
-    @Operation(summary = "字典类型详情")
+    @Operation(summary = "Get dictionary type details")
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<SysDictType> get(@PathVariable Long id) {
@@ -40,7 +40,7 @@ public class DictTypeController {
             Boolean isSystem) {
     }
 
-    @Operation(summary = "创建字典类型")
+    @Operation(summary = "Create dictionary type")
     @PostMapping
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<SysDictType> create(@RequestBody CreateDictTypeRequest request) {
@@ -52,14 +52,14 @@ public class DictTypeController {
         return ApiResponse.success(dictTypeService.createDictType(dictType));
     }
 
-    @Operation(summary = "更新字典类型")
+    @Operation(summary = "Update dictionary type")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<SysDictType> update(@PathVariable Long id, @RequestBody SysDictType dictType) {
         return ApiResponse.success(dictTypeService.updateDictType(id, dictType));
     }
 
-    @Operation(summary = "删除字典类型")
+    @Operation(summary = "Delete dictionary type")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<Void> delete(@PathVariable Long id) {

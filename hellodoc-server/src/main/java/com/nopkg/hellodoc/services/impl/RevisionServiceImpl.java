@@ -43,7 +43,7 @@ public class RevisionServiceImpl implements RevisionService {
     public KbDocumentRevision createRevision(Long docId, String content, RevisionType type, String message,
             Long userId) {
         if (docId == null) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("doc.id_cannot_be_empty", "docId cannot be empty"));
         }
         KbDocument doc = documentRepository.findById(docId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));

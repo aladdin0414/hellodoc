@@ -63,23 +63,23 @@ public class ApiResponse<T> {
     }
 
     public enum Code {
-        SUCCESS(0, "成功"),
-        USERNAME_OR_PASSWORD_ERROR(1001, "用户名或密码错误"),
-        ACCOUNT_DISABLED(1002, "账号已被禁用"),
-        USERNAME_CONFLICT(1003, "用户名已存在"),
-        RESOURCE_NOT_FOUND(1004, "资源不存在"),
-        TOKEN_INVALID(1005, "refreshToken无效"),
-        TOKEN_TYPE_ERROR(1006, "令牌类型错误"),
-        PARAM_ERROR(1007, "参数错误"),
-        OLD_PASSWORD_WRONG(1008, "旧密码错误"),
-        INVALID_REQUEST(1009, "参数无效"),
-        UPLOAD_FILE_REQUIRED(1010, "请选择要上传的文件"),
-        UPLOAD_IMAGE_ONLY(1011, "只能上传图片文件"),
-        UPLOAD_AVATAR_TOO_LARGE(1012, "图片大小不能超过2MB"),
-        UPLOAD_AVATAR_FAILED(1013, "头像上传失败"),
-        UNAUTHORIZED(401, "未登录或登录超时"),
-        NO_PERMISSION(403, "没有权限访问"),
-        SYSTEM_ERROR(9999, "系统异常");
+        SUCCESS(0, "Success"),
+        USERNAME_OR_PASSWORD_ERROR(1001, "Username or password error"),
+        ACCOUNT_DISABLED(1002, "Account is disabled"),
+        USERNAME_CONFLICT(1003, "Username already exists"),
+        RESOURCE_NOT_FOUND(1004, "Resource not found"),
+        TOKEN_INVALID(1005, "Invalid refreshToken"),
+        TOKEN_TYPE_ERROR(1006, "Invalid token type"),
+        PARAM_ERROR(1007, "Parameter error"),
+        OLD_PASSWORD_WRONG(1008, "Old password incorrect"),
+        INVALID_REQUEST(1009, "Invalid request"),
+        UPLOAD_FILE_REQUIRED(1010, "Upload file required"),
+        UPLOAD_IMAGE_ONLY(1011, "Images only"),
+        UPLOAD_AVATAR_TOO_LARGE(1012, "Avatar image size exceeds 2MB limit"),
+        UPLOAD_AVATAR_FAILED(1013, "Failed to upload avatar"),
+        UNAUTHORIZED(401, "Unauthorized or session expired"),
+        NO_PERMISSION(403, "No permission"),
+        SYSTEM_ERROR(9999, "System error");
 
         private final int code;
         private final String message;

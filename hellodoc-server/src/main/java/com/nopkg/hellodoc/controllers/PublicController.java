@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "公开接口", description = "免认证访问字典与配置")
+@Tag(name = "Public APIs", description = "Public access to dictionaries and configurations without authentication")
 @RestController
 @RequestMapping("/api/public")
 @RequiredArgsConstructor
@@ -22,13 +22,13 @@ public class PublicController {
     private final DictDataService dictDataService;
     private final ConfigService configService;
 
-    @Operation(summary = "获取字典项")
+    @Operation(summary = "Get dictionary items")
     @GetMapping("/dict/{dictCode}")
     public ApiResponse<List<DictDataVO>> getDict(@PathVariable String dictCode) {
         return ApiResponse.success(dictDataService.getLocalizedDictDataByCode(dictCode));
     }
 
-    @Operation(summary = "获取前端配置")
+    @Operation(summary = "Get frontend configurations")
     @GetMapping("/configs/frontend")
     public ApiResponse<Map<String, String>> getFrontendConfigs() {
         Map<String, String> map = new HashMap<>(configService.getFrontendConfigs());

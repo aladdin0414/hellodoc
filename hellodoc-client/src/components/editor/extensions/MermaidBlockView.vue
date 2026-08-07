@@ -10,6 +10,9 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/vue-3'
 import type { NodeViewProps } from '@tiptap/vue-3'
 import mermaid from 'mermaid/dist/mermaid.core.mjs'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<NodeViewProps>()
 
@@ -113,7 +116,7 @@ const renderMermaid = async () => {
         renderError.value = ''
     } catch (err: any) {
         if (requestId !== latestRenderRequest) return
-        renderError.value = err?.message || '图表渲染失败'
+        renderError.value = err?.message || t('editor.diagramRenderFailed')
         svgOutput.value = ''
     }
 }
@@ -211,7 +214,7 @@ onBeforeUnmount(() => {
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                         <circle cx="12" cy="12" r="3" />
                     </svg>
-                    预览
+                    {{ t('editor.preview') }}
                 </button>
             </div>
             <pre class="mermaid-code-pre"><NodeViewContent as="code" /></pre>

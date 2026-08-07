@@ -115,13 +115,13 @@ const navigateToTab = (tab: 'my' | 'recent' | 'shared' | 'favorites') => {
 
 // Predefined colors
 const colors = [
-    { name: '蓝', value: '#3b82f6' },
-    { name: '绿', value: '#10b981' },
-    { name: '紫', value: '#8b5cf6' },
-    { name: '橙', value: '#f59e0b' },
-    { name: '红', value: '#ef4444' },
-    { name: '青', value: '#06b6d4' },
-    { name: '黑', value: '#1f2937' },
+    { name: 'Blue', value: '#3b82f6' },
+    { name: 'Green', value: '#10b981' },
+    { name: 'Purple', value: '#8b5cf6' },
+    { name: 'Orange', value: '#f59e0b' },
+    { name: 'Red', value: '#ef4444' },
+    { name: 'Cyan', value: '#06b6d4' },
+    { name: 'Black', value: '#1f2937' },
 ]
 
 // Modals state
@@ -700,7 +700,7 @@ const handleKbSelected = (kbId: number) => {
         <div v-if="navStyle === 'left'" class="md:hidden h-14 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
             <button type="button" @click="showMobileSidebar = true"
                 class="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition focus:outline-none"
-                title="菜单">
+                :title="t('nav.menu')">
                 <svg class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>

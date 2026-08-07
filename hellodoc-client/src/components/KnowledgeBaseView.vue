@@ -638,11 +638,11 @@ onMounted(() => {
                     <div class="pt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                         <button @click="router.push({ name: 'Home' })"
                             class="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-base font-bold shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all">
-                            回到首页
+                            {{ t('nav.backHome') }}
                         </button>
                         <button @click="reloadPage"
                             class="px-8 py-4 bg-white dark:bg-[#161b22] border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 rounded-2xl text-base font-bold hover:bg-slate-50 dark:hover:bg-gray-700 transition-all">
-                            重新尝试
+                            {{ t('common.retry') }}
                         </button>
                     </div>
                 </div>

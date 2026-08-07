@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
-@Tag(name = "通知管理", description = "系统通知查询、阅读及删除接口")
+@Tag(name = "Notification Management", description = "Notification query, read and deletion APIs")
 public class NotificationController {
 
     private final NotificationService notificationService;
@@ -28,7 +28,7 @@ public class NotificationController {
     private final ObjectMapper objectMapper;
 
     @GetMapping
-    @Operation(summary = "获取通知列表", description = "获取当前用户的通知列表，支持分页和未读过滤")
+    @Operation(summary = "Get notification list", description = "Get current user notifications with pagination and unread filtering")
     public ApiResponse<Page<DocNotificationVO>> getUserNotifications(
             @RequestParam(required = false) Boolean unreadOnly,
             Pageable pageable) {
@@ -43,14 +43,14 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    @Operation(summary = "获取未读通知数", description = "获取当前用户的未读通知数量")
+    @Operation(summary = "Get unread count", description = "Get unread notification count for current user")
     public ApiResponse<Integer> getUnreadCount() {
         Long userId = currentUserId();
         return ApiResponse.success(notificationService.getUnreadCount(userId));
     }
 
     @PutMapping("/{id}/read")
-    @Operation(summary = "标记已读", description = "将指定通知标记为已读")
+    @Operation(summary = "Mark as read", description = "Mark specific notification as read")
     public ApiResponse<Void> markAsRead(@PathVariable Long id) {
         Long userId = currentUserId();
         notificationService.markAsRead(id, userId);
@@ -58,7 +58,7 @@ public class NotificationController {
     }
 
     @PutMapping("/read-all")
-    @Operation(summary = "全部标记已读", description = "将当前用户的所有未读通知标记为已读")
+    @Operation(summary = "Mark all as read", description = "Mark all unread notifications as read for current user")
     public ApiResponse<Void> markAllAsRead() {
         Long userId = currentUserId();
         notificationService.markAllAsRead(userId);
@@ -66,7 +66,7 @@ public class NotificationController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除通知", description = "删除指定的通知")
+    @Operation(summary = "Delete notification", description = "Delete specific notification")
     public ApiResponse<Void> deleteNotification(@PathVariable Long id) {
         Long userId = currentUserId();
         notificationService.deleteNotification(id, userId);

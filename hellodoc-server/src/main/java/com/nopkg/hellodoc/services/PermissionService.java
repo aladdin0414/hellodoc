@@ -39,13 +39,13 @@ public class PermissionService {
 
     public SysPermission getPermission(Long id) {
         return permissionRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "权限不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("permission.not_found", "Permission not found")));
     }
 
     @Transactional
     public SysPermission createPermission(String permCode, String permName) {
         if (permissionRepository.findByPermCode(permCode).isPresent()) {
-            throw new BusinessException(ApiResponse.Code.USERNAME_CONFLICT, "权限编码已存在");
+            throw new BusinessException(ApiResponse.Code.USERNAME_CONFLICT, com.nopkg.hellodoc.utils.MessageUtils.get("permission.code_exists", "Permission code already exists"));
         }
 
         SysPermission permission = new SysPermission();
@@ -72,9 +72,9 @@ public class PermissionService {
     public void grantPermission(Long roleId, Long permId) {
         // 验证角色和权限存在
         SysRole role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "角色不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("role.not_found", "Role not found")));
         SysPermission perm = permissionRepository.findById(permId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "权限不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("permission.not_found", "Permission not found")));
 
         SysRolePermissionId id = new SysRolePermissionId();
         id.setRoleId(roleId);

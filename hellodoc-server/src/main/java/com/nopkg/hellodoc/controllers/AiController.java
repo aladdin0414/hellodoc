@@ -28,7 +28,7 @@ public class AiController {
     @Operation(summary = "Generate AI completion for selected text")
     public ApiResponse<AiCompletionResp> completion(@RequestBody AiCompletionReq req) {
         if (req.getContext() == null || req.getPrompt() == null) {
-            throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.PARAM_ERROR, "参数不能为空");
+            throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("common.param_cannot_be_empty"));
         }
         String result = aiService.getCompletion(req.getContext(), req.getPrompt(), req.getLang());
         String model = aiService.getResolvedModel();
@@ -39,7 +39,7 @@ public class AiController {
     @Operation(summary = "Generate AI completion stream for selected text")
     public SseEmitter completionStream(@RequestBody AiCompletionReq req) {
         if (req.getContext() == null || req.getPrompt() == null) {
-            throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.PARAM_ERROR, "参数不能为空");
+            throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("common.param_cannot_be_empty"));
         }
         SseEmitter emitter = new SseEmitter(0L);
         String model = aiService.getResolvedModel();

@@ -63,7 +63,7 @@ public class DatabaseInitializer {
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) {
                             String errorMsg = String.format(
-                                    "数据库 '%s' 不存在! 请先手动创建数据库，例如执行: CREATE DATABASE %s;",
+                                    "Database '%s' does not exist! Please manually create the database, e.g.: CREATE DATABASE %s;",
                                     databaseName, databaseName);
                             logger.error(errorMsg);
                             throw new RuntimeException(errorMsg);
@@ -85,8 +85,8 @@ public class DatabaseInitializer {
             checkAndCreateDefaultStorageConfig();
 
         } catch (Exception e) {
-            logger.error("数据库初始化失败", e);
-            throw new RuntimeException("数据库初始化失败: " + e.getMessage(), e);
+            logger.error("Database initialization failed", e);
+            throw new RuntimeException("Database initialization failed: " + e.getMessage(), e);
         }
     }
 
@@ -96,7 +96,7 @@ public class DatabaseInitializer {
     private void checkAndCreateDefaultStorageConfig() {
         String checkQuery = "SELECT COUNT(*) FROM kb_storage_config WHERE id = 1";
         String insertQuery = "INSERT INTO kb_storage_config (id, name, provider, is_default, created_at, updated_at) " +
-                "VALUES (1, '默认本地存储', 'local', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+                "VALUES (1, 'Default Local Storage', 'local', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
         try (Connection conn = DriverManager.getConnection(datasourceUrl, username, password);
              Statement stmt = conn.createStatement();
@@ -164,8 +164,8 @@ public class DatabaseInitializer {
             }
 
         } catch (Exception e) {
-            logger.error("表结构初始化失败", e);
-            throw new RuntimeException("表结构初始化失败: " + e.getMessage(), e);
+            logger.error("Failed to initialize schema", e);
+            throw new RuntimeException("Schema initialization failed: " + e.getMessage(), e);
         }
     }
 
@@ -188,8 +188,8 @@ public class DatabaseInitializer {
 
             return true;
         } catch (Exception e) {
-            logger.error("检查业务表结构是否存在失败", e);
-            throw new RuntimeException("检查业务表结构是否存在失败: " + e.getMessage(), e);
+            logger.error("Failed to check business table existence", e);
+            throw new RuntimeException("Failed to check business table existence: " + e.getMessage(), e);
         }
     }
 
@@ -211,20 +211,20 @@ public class DatabaseInitializer {
             }
 
             if (!StringUtils.hasText(adminPassword)) {
-                throw new IllegalStateException("admin.password 未配置，请通过 ADMIN_PASSWORD 环境变量显式提供初始管理员密码");
+                throw new IllegalStateException("admin.password is not configured, please explicitly provide initial admin password via ADMIN_PASSWORD environment variable");
             }
 
             SysUser adminUser = new SysUser();
-            adminUser.setNickname("系统管理员");
+            adminUser.setNickname("System Administrator");
             adminUser.setRealName("Administrator");
             adminUser.setEmail("admin@hellodoc.local");
 
             userService.createUser(adminUser, "admin", adminPassword, "admin");
-            logger.info("初始管理员账户创建成功: username=admin");
+            logger.info("Initial admin account created successfully: username=admin");
 
         } catch (Exception e) {
-            logger.error("创建管理员账户失败", e);
-            throw new RuntimeException("创建管理员账户失败: " + e.getMessage(), e);
+            logger.error("Failed to create admin user", e);
+            throw new RuntimeException("Failed to create admin user: " + e.getMessage(), e);
         }
     }
 

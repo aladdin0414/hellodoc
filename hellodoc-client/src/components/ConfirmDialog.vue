@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import BaseDialog from './shared/BaseDialog.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps<{
     show: boolean
@@ -29,13 +32,13 @@ const emit = defineEmits(['confirm', 'cancel'])
                             </svg>
                         </div>
                         <div v-else
-                            class="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            class="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <h3 class="text-lg font-bold text-slate-900 dark:text-gray-100">{{ title }}</h3>
+                        <h3 class="text-lg font-bold text-slate-800 dark:text-gray-100">{{ title }}</h3>
                     </div>
 
                     <p class="text-slate-600 dark:text-gray-300 leading-relaxed font-medium">{{ message }}</p>
@@ -43,13 +46,13 @@ const emit = defineEmits(['confirm', 'cancel'])
                     <div class="mt-8 flex justify-end space-x-3">
                         <button v-if="!hideCancel" @click="emit('cancel')"
                             class="px-5 py-2.5 text-sm font-bold text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 rounded-xl transition-colors duration-200">
-                            {{ cancelText || '取消' }}
+                            {{ cancelText || t('common.cancel') }}
                         </button>
                         <button @click="emit('confirm')" :class="[
                             'px-5 py-2 text-sm font-semibold text-white rounded-xl transition-all duration-200 active:scale-95',
                             type === 'danger' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'
                         ]">
-                            {{ confirmText || '确认' }}
+                            {{ confirmText || t('common.confirm') }}
                         </button>
                     </div>
                 </div>

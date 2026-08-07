@@ -18,14 +18,14 @@ import java.util.List;
 @RestController
 @RequestMapping
 @RequiredArgsConstructor
-@Tag(name = "搜索", description = "全文搜索与索引维护接口")
+@Tag(name = "Search", description = "Full text search and index maintenance APIs")
 public class SearchController {
 
     private final SearchService searchService;
     private final KbService kbService;
 
     @GetMapping("/api/kb/{kbId}/search")
-    @Operation(summary = "知识库内搜索", description = "在指定知识库中进行全文搜索")
+    @Operation(summary = "Search in KB", description = "Full text search within specific knowledge base")
     @RequireKbRole(KbRole.VIEWER)
     public ApiResponse<List<SearchResultVO>> searchInKb(@PathVariable Long kbId,
             @RequestParam(name = "q") String query,
@@ -34,7 +34,7 @@ public class SearchController {
     }
 
     @GetMapping("/api/kb/{kbId}/search-editor")
-    @Operation(summary = "编辑模式知识库搜索", description = "在指定知识库中进行全文搜索，包含草稿（需要编辑器权限或以上）")
+    @Operation(summary = "Editor mode KB search", description = "Full text search including drafts within specific knowledge base (Requires EDITOR or higher)")
     @RequireKbRole(KbRole.EDITOR)
     public ApiResponse<List<SearchResultVO>> searchEditorInKb(@PathVariable Long kbId,
             @RequestParam(name = "q") String query,
@@ -43,7 +43,7 @@ public class SearchController {
     }
 
     @GetMapping("/api/search")
-    @Operation(summary = "全局搜索", description = "在所有可访问文档中进行全文搜索")
+    @Operation(summary = "Global search", description = "Full text search across all accessible documents")
     public ApiResponse<List<SearchResultVO>> searchAll(@RequestParam(name = "q") String query,
             @RequestParam(defaultValue = "20") int limit) {
         Long userId = currentUserId();
@@ -51,7 +51,7 @@ public class SearchController {
     }
 
     @PostMapping("/api/search/rebuild")
-    @Operation(summary = "重建索引", description = "重建全文搜索索引（管理员）")
+    @Operation(summary = "Rebuild index", description = "Rebuild full text search index (Admin only)")
     @PreAuthorize("hasRole('admin')")
     public ApiResponse<Void> rebuildAll() {
         searchService.rebuildAllIndex();

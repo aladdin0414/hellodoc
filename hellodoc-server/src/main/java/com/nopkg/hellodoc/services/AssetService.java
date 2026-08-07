@@ -36,10 +36,10 @@ public class AssetService {
     public KbAsset uploadAsset(Long kbId, Long docId, MultipartFile file, Long userId, String fileName,
             String description) {
         if (kbId == null) {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "kbId 不能为空");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("kb.id_cannot_be_empty", "kbId cannot be empty"));
         }
         if (userId == null) {
-            throw new BusinessException(ApiResponse.Code.UNAUTHORIZED, "未登录");
+            throw new BusinessException(ApiResponse.Code.UNAUTHORIZED, com.nopkg.hellodoc.utils.MessageUtils.get("auth.unauthorized", "Unauthorized"));
         }
         permissionChecker.checkKbRole(userId, kbId, KbRole.EDITOR);
 
@@ -47,9 +47,9 @@ public class AssetService {
         KbDocument doc = null;
         if (docId != null) {
             doc = documentRepository.findById(docId)
-                    .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "文档不存在"));
+                    .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("doc.not_found", "Document not found")));
             if (!Objects.equals(doc.getKb().getId(), kbId)) {
-                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "文档不属于该知识库");
+                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("doc.not_in_kb", "Document does not belong to this knowledge base"));
             }
             permissionChecker.checkDocRole(userId, docId, DocRole.EDITOR);
         }
@@ -80,7 +80,7 @@ public class AssetService {
 
     public KbAsset getAsset(Long assetId, Long userId) {
         KbAsset asset = assetRepository.findByIdAndDeletedAtIsNull(assetId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "附件不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("asset.not_found", "Asset not found")));
         if (asset.getDoc() != null) {
             permissionChecker.checkDocRole(userId, asset.getDoc().getId(), DocRole.VIEWER);
         } else {
@@ -91,7 +91,7 @@ public class AssetService {
 
     public KbAsset getAssetPublic(Long assetId) {
         return assetRepository.findByIdAndDeletedAtIsNull(assetId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "附件不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("asset.not_found", "Asset not found")));
     }
 
     public String getAssetUrl(Long assetId, Long userId) {
@@ -112,7 +112,7 @@ public class AssetService {
 
     public InputStream getAssetContentPublic(Long assetId) {
         KbAsset asset = assetRepository.findByIdAndDeletedAtIsNull(assetId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "附件不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("asset.not_found", "Asset not found")));
         StorageClient client = storageClientFactory.create(asset.getStorageFile().getStorageConfig());
         return client.download(asset.getStorageFile().getStorageKey());
     }
@@ -120,7 +120,7 @@ public class AssetService {
     @Transactional
     public void deleteAsset(Long assetId, Long userId) {
         KbAsset asset = assetRepository.findByIdAndDeletedAtIsNull(assetId)
-                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "附件不存在"));
+                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, com.nopkg.hellodoc.utils.MessageUtils.get("asset.not_found", "Asset not found")));
         permissionChecker.checkKbRole(userId, asset.getKb().getId(), KbRole.EDITOR);
 
         asset.setDeletedAt(OffsetDateTime.now());

@@ -13,6 +13,7 @@ import com.nopkg.hellodoc.services.SearchService;
 import com.nopkg.hellodoc.web.dto.search.SearchResultVO;
 import com.nopkg.hellodoc.web.ApiResponse;
 import com.nopkg.hellodoc.exceptions.BusinessException;
+import com.nopkg.hellodoc.utils.MessageUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/public/kb")
 @RequiredArgsConstructor
-@Tag(name = "公开知识库浏览", description = "公开知识库与文档浏览接口")
+@Tag(name = "Public Knowledge Base", description = "Public knowledge base and document browsing APIs")
 public class PublicKbController {
 
         private final KbService kbService;
@@ -48,14 +49,14 @@ public class PublicKbController {
         }
 
         @GetMapping("/{kbId}")
-        @Operation(summary = "获取公开知识库详情")
+        @Operation(summary = "Get public KB details")
         public ApiResponse<KbSummary> getPublicKb(@PathVariable Long kbId) {
                 KbKnowledgeBase kb = kbRepository.findByIdAndDeletedAtIsNull(kbId)
                                 .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND,
-                                                "知识库不存在"));
+                                                MessageUtils.get("legacy.kb.not_found", "KB not found")));
 
                 if (kb.getVisibility() != Visibility.PUBLIC) {
-                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "该知识库非公开");
+                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, MessageUtils.get("legacy.kb.not_public"));
                 }
 
                 SysUser owner = kbService.loadUsersByIds(Set.of(kb.getOwnerId())).get(kb.getOwnerId());
@@ -71,14 +72,14 @@ public class PublicKbController {
         }
 
         @GetMapping("/{kbId}/documents")
-        @Operation(summary = "获取公开文档列表")
+        @Operation(summary = "List public documents")
         public ApiResponse<List<KbDocItem>> listPublicDocuments(@PathVariable Long kbId) {
                 KbKnowledgeBase kb = kbRepository.findByIdAndDeletedAtIsNull(kbId)
                                 .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND,
-                                                "知识库不存在"));
+                                                MessageUtils.get("legacy.kb.not_found", "KB not found")));
 
                 if (kb.getVisibility() != Visibility.PUBLIC) {
-                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "该知识库非公开");
+                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, MessageUtils.get("legacy.kb.not_public"));
                 }
 
                 List<KbDocument> docs = documentRepository.findAllPublishedAndAncestors(kbId);
@@ -98,21 +99,21 @@ public class PublicKbController {
         }
 
         @GetMapping("/{kbId}/documents/{docId}")
-        @Operation(summary = "获取公开文档详情")
+        @Operation(summary = "Get public document details")
         public ApiResponse<KbDocItem> getPublicDocument(@PathVariable Long kbId, @PathVariable Long docId) {
                 KbKnowledgeBase kb = kbRepository.findByIdAndDeletedAtIsNull(kbId)
                                 .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND,
-                                                "知识库不存在"));
+                                                MessageUtils.get("legacy.kb.not_found", "KB not found")));
 
                 if (kb.getVisibility() != Visibility.PUBLIC) {
-                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "该知识库非公开");
+                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, MessageUtils.get("legacy.kb.not_public"));
                 }
 
                 KbDocument doc = documentRepository.findByIdAndDeletedAtIsNull(docId)
-                                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "文档不存在"));
+                                .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, MessageUtils.get("legacy.document.not_found")));
 
                 if (!doc.getKb().getId().equals(kbId) || doc.getStatus() != DocStatus.PUBLISHED) {
-                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "无权访问该文档");
+                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, MessageUtils.get("legacy.document.no_permission"));
                 }
 
                 // Increment view count
@@ -132,16 +133,16 @@ public class PublicKbController {
         }
 
         @GetMapping("/{kbId}/search")
-        @Operation(summary = "公开知识库搜索", description = "在公开知识库中进行全文搜索")
+        @Operation(summary = "Search public KB", description = "Full text search in public knowledge base")
         public ApiResponse<List<SearchResultVO>> searchPublicKb(@PathVariable Long kbId,
                         @RequestParam(name = "q") String query,
                         @RequestParam(defaultValue = "20") int limit) {
                 KbKnowledgeBase kb = kbRepository.findByIdAndDeletedAtIsNull(kbId)
                                 .orElseThrow(() -> new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND,
-                                                "知识库不存在"));
+                                                MessageUtils.get("legacy.kb.not_found", "KB not found")));
 
                 if (kb.getVisibility() != Visibility.PUBLIC) {
-                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, "该知识库非公开");
+                        throw new BusinessException(ApiResponse.Code.NO_PERMISSION, MessageUtils.get("legacy.kb.not_public"));
                 }
 
                 return ApiResponse.success(searchService.search(kbId, query, limit, true));

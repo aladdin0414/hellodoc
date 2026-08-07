@@ -19,14 +19,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/docs/{docId}/revisions")
 @RequiredArgsConstructor
-@Tag(name = "文档版本", description = "文档版本控制相关接口")
+@Tag(name = "Document Revisions", description = "Document version control and revision APIs")
 public class RevisionController {
 
     private final RevisionService revisionService;
     private final KbService kbService;
 
     @GetMapping
-    @Operation(summary = "获取版本历史")
+    @Operation(summary = "Get version history")
     @RequireDocRole
     public ApiResponse<Page<RevisionVO>> getHistory(@PathVariable Long docId,
             @PageableDefault(sort = "version", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
@@ -42,7 +42,7 @@ public class RevisionController {
     }
 
     @PostMapping
-    @Operation(summary = "创建手动版本")
+    @Operation(summary = "Create manual revision")
     @RequireDocRole(com.nopkg.hellodoc.enums.DocRole.EDITOR)
     public ApiResponse<RevisionVO> createRevision(@PathVariable Long docId, @RequestBody CreateRevisionDTO dto) {
         Long userId = currentUserId();
@@ -54,7 +54,7 @@ public class RevisionController {
     }
 
     @PostMapping("/milestone")
-    @Operation(summary = "创建里程碑版本")
+    @Operation(summary = "Create milestone revision")
     @RequireDocRole(com.nopkg.hellodoc.enums.DocRole.EDITOR)
     public ApiResponse<Void> createMilestone(@PathVariable Long docId, @RequestBody CreateRevisionDTO dto) {
         Long userId = currentUserId();
@@ -63,7 +63,7 @@ public class RevisionController {
     }
 
     @GetMapping("/{version}")
-    @Operation(summary = "获取特定版本详情")
+    @Operation(summary = "Get revision details")
     @RequireDocRole
     public ApiResponse<RevisionVO> getRevision(@PathVariable Long docId, @PathVariable Integer version) {
         KbDocumentRevision revision = revisionService.getRevision(docId, version);
@@ -76,7 +76,7 @@ public class RevisionController {
     }
 
     @GetMapping("/{version}/content")
-    @Operation(summary = "获取版本内容")
+    @Operation(summary = "Get revision content")
     @RequireDocRole
     public ApiResponse<String> getRevisionContent(@PathVariable Long docId, @PathVariable Integer version) {
         String content = revisionService.getRevisionContent(docId, version);
@@ -84,7 +84,7 @@ public class RevisionController {
     }
 
     @PostMapping("/{version}/restore")
-    @Operation(summary = "回退/恢复版本")
+    @Operation(summary = "Restore revision")
     @RequireDocRole(com.nopkg.hellodoc.enums.DocRole.EDITOR)
     public ApiResponse<Void> restoreRevision(@PathVariable Long docId, @PathVariable Integer version) {
         Long userId = currentUserId();
@@ -93,7 +93,7 @@ public class RevisionController {
     }
 
     @GetMapping("/compare")
-    @Operation(summary = "对比版本差异")
+    @Operation(summary = "Compare revision diff")
     @RequireDocRole
     public ApiResponse<String> compareRevisions(@PathVariable Long docId,
             @RequestParam Integer v1,

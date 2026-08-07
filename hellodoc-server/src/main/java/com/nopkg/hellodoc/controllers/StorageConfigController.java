@@ -16,7 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/system/storage/configs")
 @RequiredArgsConstructor
-@Tag(name = "存储配置", description = "存储配置管理接口")
+@Tag(name = "Storage Configuration", description = "Storage Configuration Management APIs")
 public class StorageConfigController {
 
     private final StorageConfigService storageConfigService;
@@ -53,7 +53,7 @@ public class StorageConfigController {
 
     @PostMapping
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "创建存储配置")
+    @Operation(summary = "Create storage configuration")
     public ApiResponse<StorageConfigVO> create(@RequestBody StorageConfigRequest request) {
         KbStorageConfig created = storageConfigService.create(toDto(request));
         return ApiResponse.success(toVo(created));
@@ -61,14 +61,14 @@ public class StorageConfigController {
 
     @GetMapping
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "存储配置列表")
+    @Operation(summary = "List storage configurations")
     public ApiResponse<List<StorageConfigVO>> list() {
         return ApiResponse.success(storageConfigService.list().stream().map(this::toVo).toList());
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "更新存储配置")
+    @Operation(summary = "Update storage configuration")
     public ApiResponse<StorageConfigVO> update(@PathVariable Long id, @RequestBody StorageConfigRequest request) {
         KbStorageConfig updated = storageConfigService.update(id, toDto(request));
         return ApiResponse.success(toVo(updated));
@@ -76,7 +76,7 @@ public class StorageConfigController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "删除存储配置")
+    @Operation(summary = "Delete storage configuration")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         storageConfigService.delete(id);
         return ApiResponse.success();
@@ -84,7 +84,7 @@ public class StorageConfigController {
 
     @PostMapping("/{id}/test")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "测试存储配置连接")
+    @Operation(summary = "Test storage configuration connection")
     public ApiResponse<Map<String, Object>> test(@PathVariable Long id) {
         boolean ok = storageConfigService.testConnection(id);
         return ApiResponse.success(Map.of("ok", ok));
@@ -92,7 +92,7 @@ public class StorageConfigController {
 
     @PostMapping("/{id}/default")
     @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "设为默认存储配置")
+    @Operation(summary = "Set default storage configuration")
     public ApiResponse<Void> setDefault(@PathVariable Long id) {
         storageConfigService.setDefault(id);
         return ApiResponse.success();

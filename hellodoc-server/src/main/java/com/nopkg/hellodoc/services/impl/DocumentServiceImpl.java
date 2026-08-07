@@ -456,7 +456,7 @@ public class DocumentServiceImpl implements DocumentService {
             // Success
             return doc;
         } else {
-            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "密码错误");
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("auth.password_incorrect", "Incorrect password"));
         }
     }
 
@@ -529,7 +529,7 @@ public class DocumentServiceImpl implements DocumentService {
                 original,
                 kb,
                 original.getParent(),
-                original.getName() + " (副本)",
+                original.getName() + " (" + com.nopkg.hellodoc.utils.MessageUtils.get("doc.copy_suffix", "Copy") + ")",
                 maxOrderNum == null ? 0 : maxOrderNum + 1);
     }
 
@@ -643,7 +643,7 @@ public class DocumentServiceImpl implements DocumentService {
                 updateContent(userId, saved.getId(), content);
                 // 增加修订记录
                 revisionService.createRevision(saved.getId(), content, com.nopkg.hellodoc.enums.RevisionType.MANUAL,
-                        "拷贝来源于知识库：【" + sourceKbTitle + "】", userId);
+                        com.nopkg.hellodoc.utils.MessageUtils.get("doc.copy_from_kb", "Copy from Knowledge Base: ") + "【" + sourceKbTitle + "】", userId);
             }
         } else {
             // 如果是文件夹，递归拷贝子节点
