@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.0.11] - 2026-08-07
+
+- fix(dev): 优化本地环境变量加载及端口占用处理
+- refactor(i18n): 使用国际化替换硬编码文本并更新接口文档
+- feat(i18n): 增强国际化支持及翻译文本完善
+- feat(i18n): 实现全栈多语言国际化支持
+- docs: update project documentation in README.md
+- chore: update gitignore and document release notes generator skill
+
 ## [v2.0.10] - 2026-08-07
 
 - test: 更改构建发布的docker hub账户
