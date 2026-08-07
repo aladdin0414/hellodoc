@@ -5,6 +5,7 @@ dist/
 .idea/
 .vscode/
 .local/
+.local-hellodoc/
 .trae/
 .claude/
 *.iml
