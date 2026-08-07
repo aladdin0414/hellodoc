@@ -5,8 +5,9 @@
       <slot name="left">
         <button
           v-if="showBack"
+          type="button"
           @click="handleBack"
-          class="p-1.5 -ml-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 active:scale-95 transition-all"
+          class="mobile-nav-back-btn p-1.5 -ml-1.5 rounded-xl text-slate-600 dark:text-slate-300 active:scale-95 transition-all focus:outline-none"
         >
           <ChevronLeft class="w-6 h-6" />
         </button>
@@ -46,7 +47,10 @@ const emit = defineEmits<{
 const instance = getCurrentInstance()
 const router = useRouter()
 
-const handleBack = () => {
+const handleBack = (event: MouseEvent) => {
+  const button = event.currentTarget as HTMLButtonElement | null
+  button?.blur()
+
   const hasBackListener = !!instance?.vnode.props?.onBack
   if (hasBackListener) {
     emit('back')
@@ -55,3 +59,19 @@ const handleBack = () => {
   }
 }
 </script>
+
+<style scoped>
+.mobile-nav-back-btn {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mobile-nav-back-btn:hover {
+    background-color: rgb(241 245 249 / 1);
+  }
+
+  .dark .mobile-nav-back-btn:hover {
+    background-color: rgb(30 41 59 / 0.8);
+  }
+}
+</style>

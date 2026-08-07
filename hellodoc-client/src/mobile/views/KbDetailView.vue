@@ -33,10 +33,12 @@
           :node="node"
           :depth="0"
           :expanded-map="expandedMap"
-          :selected-id="selectedDocId"
+            :selected-id="previewSelectedDocId ?? selectedDocId"
           :is-searching="!!searchQuery.trim()"
           :can-edit="canEdit"
           @select="handleSelectDoc"
+            @preview-select="handlePreviewSelect"
+            @preview-clear="handlePreviewClear"
           @toggle-expand="handleToggleExpand"
           @create-child="openCreateModal($event, 'file')"
           @delete="handleDeleteNode"
@@ -358,7 +360,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, onActivated, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import HeaderNav from '../components/HeaderNav.vue'
 import DocTreeNode from '../components/DocTreeNode.vue'
@@ -381,6 +383,10 @@ interface DocNode {
   children?: DocNode[]
 }
 
+defineOptions({
+  name: 'KbDetailView'
+})
+
 const route = useRoute()
 const router = useRouter()
 const kbId = Number(route.params.kbId)
@@ -397,6 +403,29 @@ const handleBackToHome = () => {
 const loading = ref(false)
 const kbInfo = ref<KnowledgeBase | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
+const lastFetchedAt = ref(0)
+const returnSnapshotStorageKey = `m_return_snapshot_${kbId}`
+
+const persistScrollPosition = () => {
+  if (!containerRef.value) return
+  try {
+    sessionStorage.setItem(`m_scroll_${kbId}`, String(containerRef.value.scrollTop))
+  } catch (e) {
+    // ignore
+  }
+}
+
+const waitForSelectionPaint = async () => {
+  await nextTick()
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve())
+    })
+  })
+  await new Promise<void>((resolve) => {
+    window.setTimeout(() => resolve(), 120)
+  })
+}
 
 const restoreScrollPosition = () => {
   try {
@@ -415,6 +444,72 @@ const restoreScrollPosition = () => {
       })
     }
   } catch (e) {}
+}
+
+const getDocNodeElement = (docId: number) => {
+  if (!containerRef.value) return null
+  return containerRef.value.querySelector<HTMLElement>(`[data-doc-node-id="${docId}"]`)
+}
+
+const captureReturnSnapshot = (docId: number) => {
+  const container = containerRef.value
+  const targetNode = getDocNodeElement(docId)
+  if (!container || !targetNode) return
+
+  const containerRect = container.getBoundingClientRect()
+  const targetRect = targetNode.getBoundingClientRect()
+
+  try {
+    sessionStorage.setItem(returnSnapshotStorageKey, JSON.stringify({
+      docId,
+      scrollTop: container.scrollTop,
+      relativeTop: targetRect.top - containerRect.top
+    }))
+  } catch (e) {
+    // ignore
+  }
+}
+
+const restoreReturnSnapshot = (docId: number) => {
+  const container = containerRef.value
+  if (!container) return false
+
+  try {
+    const rawSnapshot = sessionStorage.getItem(returnSnapshotStorageKey)
+    if (!rawSnapshot) return false
+
+    const snapshot = JSON.parse(rawSnapshot) as {
+      docId?: number
+      scrollTop?: number
+      relativeTop?: number
+    }
+
+    if (snapshot.docId !== docId) return false
+
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        const activeContainer = containerRef.value
+        const targetNode = getDocNodeElement(docId)
+        if (!activeContainer || !targetNode) return
+
+        const activeContainerRect = activeContainer.getBoundingClientRect()
+        const targetRect = targetNode.getBoundingClientRect()
+        const targetTop = targetRect.top - activeContainerRect.top + activeContainer.scrollTop
+        const relativeTop = typeof snapshot.relativeTop === 'number' ? snapshot.relativeTop : 0
+        const nextScrollTop = Math.max(targetTop - relativeTop, 0)
+
+        activeContainer.scrollTo({
+          top: nextScrollTop,
+          behavior: 'auto'
+        })
+      })
+    })
+
+    sessionStorage.removeItem(returnSnapshotStorageKey)
+    return true
+  } catch (e) {
+    return false
+  }
 }
 
 const canEdit = computed(() => {
@@ -463,17 +558,26 @@ const displayDocTree = computed(() => {
 
 const expandedMap = ref<Record<string, boolean>>({})
 
+const persistExpandedMap = () => {
+  try {
+    sessionStorage.setItem(`m_expanded_${kbId}`, JSON.stringify(expandedMap.value))
+  } catch (e) {
+    // ignore
+  }
+}
+
 const getInitialSelectedDocId = (): number | null => {
   try {
     const activeDocId = route.query.activeDocId
       ? String(route.query.activeDocId)
-      : sessionStorage.getItem(`m_selected_doc_${kbId}`) || sessionStorage.getItem('active_doc_back')
+      : sessionStorage.getItem('active_doc_back')
     return activeDocId ? Number(activeDocId) : null
   } catch (e) {
     return null
   }
 }
 const selectedDocId = ref<number | null>(getInitialSelectedDocId())
+const previewSelectedDocId = ref<number | null>(null)
 
 const showCreateModal = ref(false)
 const targetParentId = ref<number | null>(null)
@@ -691,25 +795,29 @@ const handleToggleExpand = (id: number | string) => {
     ...expandedMap.value,
     [key]: !expandedMap.value[key]
   }
-  try {
-    sessionStorage.setItem(`m_expanded_${kbId}`, JSON.stringify(expandedMap.value))
-  } catch (e) {
-    // ignore
+  persistExpandedMap()
+}
+
+const handlePreviewSelect = (docId: number) => {
+  previewSelectedDocId.value = docId
+}
+
+const handlePreviewClear = (docId: number) => {
+  if (previewSelectedDocId.value === docId) {
+    previewSelectedDocId.value = null
   }
 }
 
-const handleSelectDoc = (docId: number, options?: { mode?: 'edit' | 'preview'; autoFocus?: boolean }) => {
+const handleSelectDoc = async (docId: number, options?: { mode?: 'edit' | 'preview'; autoFocus?: boolean }) => {
   // 乐观高亮：点击节点的瞬间立即响应高亮，无需等待页面返回
+  previewSelectedDocId.value = docId
   selectedDocId.value = docId
   try {
     sessionStorage.setItem(`m_selected_doc_${kbId}`, String(docId))
   } catch (e) {}
 
-  if (containerRef.value) {
-    try {
-      sessionStorage.setItem(`m_scroll_${kbId}`, String(containerRef.value.scrollTop))
-    } catch (e) {}
-  }
+  captureReturnSnapshot(docId)
+  persistScrollPosition()
   sessionStorage.setItem(`last_doc_${kbId}`, String(docId))
   sessionStorage.setItem('active_doc_back', String(docId))
   const query: Record<string, string> = {}
@@ -722,7 +830,10 @@ const handleSelectDoc = (docId: number, options?: { mode?: 'edit' | 'preview'; a
   if (options?.autoFocus) {
     query.autoFocus = 'true'
   }
-  router.push({
+
+  await waitForSelectionPaint()
+
+  await router.push({
     path: `/m/kb/${kbId}/doc/${docId}`,
     query
   })
@@ -833,16 +944,23 @@ const fetchData = async () => {
   if (activeDocId) {
     sessionStorage.removeItem('active_doc_back')
     selectedDocId.value = Number(activeDocId)
+      previewSelectedDocId.value = null
     if (hasCache) {
       autoExpandParentsOfDoc(docTree.value, Number(activeDocId))
+      persistExpandedMap()
     }
   } else {
     selectedDocId.value = null
+      previewSelectedDocId.value = null
   }
 
-  if (hasCache) {
-    restoreScrollPosition()
-  }
+    if (hasCache) {
+      if (activeDocId) {
+        restoreReturnSnapshot(Number(activeDocId))
+      } else {
+        restoreScrollPosition()
+      }
+    }
 
   // 若无缓存则展示骨架屏；若有缓存则保持 loading=false 静默更新
   if (!hasCache) {
@@ -869,16 +987,26 @@ const fetchData = async () => {
 
     if (activeDocId) {
       autoExpandParentsOfDoc(docTree.value, Number(activeDocId))
+      persistExpandedMap()
     }
 
-    restoreScrollPosition()
+      if (activeDocId) {
+        restoreReturnSnapshot(Number(activeDocId))
+      } else {
+        restoreScrollPosition()
+      }
+    lastFetchedAt.value = Date.now()
   } catch (err) {
     if (!hasCache) {
       docTree.value = []
     }
   } finally {
     loading.value = false
-    restoreScrollPosition()
+      if (activeDocId) {
+        restoreReturnSnapshot(Number(activeDocId))
+      } else {
+        restoreScrollPosition()
+      }
   }
 }
 
@@ -899,6 +1027,42 @@ const autoExpandParentsOfDoc = (nodes: DocNode[], targetId: number): boolean => 
     }
   }
   return false
+}
+
+const syncActiveDocState = () => {
+  const activeDocId = route.query.activeDocId
+    ? String(route.query.activeDocId)
+    : sessionStorage.getItem('active_doc_back')
+
+  if (!activeDocId) {
+    selectedDocId.value = null
+    previewSelectedDocId.value = null
+    return false
+  }
+
+  const nextSelectedId = Number(activeDocId)
+  if (!Number.isFinite(nextSelectedId)) {
+    selectedDocId.value = null
+    previewSelectedDocId.value = null
+    return false
+  }
+
+  selectedDocId.value = nextSelectedId
+  previewSelectedDocId.value = null
+  try {
+    sessionStorage.setItem(`m_selected_doc_${kbId}`, String(nextSelectedId))
+  } catch (e) {
+    // ignore
+  }
+
+  autoExpandParentsOfDoc(docTree.value, nextSelectedId)
+  persistExpandedMap()
+
+  if (sessionStorage.getItem('active_doc_back')) {
+    sessionStorage.removeItem('active_doc_back')
+  }
+
+  return nextSelectedId
 }
 
 const handleCreateNode = async () => {
@@ -981,6 +1145,22 @@ onUnmounted(() => {
 })
 
 onActivated(() => {
-  fetchData()
+  const restoredDocId = syncActiveDocState()
+  if (restoredDocId) {
+    restoreReturnSnapshot(restoredDocId)
+  } else {
+    restoreScrollPosition()
+  }
+
+  if (loading.value) return
+
+  if (!docTree.value.length || Date.now() - lastFetchedAt.value > 60_000) {
+    void fetchData()
+  }
+})
+
+onDeactivated(() => {
+  previewSelectedDocId.value = null
+  persistScrollPosition()
 })
 </script>

@@ -16,8 +16,8 @@
           <template v-else-if="isDirty">
             <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
             <span class="text-rose-500 font-medium">未保存</span>
-          </template>
-          <template v-else>
+            </template>
+            <template v-else-if="showSavedIndicator">
             <Check class="w-3 h-3 text-emerald-500" />
             <span class="text-slate-400 dark:text-slate-500">已保存</span>
           </template>
@@ -176,6 +176,7 @@ const loadingDoc = ref(true)
 const saving = ref(false)
 const isDirty = ref(false)
 const uploadingImage = ref(false)
+const showSavedIndicator = ref(false)
 
 const docTitle = ref('')
 const docContent = ref('')
@@ -187,9 +188,22 @@ const historyStack = ref<string[]>([])
 const historyIndex = ref<number>(-1)
 let isHistoryAction = false
 let historyDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let focusTimer: ReturnType<typeof setTimeout> | null = null
+let savedIndicatorTimer: ReturnType<typeof setTimeout> | null = null
 
 const canUndo = computed(() => historyIndex.value > 0)
 const canRedo = computed(() => historyIndex.value >= 0 && historyIndex.value < historyStack.value.length - 1)
+
+const showSavedFeedback = () => {
+  showSavedIndicator.value = true
+  if (savedIndicatorTimer) {
+    clearTimeout(savedIndicatorTimer)
+  }
+  savedIndicatorTimer = setTimeout(() => {
+    showSavedIndicator.value = false
+    savedIndicatorTimer = null
+  }, 1200)
+}
 
 const pushHistory = (content: string, immediate = false) => {
   if (isHistoryAction) return
@@ -282,7 +296,8 @@ const fetchDocDetail = async () => {
 
     if (route.query.autoFocus === 'true' && !isReadOnly.value && isEditing.value) {
       nextTick(() => {
-        setTimeout(() => {
+        if (focusTimer) clearTimeout(focusTimer)
+        focusTimer = setTimeout(() => {
           if (editorRef.value) {
             editorRef.value.focus()
             const len = editorRef.value.value.length
@@ -460,8 +475,10 @@ const handleSave = async (options?: { silent?: boolean }) => {
       content: docContent.value
     })
     isDirty.value = false
+    showSavedFeedback()
   } catch (err) {
     isDirty.value = true
+    showSavedIndicator.value = false
     if (!options?.silent) {
       message.error('保存失败，请稍后重试')
     }
@@ -491,6 +508,18 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (historyDebounceTimer) {
+    clearTimeout(historyDebounceTimer)
+    historyDebounceTimer = null
+  }
+  if (focusTimer) {
+    clearTimeout(focusTimer)
+    focusTimer = null
+  }
+  if (savedIndicatorTimer) {
+    clearTimeout(savedIndicatorTimer)
+    savedIndicatorTimer = null
+  }
   void flushSave()
 })
 </script>

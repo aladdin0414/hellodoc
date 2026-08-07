@@ -14,7 +14,8 @@ const mobileRoutes: RouteRecordRaw[] = [
   {
     path: '/m/kb/:kbId',
     name: 'MobileKbDetail',
-    component: () => import('./views/KbDetailView.vue')
+    component: () => import('./views/KbDetailView.vue'),
+    meta: { keepAlive: true }
   },
   {
     path: '/m/kb/:kbId/doc/:docId',

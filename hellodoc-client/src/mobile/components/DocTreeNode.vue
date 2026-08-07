@@ -3,12 +3,22 @@
     <!-- 当前节点行 -->
     <div
       @click="handleClick"
+      @touchstart.passive="handleTouchStart"
+      @touchmove.passive="handleTouchMove"
+      @touchend="handleTouchEnd"
+      @touchcancel="handleTouchCancel"
+      @mousedown="handleMouseDown"
+      @mouseup="clearPressedState"
+      @mouseleave="clearPressedState"
+      :data-doc-node-id="node.id"
       :class="[
         isSelected
           ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold'
-          : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/60 text-slate-800 dark:text-slate-200 active:bg-slate-200/80 dark:active:bg-slate-800'
+          : isPressed
+            ? 'bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
+            : 'text-slate-800 dark:text-slate-200'
       ]"
-      class="p-2.5 flex items-center justify-between rounded-xl transition-all cursor-pointer select-none touch-manipulation active:scale-[0.99]"
+      class="mobile-tree-node p-2.5 flex items-center justify-between rounded-xl transition-all cursor-pointer select-none touch-manipulation"
       :style="{ paddingLeft: `${depth * 1.15 + 0.625}rem` }"
     >
       <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -56,6 +66,8 @@
         :is-searching="isSearching"
         :can-edit="canEdit"
         @select="$emit('select', $event)"
+          @preview-select="$emit('preview-select', $event)"
+          @preview-clear="$emit('preview-clear', $event)"
         @toggle-expand="$emit('toggle-expand', $event)"
         @create-child="$emit('create-child', $event)"
         @delete="$emit('delete', $event)"
@@ -66,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Folder, FileText, ChevronRight, ChevronDown, MoreHorizontal } from 'lucide-vue-next'
 
 interface DocNode {
@@ -101,6 +113,8 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   select: [docId: number]
+    'preview-select': [docId: number]
+    'preview-clear': [docId: number]
   'toggle-expand': [nodeId: number]
   'create-child': [parentId: number]
   delete: [node: DocNode]
@@ -118,8 +132,59 @@ const isExpanded = computed(() => {
 })
 
 const isSelected = computed(() => {
-  return props.selectedId === props.node.id
+  return !isFolder.value && props.selectedId === props.node.id
 })
+
+const isPressed = ref(false)
+const touchStartPoint = ref<{ x: number; y: number } | null>(null)
+const TOUCH_MOVE_THRESHOLD = 8
+
+const clearPressedState = () => {
+  isPressed.value = false
+  touchStartPoint.value = null
+}
+
+const handleTouchStart = (event: TouchEvent) => {
+  const touch = event.touches[0]
+  if (!touch) return
+  touchStartPoint.value = { x: touch.clientX, y: touch.clientY }
+  isPressed.value = true
+  if (!isFolder.value) {
+    emit('preview-select', props.node.id)
+  }
+}
+
+const handleTouchMove = (event: TouchEvent) => {
+  const touch = event.touches[0]
+  if (!touchStartPoint.value || !touch) return
+
+  const deltaX = Math.abs(touch.clientX - touchStartPoint.value.x)
+  const deltaY = Math.abs(touch.clientY - touchStartPoint.value.y)
+  if (deltaX > TOUCH_MOVE_THRESHOLD || deltaY > TOUCH_MOVE_THRESHOLD) {
+    isPressed.value = false
+    if (!isFolder.value) {
+      emit('preview-clear', props.node.id)
+    }
+  }
+}
+
+const handleTouchEnd = () => {
+  clearPressedState()
+}
+
+const handleTouchCancel = () => {
+  clearPressedState()
+  if (!isFolder.value) {
+    emit('preview-clear', props.node.id)
+  }
+}
+
+const handleMouseDown = () => {
+  isPressed.value = true
+  if (!isFolder.value) {
+    emit('preview-select', props.node.id)
+  }
+}
 
 const toggleExpand = () => {
   emit('toggle-expand', props.node.id)
@@ -133,3 +198,19 @@ const handleClick = () => {
   }
 }
 </script>
+
+<style scoped>
+.mobile-tree-node {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mobile-tree-node:hover {
+    background-color: rgb(226 232 240 / 0.5);
+  }
+
+  .dark .mobile-tree-node:hover {
+    background-color: rgb(30 41 59 / 0.6);
+  }
+}
+</style>
