@@ -156,7 +156,7 @@ const { t, locale } = useI18n()
 const showLangModal = ref(false)
 
 const currentLocaleName = computed(() => {
-  return locale.value === 'en-US' ? 'English' : '简体中文'
+  return locale.value === 'en-US' ? t('locale.enUS') : t('locale.zhCN')
 })
 
 const selectLocale = (targetLocale: 'zh-CN' | 'en-US') => {

@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import type { Router } from 'vue-router'
 import { createDocument } from '../../../api/document'
+import { i18n } from '../../../i18n'
 
 export interface QuickNoteUserConfig {
   user: string
@@ -56,7 +57,7 @@ export function useQuickNote() {
 
     const matchedConfig = options.username ? getUserConfig(options.username) : null
     const kbId = matchedConfig?.kbid ?? options.kbId ?? QUICK_NOTE_USER_CONFIGS[0]?.kbid ?? 38
-    const docTitle = `速记_${formatTimestamp()}`
+    const docTitle = `${i18n.global.t('mobile.quickNote.docPrefix')}_${formatTimestamp()}`
 
     try {
       if (options.onSuccess) {

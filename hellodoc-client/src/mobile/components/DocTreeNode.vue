@@ -46,7 +46,7 @@
       <div v-if="canEdit" @click.stop class="flex items-center opacity-70 hover:opacity-100 transition-opacity shrink-0">
         <button
           @click.stop="$emit('more-action', node)"
-          title="更多操作"
+          :title="t('editor.moreOptions')"
           class="p-2 -mr-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 active:bg-slate-300/60 dark:active:bg-slate-700 rounded-lg transition-colors active:scale-95 touch-manipulation"
         >
           <MoreHorizontal class="w-4 h-4" />
@@ -79,7 +79,10 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Folder, FileText, ChevronRight, ChevronDown, MoreHorizontal } from 'lucide-vue-next'
+
+const { t } = useI18n()
 
 interface DocNode {
   id: number

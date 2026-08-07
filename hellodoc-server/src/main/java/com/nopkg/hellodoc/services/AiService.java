@@ -108,7 +108,7 @@ public class AiService {
         log.info("AI Completion Request - Model: {}, URL: {}, Timeout: {}ms", model, baseUrl, timeout);
 
         if (!StringUtils.hasText(apiKey)) {
-            throw new RuntimeException("AI API Key is not configured.");
+            throw new com.nopkg.hellodoc.exceptions.BusinessException(com.nopkg.hellodoc.web.ApiResponse.Code.SYSTEM_ERROR, "AI API Key is not configured.");
         }
 
         // Apply dynamic timeout
@@ -176,7 +176,7 @@ public class AiService {
         String agent = getResolvedAgent();
 
         if (!StringUtils.hasText(apiKey)) {
-            throw new RuntimeException("AI API Key is not configured.");
+            throw new com.nopkg.hellodoc.exceptions.BusinessException(com.nopkg.hellodoc.web.ApiResponse.Code.SYSTEM_ERROR, "AI API Key is not configured.");
         }
 
         String url = baseUrl.replaceAll("/+$", "") + "/chat/completions";

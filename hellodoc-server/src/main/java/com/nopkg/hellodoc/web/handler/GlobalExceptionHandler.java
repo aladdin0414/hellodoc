@@ -10,6 +10,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -65,9 +66,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
     public ApiResponse<Void> handleMethodArgumentNotValidException(org.springframework.web.bind.MethodArgumentNotValidException e) {
         log.warn("Validation error: {}", e.getMessage());
-        String msg = "参数校验失败";
+        String msg = null;
         if (e.getBindingResult() != null && e.getBindingResult().getFieldError() != null) {
             msg = e.getBindingResult().getFieldError().getDefaultMessage();
+        }
+        if (!StringUtils.hasText(msg)) {
+            return ApiResponse.error(ApiResponse.Code.PARAM_ERROR);
         }
         return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, msg);
     }
@@ -76,7 +80,6 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleException(Exception e) {
         // Log full stack trace for internal debugging
         log.error("Unexpected error occurred", e);
-        // Return generic message to client to avoid leaking internals
-        return ApiResponse.error(ApiResponse.Code.SYSTEM_ERROR, "系统内部繁忙，请稍后再试");
+        return ApiResponse.error(ApiResponse.Code.SYSTEM_ERROR);
     }
 }

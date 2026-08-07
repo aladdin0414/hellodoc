@@ -155,8 +155,6 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from '../components/HeaderNav.vue'
-
-const { t } = useI18n()
 import { Eye, Edit3, Loader2, Check, Sun, Moon, Image as ImageIcon, Undo2, Redo2 } from 'lucide-vue-next'
 import VisualEditor from '../../components/editor/VisualEditor.vue'
 import '../../components/editor/setupMdEditor'
@@ -165,6 +163,8 @@ import { updateDocument } from '../../api/document'
 import { uploadAsset } from '../../api/asset'
 import { message } from '../../utils/message'
 import { useTheme } from '../composables/useTheme'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const router = useRouter()
@@ -448,7 +448,7 @@ const handleImageFileChange = async (event: Event) => {
       (typeof res === 'string' ? res : '')
 
     if (imgUrl) {
-      const fileNameClean = (file.name || '图片').replace(/[\[\]]/g, '')
+      const fileNameClean = (file.name || t('toolbar.image')).replace(/[\[\]]/g, '')
       const markdownImg = `\n![${fileNameClean}](${imgUrl})\n`
       insertTextAtCursor(markdownImg)
     }
@@ -483,7 +483,7 @@ const handleSave = async (options?: { silent?: boolean }) => {
     isDirty.value = true
     showSavedIndicator.value = false
     if (!options?.silent) {
-      message.error('保存失败，请稍后重试')
+      message.error(t('common.saveFailed'))
     }
   } finally {
     saving.value = false

@@ -7,7 +7,7 @@
     <div class="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
       <!-- 标题区 -->
       <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">
-        {{ title || '确认提示' }}
+        {{ title || t('mobile.kbDetail.confirmDeleteTitle') }}
       </h3>
 
       <!-- 消息正文区 -->
@@ -22,7 +22,7 @@
           :disabled="loading"
           class="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 active:scale-95 rounded-xl transition-all disabled:opacity-50"
         >
-          {{ cancelText || '取消' }}
+          {{ cancelText || t('nav.cancel') }}
         </button>
         <button
           @click="handleConfirm"
@@ -35,7 +35,7 @@
           class="px-4 py-2 text-xs font-semibold rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
         >
           <Loader2 v-if="loading" class="w-3 h-3 animate-spin" />
-          <span>{{ loading ? '处理中...' : (confirmText || '确定') }}</span>
+          <span>{{ loading ? t('common.processing') : (confirmText || t('common.confirm')) }}</span>
         </button>
       </div>
     </div>
@@ -43,7 +43,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<{
@@ -57,10 +60,10 @@ const props = withDefaults(
   }>(),
   {
     show: false,
-    title: '确认提示',
+    title: '',
     message: '',
-    confirmText: '确定',
-    cancelText: '取消',
+    confirmText: '',
+    cancelText: '',
     confirmType: 'primary',
     loading: false
   }

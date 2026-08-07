@@ -15,11 +15,11 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(Code.SUCCESS.code(), Code.SUCCESS.message(), data);
+        return new ApiResponse<>(Code.SUCCESS.code(), ApiResponseMessageBridge.resolveCodeMessage(Code.SUCCESS), data);
     }
 
     public static <T> ApiResponse<T> success() {
-        return new ApiResponse<>(Code.SUCCESS.code(), Code.SUCCESS.message(), null);
+        return new ApiResponse<>(Code.SUCCESS.code(), ApiResponseMessageBridge.resolveCodeMessage(Code.SUCCESS), null);
     }
 
     public static <T> ApiResponse<T> error(int code, String message) {
@@ -27,15 +27,15 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(Code code, T data) {
-        return new ApiResponse<>(code.code(), code.message(), data);
+        return new ApiResponse<>(code.code(), ApiResponseMessageBridge.resolveCodeMessage(code), data);
     }
 
     public static <T> ApiResponse<T> error(Code code) {
-        return new ApiResponse<>(code.code(), code.message(), null);
+        return new ApiResponse<>(code.code(), ApiResponseMessageBridge.resolveCodeMessage(code), null);
     }
 
     public static <T> ApiResponse<T> error(Code code, String message) {
-        return new ApiResponse<>(code.code(), message, null);
+        return new ApiResponse<>(code.code(), ApiResponseMessageBridge.resolveMessage(code, message), null);
     }
 
     public int getCode() {

@@ -1,12 +1,12 @@
 <template>
   <div ref="containerRef" class="h-screen overflow-y-auto bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 pb-20 transition-colors no-scrollbar">
     <!-- 顶部 Navigation -->
-    <HeaderNav :title="kbInfo?.title || kbInfo?.name || '知识库目录'" :show-back="true" @back="handleBackToHome">
+    <HeaderNav :title="kbInfo?.title || kbInfo?.name || t('mobile.kbDetail.title')" :show-back="true" @back="handleBackToHome">
       <template #right>
         <button
           v-if="canEdit"
           @click="openCreateModal(null, 'file')"
-          title="新建文档/目录"
+          :title="t('mobile.kbDetail.createAction')"
           class="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
         >
           <Plus class="w-5 h-5 stroke-[2.5]" />
@@ -48,15 +48,15 @@
 
       <!-- 空白占位或无搜索结果提示区 -->
       <div v-else class="py-12 text-center space-y-2">
-        <p v-if="searchQuery.trim()" class="text-xs text-slate-400 dark:text-slate-500">未找到与 “{{ searchQuery }}” 匹配的文档</p>
+        <p v-if="searchQuery.trim()" class="text-xs text-slate-400 dark:text-slate-500">{{ t('mobile.kbDetail.noSearchMatch', { query: searchQuery }) }}</p>
         <template v-else>
-          <p class="text-xs text-gray-400 dark:text-slate-500">该知识库下暂无文档</p>
+          <p class="text-xs text-gray-400 dark:text-slate-500">{{ t('mobile.kbDetail.empty') }}</p>
           <button
             v-if="canEdit"
             @click="openCreateModal(null, 'file')"
             class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-md active:scale-95 transition-all"
           >
-            新建第一篇文档
+            {{ t('mobile.kbDetail.createFirstDoc') }}
           </button>
         </template>
       </div>
@@ -76,7 +76,7 @@
             v-model="searchQuery"
             @focus="isSearchFocused = true"
             type="text"
-            placeholder="搜索文档"
+            :placeholder="t('mobile.kbDetail.searchPlaceholder')"
             class="w-full pl-9 pr-8 py-2 bg-slate-200/60 dark:bg-slate-800/70 rounded-full text-[14px] text-slate-900 dark:text-slate-100 placeholder-slate-400/90 dark:placeholder-slate-500 focus:outline-none focus:bg-slate-200/90 dark:focus:bg-slate-800 transition-all"
           />
           <button
@@ -94,7 +94,7 @@
           @click="handleCancelSearch"
           class="text-[15px] text-blue-500 hover:text-blue-600 active:opacity-60 transition-all font-normal shrink-0 px-0.5"
         >
-          取消
+          {{ t('nav.cancel') }}
         </button>
       </div>
     </div>
@@ -252,7 +252,7 @@
             @click="showActionSheet = false"
             class="w-full py-3 rounded-xl bg-gray-100 dark:bg-slate-700 text-sm font-bold text-gray-700 dark:text-slate-300 active:scale-[0.99] transition-all"
           >
-            取消
+            {{ t('nav.cancel') }}
           </button>
         </div>
       </div>
@@ -262,16 +262,16 @@
     <div v-if="showRenameModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
         <h3 class="text-base font-bold text-gray-900 dark:text-slate-100">
-          重命名{{ renameTargetNode?.type === 'folder' ? '目录' : '文档' }}
+            {{ renameTargetNode?.type === 'folder' ? t('mobile.kbDetail.renameFolderTitle') : t('mobile.kbDetail.renameDocTitle') }}
         </h3>
 
         <div class="space-y-3 text-sm">
           <div>
-            <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">新名称</label>
+              <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">{{ t('mobile.kbDetail.newNameLabel') }}</label>
             <input
               v-model="renameTitle"
               type="text"
-              placeholder="请输入新名称"
+                :placeholder="t('mobile.kbDetail.newNamePlaceholder')"
               class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
@@ -282,14 +282,14 @@
             @click="showRenameModal = false"
             class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
           >
-            取消
+            {{ t('nav.cancel') }}
           </button>
           <button
             @click="handleConfirmRename"
             :disabled="submittingRename || !renameTitle.trim()"
             class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl shadow-md active:scale-95 transition-all"
           >
-            {{ submittingRename ? '保存中...' : '确定修改' }}
+            {{ submittingRename ? t('editor.saving') : t('mobile.kbDetail.saveChanges') }}
           </button>
         </div>
       </div>
@@ -298,27 +298,32 @@
     <!-- 挂载移动端通用 ConfirmDialog 确认对话框组件 -->
     <ConfirmDialog
       v-model:show="showDeleteModal"
-      title="确认删除"
-      confirm-text="确定删除"
+      :title="t('mobile.kbDetail.confirmDeleteTitle')"
+      :confirm-text="t('mobile.kbDetail.confirmDeleteAction')"
       confirm-type="danger"
       :loading="submittingDelete"
       @confirm="handleConfirmDelete"
     >
-      确定要删除 {{ deleteTargetNode?.type === 'folder' ? '目录' : '文档' }}
-      <span class="font-semibold text-slate-900 dark:text-white">"{{ deleteTargetNode?.title || deleteTargetNode?.name }}"</span>
-      吗？{{ deleteTargetNode?.type === 'folder' ? '删除目录将同步清空其下的所有子项。' : '' }}
+      {{
+        deleteTargetNode?.type === 'folder'
+          ? t('mobile.kbDetail.confirmDeleteFolder', { name: deleteTargetNode?.title || deleteTargetNode?.name })
+          : t('mobile.kbDetail.confirmDeleteDoc', { name: deleteTargetNode?.title || deleteTargetNode?.name })
+      }}
+      <template v-if="deleteTargetNode?.type === 'folder'">
+        {{ t('mobile.kbDetail.confirmDeleteFolderExtra') }}
+      </template>
     </ConfirmDialog>
 
     <!-- 新建节点（文档或目录）模态框 -->
     <div v-if="showCreateModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
         <h3 class="text-base font-bold text-gray-900 dark:text-slate-100">
-          {{ targetParentId ? '新建子项' : '新建根项' }}
+            {{ targetParentId ? t('mobile.kbDetail.createChildTitle') : t('mobile.kbDetail.createRootTitle') }}
         </h3>
 
         <div class="space-y-3">
           <div>
-            <label class="block text-xs text-gray-700 dark:text-slate-300 mb-1">类型</label>
+            <label class="block text-xs text-gray-700 dark:text-slate-300 mb-1">{{ t('mobile.kbDetail.typeLabel') }}</label>
             <div class="grid grid-cols-2 gap-2">
               <button
                 @click="newDocType = 'file'"
@@ -326,7 +331,7 @@
                 class="py-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
               >
                 <FileText class="w-3.5 h-3.5" />
-                <span>文档</span>
+                <span>{{ t('mobile.kbDetail.docType') }}</span>
               </button>
               <button
                 @click="newDocType = 'folder'"
@@ -334,25 +339,25 @@
                 class="py-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Folder class="w-3.5 h-3.5" />
-                <span>目录/文件夹</span>
+                <span>{{ t('mobile.kbDetail.folderType') }}</span>
               </button>
             </div>
           </div>
 
           <div>
-            <label class="block text-xs text-gray-700 dark:text-slate-300 mb-1">名称</label>
+            <label class="block text-xs text-gray-700 dark:text-slate-300 mb-1">{{ t('mobile.kbDetail.nameLabel') }}</label>
             <input
               v-model="newDocName"
               type="text"
-              :placeholder="newDocType === 'folder' ? '请输入目录名称' : '请输入文档名称'"
+              :placeholder="newDocType === 'folder' ? t('mobile.kbDetail.folderNamePlaceholder') : t('mobile.kbDetail.docNamePlaceholder')"
               class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2">
-          <button @click="showCreateModal = false" class="px-3 py-1.5 text-xs text-gray-500 dark:text-slate-400">取消</button>
-          <button @click="handleCreateNode" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-xl">创建</button>
+          <button @click="showCreateModal = false" class="px-3 py-1.5 text-xs text-gray-500 dark:text-slate-400">{{ t('nav.cancel') }}</button>
+          <button @click="handleCreateNode" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-xl">{{ t('common.create') }}</button>
         </div>
       </div>
     </div>
@@ -363,8 +368,6 @@
 import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
 import HeaderNav from '../components/HeaderNav.vue'
 import DocTreeNode from '../components/DocTreeNode.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -372,6 +375,8 @@ import { Plus, Folder, FileText, FilePlus, FolderPlus, Trash2, Edit3, Copy, File
 import { getKbDetail, getAuthDocuments } from '../../api/kb'
 import { createDocument, updateDocument, deleteDocument, duplicateDocument } from '../../api/document'
 import type { KnowledgeBase } from '../../types/kb'
+
+const { t } = useI18n()
 
 interface DocNode {
   id: number

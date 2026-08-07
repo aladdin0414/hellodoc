@@ -63,12 +63,12 @@ onMounted(() => {
 })
 
 const copyDiagnosticInfo = () => {
-    const text = `HelloDoc Diagnosis:
-Client Version: v${clientVersion.value}
-Server Version: ${serverVersion.value ? 'v' + serverVersion.value : 'N/A'}
-Build Time: ${buildTime.value}
-Git Commit: ${gitCommit.value}
-User Agent: ${navigator.userAgent}`
+    const text = `${t('settings.diagnosticTitle')}:
+${t('settings.clientVersion')}: v${clientVersion.value}
+${t('settings.serverVersion')}: ${serverVersion.value ? 'v' + serverVersion.value : t('settings.disconnected')}
+${t('settings.buildTime')}: ${buildTime.value}
+${t('settings.gitCommit')}: ${gitCommit.value}
+${t('settings.userAgent')}: ${navigator.userAgent}`
     navigator.clipboard.writeText(text)
     copied.value = true
     setTimeout(() => {
@@ -276,7 +276,7 @@ const handleSetLocale = async (mode: 'AUTO' | 'zh-CN' | 'en-US') => {
                         <!-- 关于 HelloDoc -->
                         <div class="pt-4 border-t border-gray-100 dark:border-gray-700/80">
                             <div class="flex items-center justify-between mb-3">
-                                <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">关于 HelloDoc</label>
+                                <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('settings.aboutTitle') }}</label>
                                 <span class="px-2 py-0.5 text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 rounded-md border border-indigo-100 dark:border-indigo-800">
                                     v{{ clientVersion }}
                                 </span>
@@ -284,26 +284,26 @@ const handleSetLocale = async (mode: 'AUTO' | 'zh-CN' | 'en-US') => {
                             
                             <div class="p-3.5 bg-gray-50 dark:bg-gray-800/80 rounded-xl border border-gray-200/80 dark:border-gray-700 space-y-2.5 text-xs">
                                 <div class="flex justify-between items-center text-gray-600 dark:text-gray-400">
-                                    <span>后端服务版本</span>
+                                    <span>{{ t('settings.serverVersion') }}</span>
                                     <div class="flex items-center space-x-1.5">
                                         <span class="w-2 h-2 rounded-full" :class="serverOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></span>
                                         <span class="font-medium text-gray-800 dark:text-gray-200">
-                                            {{ serverVersion ? `v${serverVersion}` : (loadingServer ? '获取中...' : '未连接') }}
+                                            {{ serverVersion ? `v${serverVersion}` : (loadingServer ? t('settings.fetching') : t('settings.disconnected')) }}
                                         </span>
                                     </div>
                                 </div>
                                 <div class="flex justify-between text-gray-500 dark:text-gray-400">
-                                    <span>构建时间</span>
+                                    <span>{{ t('settings.buildTime') }}</span>
                                     <span class="font-mono text-gray-700 dark:text-gray-300">{{ buildTime }}</span>
                                 </div>
                                 <div class="flex justify-between text-gray-500 dark:text-gray-400">
-                                    <span>Git Commit</span>
+                                    <span>{{ t('settings.gitCommit') }}</span>
                                     <span class="font-mono text-gray-700 dark:text-gray-300">{{ gitCommit }}</span>
                                 </div>
                                 
                                 <div class="pt-2 flex justify-between items-center text-[11px] border-t border-gray-200/50 dark:border-gray-700/50">
                                     <button @click="copyDiagnosticInfo" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline flex items-center space-x-1">
-                                        <span>{{ copied ? '已复制诊断数据' : '复制系统诊断信息' }}</span>
+                                        <span>{{ copied ? t('settings.diagnosticsCopied') : t('settings.copyDiagnostics') }}</span>
                                     </button>
                                     <span class="text-gray-400">© 2026 HelloDoc</span>
                                 </div>

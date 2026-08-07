@@ -1,6 +1,7 @@
 import { computed, nextTick, onUnmounted, ref, watch, type Ref } from 'vue'
 import type { ExposeParam } from 'md-editor-v3'
 import { uploadAsset, uploadAssetFromUrl } from '../api/asset'
+import { i18n } from '../i18n'
 import { message } from '../utils/message'
 import { enhanceVideoLinksInElement } from '../utils/mediaEmbed'
 
@@ -71,7 +72,7 @@ export const useDocumentEditorMedia = (options: UseDocumentEditorMediaOptions) =
             callback(urls)
         } catch (error) {
             console.error('Upload image failed:', error)
-            message.error('上传失败')
+            message.error(i18n.global.t('editor.uploadFailed'))
             callback([])
         }
     }
@@ -95,7 +96,7 @@ export const useDocumentEditorMedia = (options: UseDocumentEditorMediaOptions) =
             callback(urls)
         } catch (error) {
             console.error('Upload image from URL failed:', error)
-            message.error('转存外部图片失败')
+            message.error(i18n.global.t('editor.externalImageSaveFailed'))
             callback([])
         }
     }
@@ -150,7 +151,7 @@ export const useDocumentEditorMedia = (options: UseDocumentEditorMediaOptions) =
         lastPasteTime = now
 
         if (!options.currentDoc.value?.id || options.currentDoc.value.type !== 'file') {
-            message.warning('请先选择一个文档再粘贴文件')
+            message.warning(i18n.global.t('editor.selectDocBeforePaste'))
             return
         }
 
@@ -158,10 +159,10 @@ export const useDocumentEditorMedia = (options: UseDocumentEditorMediaOptions) =
             const urls = await uploadFilesAsAssets(files)
             const markdown = files.map((file, idx) => formatAssetMarkdown(file, urls[idx]!)).join('\n') + '\n'
             insertToEditor(markdown)
-            message.success('已粘贴并上传文件')
+            message.success(i18n.global.t('editor.pasteUploadSuccess'))
         } catch (error) {
             console.error('Paste upload failed:', error)
-            message.error('粘贴上传失败')
+            message.error(i18n.global.t('editor.pasteUploadFailed'))
         }
     }
 

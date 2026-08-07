@@ -38,6 +38,6 @@ public class PageResult<T> implements Serializable {
         this.rows = list;
         this.total = total;
         this.code = ApiResponse.Code.SUCCESS.code();
-        this.msg = ApiResponse.Code.SUCCESS.message();
+        this.msg = ApiResponseMessageBridge.resolveCodeMessage(ApiResponse.Code.SUCCESS);
     }
 }
