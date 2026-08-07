@@ -9,6 +9,9 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg" alt="Spring Boot 3" />
   <img src="https://img.shields.io/badge/Vue-3.x-4fc08d.svg" alt="Vue 3" />
   <img src="https://img.shields.io/badge/Electron-31.x-47848F.svg" alt="Electron" />
+  <a href="https://hub.docker.com/r/aladdin0414/hellodoc" target="_blank">
+    <img src="https://img.shields.io/docker/pulls/aladdin0414/hellodoc.svg?logo=docker" alt="Docker Image" />
+  </a>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License MIT" />
 </p>
 
@@ -141,11 +144,43 @@ npm run build
 npm run build:win:x64
 ```
 
-### 3. Docker Compose 自动化部署
-确保根目录下已正确配置 `.env` 参数：
+### 3. Docker 部署说明
+
+HelloDoc 官方镜像已构建完成并自动发布至 Docker Hub：[aladdin0414/hellodoc](https://hub.docker.com/r/aladdin0414/hellodoc)
+
+#### 🚀 方式 A：基于 Docker Hub 镜像极速部署（推荐 NAS / 私有服务器用户，无需克隆源码）
+
+只需下载 Compose 文件与配置环境变量，即可一键拉取镜像并启动：
+
+1. **获取 Compose 配置文件**：
+   ```bash
+   # 下载项目预设的 Docker Hub 一键部署文件
+   curl -O https://raw.githubusercontent.com/aladdin0414/hellodoc/main/deploy/docker-compose.hub.yml
+   mv docker-compose.hub.yml docker-compose.yml
+   ```
+
+2. **创建环境变量文件 `.env`（同级目录下）**：
+   ```env
+   POSTGRES_PASSWORD=your_secure_db_password
+   JWT_SECRET=your_custom_random_long_secret_key_at_least_64_chars
+   ADMIN_PASSWORD=your_admin_password
+   OPENAI_API_KEY=your_openai_key_optional
+   ```
+
+3. **启动容器集群**：
+   ```bash
+   docker compose up -d
+   ```
+   *服务启动后，在浏览器访问 `http://<服务器IP>:8080` 即可开始使用 HelloDoc。*
+
+#### 🔨 方式 B：源码本地 Docker Compose 自动构建与部署
+
+如果您拉取了本 GitHub 仓库源码并希望在本地进行容器构建：
 ```bash
-# 一键触发容器化构建与服务部署 (deploy.sh 将自动拷贝根目录 .env)
+# 确保根目录下已正确配置 .env 参数
 npm run deploy
+# 或直接运行部署脚本
+./deploy/deploy.sh
 ```
 
 ---
