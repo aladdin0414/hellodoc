@@ -30,7 +30,7 @@ public class AiController {
         if (req.getContext() == null || req.getPrompt() == null) {
             throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.PARAM_ERROR, "参数不能为空");
         }
-        String result = aiService.getCompletion(req.getContext(), req.getPrompt());
+        String result = aiService.getCompletion(req.getContext(), req.getPrompt(), req.getLang());
         String model = aiService.getResolvedModel();
         return ApiResponse.success(new AiCompletionResp(result, model));
     }
@@ -46,7 +46,7 @@ public class AiController {
         CompletableFuture.runAsync(() -> {
             try {
                 emitter.send(SseEmitter.event().name("model").data(model));
-                aiService.streamCompletion(req.getContext(), req.getPrompt(), chunk -> {
+                aiService.streamCompletion(req.getContext(), req.getPrompt(), req.getLang(), chunk -> {
                     try {
                         emitter.send(SseEmitter.event().name("chunk").data(chunk));
                     } catch (IOException e) {

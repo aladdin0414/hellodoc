@@ -5,7 +5,7 @@
       <template #left>
         <div class="flex items-center gap-2">
           <img src="../../assets/logo.svg" alt="HelloDoc Logo" class="w-7 h-7 drop-shadow-sm" />
-          <span class="text-base font-black tracking-tight text-slate-900 dark:text-white">共享知识库</span>
+          <span class="text-base font-black tracking-tight text-slate-900 dark:text-white">{{ t('mobile.shared.title') }}</span>
         </div>
       </template>
     </HeaderNav>
@@ -21,7 +21,7 @@
             v-model="searchQuery"
             @focus="isSearchFocused = true"
             type="text"
-            placeholder="搜索共享知识库"
+            :placeholder="t('mobile.shared.searchPlaceholder')"
             class="w-full pl-9 pr-8 py-2 bg-slate-200/60 dark:bg-slate-800/80 rounded-full text-[14px] text-slate-900 dark:text-slate-100 placeholder-slate-400/90 dark:placeholder-slate-500 focus:outline-none focus:bg-slate-200/90 dark:focus:bg-slate-800 transition-all"
           />
           <button
@@ -39,7 +39,7 @@
           @click="handleCancelSearch"
           class="text-[15px] text-blue-500 hover:text-blue-600 active:opacity-60 transition-all font-normal shrink-0 px-0.5"
         >
-          取消
+          {{ t('nav.cancel') }}
         </button>
       </div>
 
@@ -62,7 +62,7 @@
         <!-- 空数据占位 -->
         <div v-else-if="filteredKbs.length === 0" class="py-12 text-center space-y-2">
           <Users class="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
-          <p class="text-xs text-slate-500 dark:text-slate-400">暂无共享给您的知识库</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('mobile.shared.empty') }}</p>
         </div>
 
         <!-- 共享卡片列表 -->
@@ -97,7 +97,7 @@
                 <!-- 创建者姓名 -->
                 <div class="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
                   <User class="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
-                  <span class="truncate">创建者：{{ kb.ownerName || '未知' }}</span>
+                  <span class="truncate">{{ t('mobile.shared.creator', { name: kb.ownerName || t('mobile.shared.unknownCreator') }) }}</span>
                 </div>
               </div>
             </div>
@@ -117,6 +117,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import HeaderNav from '../components/HeaderNav.vue'
 import TabBar from '../components/TabBar.vue'
 import { Search, Users, ChevronRight, X, User } from 'lucide-vue-next'
@@ -126,6 +127,7 @@ import type { KnowledgeBase } from '../../types/kb'
 import { useTheme } from '../composables/useTheme'
 import { getIconBgStyle } from '../../utils/color'
 
+const { t } = useI18n()
 const { isDark } = useTheme()
 const loading = ref(false)
 const sharedKbs = ref<KnowledgeBase[]>([])
@@ -169,26 +171,23 @@ const getRoleBadge = (role?: string) => {
   const r = (role || '').toUpperCase()
   if (r === 'ADMIN') {
     return {
-      text: '管理员',
+      text: t('mobile.role.admin'),
       class: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400'
     }
   }
   if (r === 'EDITOR') {
     return {
-      text: '编辑者',
+      text: t('mobile.role.editor'),
       class: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
     }
   }
   if (r === 'VIEWER') {
     return {
-      text: '查看者',
+      text: t('mobile.role.viewer'),
       class: 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
     }
   }
-  return {
-    text: '',
-    class: ''
-  }
+  return { text: '', class: '' }
 }
 
 onMounted(() => {

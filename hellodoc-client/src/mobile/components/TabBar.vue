@@ -6,7 +6,7 @@
       :class="[route.path === '/m' ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300']"
     >
       <BookOpen class="w-5 h-5 stroke-[2]" />
-      <span class="text-[10px] tracking-tight">知识库</span>
+      <span class="text-[10px] tracking-tight">{{ t('mobile.nav.kb') }}</span>
     </router-link>
 
     <router-link
@@ -15,7 +15,7 @@
       :class="[route.path === '/m/shared' ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300']"
     >
       <Users class="w-5 h-5 stroke-[2]" />
-      <span class="text-[10px] tracking-tight">共享</span>
+      <span class="text-[10px] tracking-tight">{{ t('mobile.nav.shared') }}</span>
     </router-link>
 
     <router-link
@@ -24,14 +24,16 @@
       :class="[route.path === '/m/profile' ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300']"
     >
       <User class="w-5 h-5 stroke-[2]" />
-      <span class="text-[10px] tracking-tight">我的</span>
+      <span class="text-[10px] tracking-tight">{{ t('mobile.nav.profile') }}</span>
     </router-link>
   </nav>
 </template>
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { BookOpen, Users, User } from 'lucide-vue-next'
 
 const route = useRoute()
+const { t } = useI18n()
 </script>

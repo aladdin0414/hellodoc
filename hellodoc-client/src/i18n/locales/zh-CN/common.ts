@@ -9,6 +9,8 @@ export default {
         noData: '-'
     },
     nav: {
+        lightMode: '切换亮色模式',
+        darkMode: '切换深色模式',
         home: '首页',
         shared: '共享给我',
         favorites: '我的收藏',
@@ -160,6 +162,15 @@ export default {
         moveTo: '移动到...',
         duplicate: '创建副本',
         rename: '重命名',
+        renameFolder: '重命名目录',
+        renameDoc: '重命名文档',
+        editDoc: '编辑此文档',
+        deleteFolder: '删除此目录',
+        deleteDoc: '删除此文档',
+        setAllDraft: '全部设为草稿',
+        batchPublish: '全部批量发布',
+        folderTag: '目录',
+        docTag: '文档',
         toDraft: '转为草稿',
         publishDoc: '发布文档',
         unsetCover: '取消封面',
@@ -169,13 +180,24 @@ export default {
         toggleStatus: '切换发布状态',
         delete: '删除'
     },
+    toolbar: {
+        bold: '粗体',
+        italic: '斜体',
+        heading: '标题',
+        list: '列表',
+        quote: '引用',
+        code: '代码',
+        image: '图片',
+        table: '表格',
+        link: '链接'
+    },
     editor: {
         docList: '文档列表',
         switchKb: '切换知识库',
         searchCatalog: '搜索目录...',
         emptyTitle: '知识库还是空的',
         emptyDescPrefix: '点击底部的',
-        emptyDescSuffix: '号按钮立即开启您的知识之旅',
+        emptyDescSuffix: '号按钮开启知识之旅',
         moreOptions: '更多选项',
         newDoc: '新建文档',
         newFolder: '新建文件夹',
@@ -188,6 +210,17 @@ export default {
         collapseCatalog: '收起目录',
         expandCatalog: '展开目录',
         unsaved: '未保存',
+        saved: '已保存',
+        undo: '撤销',
+        redo: '重做',
+        unsavedChangesTitle: '有未保存修改',
+        preview: '预览',
+        edit: '编辑',
+        switchToPreview: '切换至预览模式',
+        switchToEdit: '切换至编辑模式',
+        uploadingImage: '图片上传中...',
+        startWriting: '开始书写内容...',
+        noContent: '（暂无正文内容）',
         inputTitle: '请输入标题',
         user: '用户',
         revisions: '修订记录',
@@ -217,6 +250,8 @@ export default {
         confirmDeleteFolderWithCount: '确定要将文件夹 "{name}" 移入回收站吗？该操作将同时移入其下的 {count} 个子文档及目录。',
         confirmDeleteFolderEmpty: '确定要将文件夹 "{name}" 移入回收站吗？',
         confirmDeleteFile: '确定要将文档 "{name}" 移入回收站吗？',
+        confirmDeleteSelectedWithCount: '确定要将选中的 {count} 个项目移入回收站吗？该操作将同时移入其下的 {subCount} 个子文档及目录。',
+        confirmDeleteSelectedEmpty: '确定要将选中的 {count} 个项目移入回收站吗？',
         confirmDeleteMessagePrefix: '确定要将',
         confirmDeleteMessageSuffix: '移入回收站吗？其下的所有子项也将一并移入。',
         deleteWarning: '移入回收站后，您可以随时在“回收站”中恢复。',
@@ -624,5 +659,71 @@ export default {
         justNow: '刚刚',
         minutesAgo: '{count} 分钟前',
         hoursAgo: '{count} 小时前'
+    },
+    mobile: {
+        nav: {
+            kb: '知识库',
+            shared: '共享',
+            favorites: '收藏',
+            recent: '最近',
+            profile: '我的'
+        },
+        login: {
+            subtitle: '轻量优雅的移动端知识库',
+            accountLabel: '账号 / 用户名',
+            accountPlaceholder: '请输入用户名',
+            passwordLabel: '密码',
+            passwordPlaceholder: '请输入密码',
+            submitting: '登录中...',
+            submit: '登录账户',
+            contactAdmin: '如无账号，请联系管理员配置开通',
+            failedToken: '登录失败，未收到有效 Token',
+            failedCheck: '登录失败，请检查账号密码'
+        },
+        shared: {
+            title: '共享知识库',
+            searchPlaceholder: '搜索共享知识库',
+            empty: '暂无共享给您的知识库',
+            creator: '创建者：{name}',
+            unknownCreator: '未知'
+        },
+        favorites: {
+            title: '我的收藏',
+            searchPlaceholder: '搜索已收藏文档',
+            empty: '暂无收藏的文档'
+        },
+        recent: {
+            title: '最近访问',
+            searchPlaceholder: '搜索最近访问历史',
+            empty: '暂无最近访问记录'
+        },
+        profile: {
+            title: '个人中心',
+            defaultUser: '已登录用户',
+            defaultTagline: 'HelloDoc 极简沉浸模式',
+            themeMode: '外观模式',
+            darkMode: '暗黑模式',
+            lightMode: '明亮模式',
+            desktopVersion: '电脑版',
+            language: '语言设置',
+            logout: '退出登录'
+        },
+        home: {
+            searchPlaceholder: '搜索全部知识库...',
+            myKbs: '我的知识库',
+            sharedKbs: '共享知识库',
+            empty: '暂无知识库，请先在电脑端创建'
+        },
+        docDetail: {
+            readOnly: '只读模式',
+            readingTime: '阅读 {time} 分钟',
+            words: '{count} 字',
+            empty: '文档内容为空'
+        },
+        role: {
+            admin: '管理员',
+            editor: '编辑者',
+            viewer: '查看者'
+        }
     }
 }

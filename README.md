@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <strong>简体中文</strong> | <a href="README_EN.md">English</a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Java-17-orange.svg" alt="Java 17" />
   <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg" alt="Spring Boot 3" />
   <img src="https://img.shields.io/badge/Vue-3.x-4fc08d.svg" alt="Vue 3" />

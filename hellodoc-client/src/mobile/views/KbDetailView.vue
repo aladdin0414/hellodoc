@@ -122,7 +122,7 @@
             </span>
           </div>
           <span class="text-[10px] px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400">
-            {{ actionNode?.type === 'folder' ? '目录' : '文档' }}
+            {{ actionNode?.type === 'folder' ? t('editorMenu.folderTag') : t('editorMenu.docTag') }}
           </span>
         </div>
 
@@ -133,63 +133,63 @@
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FilePlus class="w-4 h-4 text-blue-500" />
-            <span>新建子文档</span>
+            <span>{{ t('editorMenu.newSubDoc') }}</span>
           </button>
           <button
             @click="handleActionSheetCreate('folder')"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FolderPlus class="w-4 h-4 text-amber-500" />
-            <span>新建子目录</span>
+            <span>{{ t('editorMenu.newSubFolder') }}</span>
           </button>
           <button
             @click="handleActionSheetStartRename"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <Edit3 class="w-4 h-4 text-emerald-500" />
-            <span>重命名目录</span>
+            <span>{{ t('editorMenu.renameFolder') }}</span>
           </button>
           <button
             @click="handleMoveDirection('up')"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <ArrowUp class="w-4 h-4 text-blue-500" />
-            <span>上移</span>
+            <span>{{ t('editorMenu.moveUp') }}</span>
           </button>
           <button
             @click="handleMoveDirection('down')"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <ArrowDown class="w-4 h-4 text-blue-500" />
-            <span>下移</span>
+            <span>{{ t('editorMenu.moveDown') }}</span>
           </button>
           <button
             @click="handleActionSheetDuplicate"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <Copy class="w-4 h-4 text-indigo-500" />
-            <span>创建副本</span>
+            <span>{{ t('editorMenu.duplicate') }}</span>
           </button>
           <button
             @click="handleActionSheetFolderStatus('published')"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FileCheck class="w-4 h-4 text-emerald-500" />
-            <span>全部批量发布</span>
+            <span>{{ t('editorMenu.batchPublish') }}</span>
           </button>
           <button
             @click="handleActionSheetFolderStatus('draft')"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FileX class="w-4 h-4 text-amber-500" />
-            <span>全部设为草稿</span>
+            <span>{{ t('editorMenu.setAllDraft') }}</span>
           </button>
           <button
             @click="handleActionSheetDelete"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition-colors"
           >
             <Trash2 class="w-4 h-4 text-rose-500" />
-            <span>删除此目录</span>
+            <span>{{ t('editorMenu.deleteFolder') }}</span>
           </button>
         </template>
 
@@ -200,49 +200,49 @@
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FileText class="w-4 h-4 text-blue-500" />
-            <span>编辑此文档</span>
+            <span>{{ t('editorMenu.editDoc') }}</span>
           </button>
           <button
             @click="handleActionSheetStartRename"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <Edit3 class="w-4 h-4 text-emerald-500" />
-            <span>重命名文档</span>
+            <span>{{ t('editorMenu.renameDoc') }}</span>
           </button>
           <button
             @click="handleMoveDirection('up')"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <ArrowUp class="w-4 h-4 text-blue-500" />
-            <span>上移</span>
+            <span>{{ t('editorMenu.moveUp') }}</span>
           </button>
           <button
             @click="handleMoveDirection('down')"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <ArrowDown class="w-4 h-4 text-blue-500" />
-            <span>下移</span>
+            <span>{{ t('editorMenu.moveDown') }}</span>
           </button>
           <button
             @click="handleActionSheetDuplicate"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <Copy class="w-4 h-4 text-indigo-500" />
-            <span>创建副本</span>
+            <span>{{ t('editorMenu.duplicate') }}</span>
           </button>
           <button
             @click="handleActionSheetToggleDocStatus"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <component :is="actionNode?.status === 'published' ? FileX : FileCheck" class="w-4 h-4 text-amber-500" />
-            <span>{{ actionNode?.status === 'published' ? '设为草稿' : '发布文档' }}</span>
+            <span>{{ actionNode?.status === 'published' ? t('editorMenu.toDraft') : t('editorMenu.publishDoc') }}</span>
           </button>
           <button
             @click="handleActionSheetDelete"
             class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition-colors"
           >
             <Trash2 class="w-4 h-4 text-rose-500" />
-            <span>删除此文档</span>
+            <span>{{ t('editorMenu.deleteDoc') }}</span>
           </button>
         </template>
 
@@ -362,6 +362,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 import HeaderNav from '../components/HeaderNav.vue'
 import DocTreeNode from '../components/DocTreeNode.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'

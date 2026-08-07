@@ -5,30 +5,30 @@
       <div class="text-center space-y-3">
         <img src="../../assets/logo.svg" alt="HelloDoc Logo" class="w-16 h-16 mx-auto drop-shadow-2xl" />
         <h1 class="text-2xl font-black text-white tracking-tight">HelloDoc</h1>
-        <p class="text-xs text-slate-400 font-medium">轻量优雅的移动端知识库</p>
+        <p class="text-xs text-slate-400 font-medium">{{ t('mobile.login.subtitle') }}</p>
       </div>
 
       <!-- 表单卡片 -->
       <div class="bg-slate-800/70 border border-slate-700/60 rounded-3xl p-6 shadow-2xl space-y-5 backdrop-blur-xl">
         <form @submit.prevent="handleLogin" class="space-y-4">
           <div>
-            <label class="block text-xs text-slate-400 mb-1.5 font-medium">账号 / 用户名</label>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">{{ t('mobile.login.accountLabel') }}</label>
             <input
               v-model="username"
               type="text"
               required
-              placeholder="请输入用户名"
+              :placeholder="t('mobile.login.accountPlaceholder')"
               class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700/70 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
           </div>
 
           <div>
-            <label class="block text-xs text-slate-400 mb-1.5 font-medium">密码</label>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">{{ t('mobile.login.passwordLabel') }}</label>
             <input
               v-model="password"
               type="password"
               required
-              placeholder="请输入密码"
+              :placeholder="t('mobile.login.passwordPlaceholder')"
               class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700/70 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
           </div>
@@ -42,13 +42,13 @@
             :disabled="submitting"
             class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-all disabled:opacity-50"
           >
-            {{ submitting ? '登录中...' : '登录账户' }}
+            {{ submitting ? t('mobile.login.submitting') : t('mobile.login.submit') }}
           </button>
         </form>
       </div>
 
       <p class="text-center text-xs text-slate-500 font-medium">
-        如无账号，请联系管理员配置开通
+        {{ t('mobile.login.contactAdmin') }}
       </p>
     </div>
   </div>
@@ -57,8 +57,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { login } from '../../api/auth'
 
+const { t } = useI18n()
 const router = useRouter()
 const username = ref('')
 const password = ref('')
@@ -90,11 +92,11 @@ const handleLogin = async () => {
           router.push('/m')
         }
     } else {
-      errorMessage.value = '登录失败，未收到有效 Token'
+      errorMessage.value = t('mobile.login.failedToken')
     }
   } catch (err: any) {
     console.error('Login failed:', err)
-    errorMessage.value = err.response?.data?.message || '登录失败，请检查账号密码'
+    errorMessage.value = err.response?.data?.message || t('mobile.login.failedCheck')
   } finally {
     submitting.value = false
   }

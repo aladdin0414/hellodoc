@@ -40,24 +40,18 @@ const { t } = useI18n()
                             <h3 class="text-lg leading-6 font-bold text-slate-900 dark:text-gray-100" id="modal-title">{{ t('editor.confirmDeleteTitle') }}</h3>
                             <div class="mt-2">
                                 <template v-if="selectedItemCount && selectedItemCount > 1">
-                                    <p v-if="subItemCount && subItemCount > 0" class="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
-                                        确定要将选中的 <span class="font-bold text-slate-900 dark:text-gray-100">{{ selectedItemCount }}</span> 个项目移入回收站吗？该操作将同时移入其下的 <span class="font-bold text-rose-600 dark:text-rose-400">{{ subItemCount }}</span> 个子文档及目录。
-                                    </p>
-                                    <p v-else class="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
-                                        确定要将选中的 <span class="font-bold text-slate-900 dark:text-gray-100">{{ selectedItemCount }}</span> 个项目移入回收站吗？
+                                    <p class="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
+                                        {{ subItemCount && subItemCount > 0 ? t('editor.confirmDeleteSelectedWithCount', { count: selectedItemCount, subCount: subItemCount }) : t('editor.confirmDeleteSelectedEmpty', { count: selectedItemCount }) }}
                                     </p>
                                 </template>
                                 <template v-else-if="deletingDoc?.type === 'folder'">
-                                    <p v-if="subItemCount && subItemCount > 0" class="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
-                                        确定要将文件夹 <span class="font-bold text-slate-900 dark:text-gray-100">"{{ deletingDoc?.name }}"</span> 移入回收站吗？该操作将同时移入其下的 <span class="font-bold text-rose-600 dark:text-rose-400">{{ subItemCount }}</span> 个子文档及目录。
-                                    </p>
-                                    <p v-else class="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
-                                        确定要将文件夹 <span class="font-bold text-slate-900 dark:text-gray-100">"{{ deletingDoc?.name }}"</span> 移入回收站吗？
+                                    <p class="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
+                                        {{ subItemCount && subItemCount > 0 ? t('editor.confirmDeleteFolderWithCount', { name: deletingDoc?.name, count: subItemCount }) : t('editor.confirmDeleteFolderEmpty', { name: deletingDoc?.name }) }}
                                     </p>
                                 </template>
                                 <template v-else>
                                     <p class="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
-                                        确定要将文档 <span class="font-bold text-slate-900 dark:text-gray-100">"{{ deletingDoc?.name }}"</span> 移入回收站吗？
+                                        {{ t('editor.confirmDeleteFile', { name: deletingDoc?.name }) }}
                                     </p>
                                 </template>
                                 <p class="mt-2.5 text-xs text-rose-500 dark:text-rose-400 font-bold flex items-center">

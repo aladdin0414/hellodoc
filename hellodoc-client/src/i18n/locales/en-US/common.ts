@@ -9,6 +9,8 @@ export default {
         noData: '-'
     },
     nav: {
+        lightMode: 'Switch to light mode',
+        darkMode: 'Switch to dark mode',
         home: 'Home',
         shared: 'Shared with me',
         favorites: 'Favorites',
@@ -160,6 +162,15 @@ export default {
         moveTo: 'Move to...',
         duplicate: 'Duplicate',
         rename: 'Rename',
+        renameFolder: 'Rename folder',
+        renameDoc: 'Rename document',
+        editDoc: 'Edit document',
+        deleteFolder: 'Delete folder',
+        deleteDoc: 'Delete document',
+        setAllDraft: 'Set all to draft',
+        batchPublish: 'Publish all',
+        folderTag: 'Folder',
+        docTag: 'Document',
         toDraft: 'Convert to draft',
         publishDoc: 'Publish document',
         unsetCover: 'Unset cover',
@@ -168,6 +179,17 @@ export default {
         iconColor: 'Icon color',
         toggleStatus: 'Toggle publish status',
         delete: 'Delete'
+    },
+    toolbar: {
+        bold: 'Bold',
+        italic: 'Italic',
+        heading: 'Heading',
+        list: 'List',
+        quote: 'Quote',
+        code: 'Code',
+        image: 'Image',
+        table: 'Table',
+        link: 'Link'
     },
     editor: {
         docList: 'Document List',
@@ -188,6 +210,17 @@ export default {
         collapseCatalog: 'Collapse catalog',
         expandCatalog: 'Expand catalog',
         unsaved: 'Unsaved',
+        saved: 'Saved',
+        undo: 'Undo',
+        redo: 'Redo',
+        unsavedChangesTitle: 'Unsaved changes',
+        preview: 'Preview',
+        edit: 'Edit',
+        switchToPreview: 'Switch to preview mode',
+        switchToEdit: 'Switch to edit mode',
+        uploadingImage: 'Uploading image...',
+        startWriting: 'Start writing content...',
+        noContent: '(No content yet)',
         inputTitle: 'Please enter a title',
         user: 'User ',
         revisions: 'Revisions',
@@ -217,6 +250,8 @@ export default {
         confirmDeleteFolderWithCount: 'Are you sure you want to move folder "{name}" to Trash? This will also move {count} sub-items under it.',
         confirmDeleteFolderEmpty: 'Are you sure you want to move folder "{name}" to Trash?',
         confirmDeleteFile: 'Are you sure you want to move document "{name}" to Trash?',
+        confirmDeleteSelectedWithCount: 'Are you sure you want to move the selected {count} items to Trash? This will also move {subCount} sub-items under them.',
+        confirmDeleteSelectedEmpty: 'Are you sure you want to move the selected {count} items to Trash?',
         confirmDeleteMessagePrefix: 'Are you sure you want to move',
         confirmDeleteMessageSuffix: 'to Trash? All its sub-items will be moved together.',
         deleteWarning: 'You can restore items anytime from Trash.',
@@ -621,8 +656,74 @@ export default {
         }
     },
     time: {
-        justNow: 'Just now',
-        minutesAgo: '{count} minutes ago',
-        hoursAgo: '{count} hours ago'
+        justNow: 'just now',
+        minutesAgo: '{count}m ago',
+        hoursAgo: '{count}h ago'
+    },
+    mobile: {
+        nav: {
+            kb: 'KBs',
+            shared: 'Shared',
+            favorites: 'Favorites',
+            recent: 'Recent',
+            profile: 'Profile'
+        },
+        login: {
+            subtitle: 'Lightweight & Elegant Mobile Knowledge Base',
+            accountLabel: 'Account / Username',
+            accountPlaceholder: 'Enter username',
+            passwordLabel: 'Password',
+            passwordPlaceholder: 'Enter password',
+            submitting: 'Logging in...',
+            submit: 'Log In',
+            contactAdmin: 'If you have no account, please contact administrator',
+            failedToken: 'Login failed, no valid token received',
+            failedCheck: 'Login failed, please check username and password'
+        },
+        shared: {
+            title: 'Shared Knowledge Bases',
+            searchPlaceholder: 'Search shared knowledge bases',
+            empty: 'No shared knowledge bases yet',
+            creator: 'Owner: {name}',
+            unknownCreator: 'Unknown'
+        },
+        favorites: {
+            title: 'My Favorites',
+            searchPlaceholder: 'Search favorited documents',
+            empty: 'No favorited documents yet'
+        },
+        recent: {
+            title: 'Recent Visits',
+            searchPlaceholder: 'Search recent history',
+            empty: 'No recent visit history yet'
+        },
+        profile: {
+            title: 'Profile Center',
+            defaultUser: 'Logged-in User',
+            defaultTagline: 'HelloDoc Immersive Mode',
+            themeMode: 'Appearance',
+            darkMode: 'Dark Mode',
+            lightMode: 'Light Mode',
+            desktopVersion: 'Desktop Site',
+            language: 'Language',
+            logout: 'Log Out'
+        },
+        home: {
+            searchPlaceholder: 'Search all knowledge bases...',
+            myKbs: 'My Knowledge Bases',
+            sharedKbs: 'Shared Knowledge Bases',
+            empty: 'No knowledge bases yet. Please create one on desktop.'
+        },
+        docDetail: {
+            readOnly: 'Read-only Mode',
+            readingTime: '{time} min read',
+            words: '{count} words',
+            empty: 'Document content is empty'
+        },
+        role: {
+            admin: 'Admin',
+            editor: 'Editor',
+            viewer: 'Viewer'
+        }
     }
 }

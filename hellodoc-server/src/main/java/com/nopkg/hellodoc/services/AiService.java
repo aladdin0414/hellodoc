@@ -79,7 +79,26 @@ public class AiService {
         return agent;
     }
 
+    private String buildUserContent(String context, String prompt, String lang) {
+        boolean isEn = false;
+        if (StringUtils.hasText(lang)) {
+            isEn = lang.toLowerCase().startsWith("en");
+        } else {
+            java.util.Locale currentLocale = org.springframework.context.i18n.LocaleContextHolder.getLocale();
+            if (currentLocale != null && "en".equalsIgnoreCase(currentLocale.getLanguage())) {
+                isEn = true;
+            }
+        }
+        String promptLabel = isEn ? "Instruction: " : "指令：";
+        String contextLabel = isEn ? "Text Context: " : "文本：";
+        return promptLabel + prompt + "\n\n" + contextLabel + context;
+    }
+
     public String getCompletion(String context, String prompt) {
+        return getCompletion(context, prompt, null);
+    }
+
+    public String getCompletion(String context, String prompt, String lang) {
         String apiKey = getResolvedApiKey();
         String baseUrl = getResolvedBaseUrl();
         String model = getResolvedModel();
@@ -115,7 +134,7 @@ public class AiService {
         
         ObjectNode userMsg = messages.addObject();
         userMsg.put("role", "user");
-        userMsg.put("content", "指令：" + prompt + "\n\n文本：" + context);
+        userMsg.put("content", buildUserContent(context, prompt, lang));
 
         HttpEntity<String> request = new HttpEntity<>(body.toString(), headers);
 
@@ -147,6 +166,10 @@ public class AiService {
     }
 
     public void streamCompletion(String context, String prompt, Consumer<String> onChunk) {
+        streamCompletion(context, prompt, null, onChunk);
+    }
+
+    public void streamCompletion(String context, String prompt, String lang, Consumer<String> onChunk) {
         String apiKey = getResolvedApiKey();
         String baseUrl = getResolvedBaseUrl();
         String model = getResolvedModel();
@@ -180,7 +203,7 @@ public class AiService {
 
             ObjectNode userMsg = messages.addObject();
             userMsg.put("role", "user");
-            userMsg.put("content", "指令：" + prompt + "\n\n文本：" + context);
+            userMsg.put("content", buildUserContent(context, prompt, lang));
 
             byte[] payload = body.toString().getBytes(StandardCharsets.UTF_8);
             try (OutputStream os = connection.getOutputStream()) {
