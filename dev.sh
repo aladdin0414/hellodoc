@@ -63,7 +63,13 @@ kill_port "$FRONTEND_PORT"
 # 3. 捕捉 Ctrl+C / SIGINT 信号，安全结束前后端子进程
 cleanup() {
     echo -e "\n${YELLOW}⏹ 正在停止前后端开发服务...${NC}"
-    kill $SERVER_PID $CLIENT_PID 2>/dev/null
+    # 杀掉整个进程组（含 Gradle Daemon 及其子进程），避免进度条残留输出
+    if [ -n "$SERVER_PGID" ]; then
+        kill -- -"$SERVER_PGID" 2>/dev/null
+    else
+        kill $SERVER_PID 2>/dev/null
+    fi
+    kill $CLIENT_PID 2>/dev/null
     wait $SERVER_PID $CLIENT_PID 2>/dev/null
     echo -e "${GREEN}✓ 所有服务已安全退出${NC}"
     exit 0
@@ -71,9 +77,12 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 # 4. 启动后端服务 (hellodoc-server)
+# --console=plain 禁用 Gradle Rich Console 进度条，避免结束后仍有「EXECUTING」输出
 echo -e "${GREEN}▶ 正在启动后端服务 (hellodoc-server)...${NC}"
-(cd "$SERVER_DIR" && ./gradlew bootRun) &
+(cd "$SERVER_DIR" && ./gradlew bootRun --console=plain) &
 SERVER_PID=$!
+# 获取后端子进程组 ID，用于 cleanup 时整体 kill
+SERVER_PGID=$(ps -o pgid= -p $SERVER_PID 2>/dev/null | tr -d ' ')
 
 # 5. 启动前端服务 (hellodoc-client)
 echo -e "${GREEN}▶ 正在启动前端服务 (hellodoc-client)...${NC}"
