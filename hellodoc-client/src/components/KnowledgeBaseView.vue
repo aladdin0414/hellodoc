@@ -266,7 +266,7 @@ const fetchKbData = async () => {
 
 const applyDocDetail = (id: number, res: any) => {
     currentDoc.value = res
-    document.title = `${res.name} - ${kbDetail.value?.title || 'HelloDoc'}`
+    document.title = `${res.name} - ${kbDetail.value?.title || 'Hellodoc'}`
     recordRecentDoc({
         kbId: props.kbId,
         docId: id,
@@ -649,7 +649,7 @@ onMounted(() => {
 
                 <div class="mt-24 pt-12 border-t border-slate-200/50">
                     <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">
-                        HelloDoc Knowledge Engine
+                        Hellodoc Knowledge Engine
                     </p>
                 </div>
             </div>

@@ -93,7 +93,7 @@ public class FileController {
             URLConnection conn = uri.toURL().openConnection();
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(15000);
-            conn.setRequestProperty("User-Agent", "HelloDoc-Image-Proxy/1.0");
+            conn.setRequestProperty("User-Agent", "Hellodoc-Image-Proxy/1.0");
 
             String contentType = conn.getContentType();
             if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {

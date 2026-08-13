@@ -244,7 +244,7 @@ function createWindow(port) {
       contextIsolation: true,
       preload: __dirname + '/preload.js'
     },
-    title: 'HelloDoc Desktop'
+    title: 'Hellodoc Desktop'
   };
 
   if (Number.isFinite(state.x) && Number.isFinite(state.y)) {
@@ -283,7 +283,7 @@ function createWindow(port) {
       height: previewState.height,
       show: false,
       autoHideMenuBar: true,
-      title: 'HelloDoc Preview'
+      title: 'Hellodoc Preview'
     };
 
     if (Number.isFinite(previewState.x) && Number.isFinite(previewState.y)) {

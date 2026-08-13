@@ -24,7 +24,7 @@ else
     fi
 fi
 PRODUCT_NAME="hellodoc"
-PRODUCT_DISPLAY_NAME="HelloDoc"
+PRODUCT_DISPLAY_NAME="Hellodoc"
 BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 BUILD_TIMESTAMP=$(date '+%Y%m%d%H%M%S')
 

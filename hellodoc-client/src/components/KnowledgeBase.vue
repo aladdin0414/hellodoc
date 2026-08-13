@@ -416,14 +416,14 @@ watch(activeTab, (newTab, oldTab) => {
     if (newTab === 'favorites') {
         searchType.value = 'doc'
         fetchFavorites()
-        document.title = `HelloDoc - ${t('kb.titleFavorites')}`
+        document.title = `Hellodoc - ${t('kb.titleFavorites')}`
         return
     }
 
     if (newTab === 'recent') {
         searchType.value = 'doc'
         loadRecentDocs()
-        document.title = `HelloDoc - ${t('kb.titleRecent')}`
+        document.title = `Hellodoc - ${t('kb.titleRecent')}`
         return
     }
 
@@ -437,7 +437,7 @@ watch(activeTab, (newTab, oldTab) => {
     }
     if (oldTab === 'favorites' && kbs.value.length === 0) fetchKbs()
 
-    document.title = newTab === 'shared' ? `HelloDoc - ${t('kb.titleShared')}` : `HelloDoc - ${t('kb.titleMy')}`
+    document.title = newTab === 'shared' ? `Hellodoc - ${t('kb.titleShared')}` : `Hellodoc - ${t('kb.titleMy')}`
 })
 
 const resetUpsertKb = () => {
@@ -670,12 +670,12 @@ onMounted(() => {
     fetchConfigs()
     fetchProfile()
     document.title = activeTab.value === 'favorites'
-        ? `HelloDoc - ${t('kb.titleFavorites')}`
+        ? `Hellodoc - ${t('kb.titleFavorites')}`
         : activeTab.value === 'recent'
-            ? `HelloDoc - ${t('kb.titleRecent')}`
+            ? `Hellodoc - ${t('kb.titleRecent')}`
             : activeTab.value === 'shared'
-                ? `HelloDoc - ${t('kb.titleShared')}`
-                : `HelloDoc - ${t('kb.titleMy')}`
+                ? `Hellodoc - ${t('kb.titleShared')}`
+                : `Hellodoc - ${t('kb.titleMy')}`
 })
 
 onUnmounted(() => {
@@ -706,8 +706,8 @@ const handleKbSelected = (kbId: number) => {
                 </svg>
             </button>
             <div class="flex items-center space-x-2 min-w-0">
-                <img src="../assets/logo.svg" alt="HelloDoc Logo" class="h-8 w-8" />
-                <span class="text-xl font-bold text-gray-900 dark:text-white">HelloDoc</span>
+                <img src="../assets/logo.svg" alt="Hellodoc Logo" class="h-8 w-8" />
+                <span class="text-xl font-bold text-gray-900 dark:text-white">Hellodoc</span>
             </div>
             <button v-if="isSearchEnabled" type="button" @click="showSearchModal = true"
                 class="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition focus:outline-none"
@@ -733,8 +733,8 @@ const handleKbSelected = (kbId: number) => {
             ]">
                 <div class="px-6 h-20 flex items-center justify-between">
                     <div class="flex items-center space-x-2 min-w-0">
-                        <img src="../assets/logo.svg" alt="HelloDoc Logo" class="h-8 w-8" />
-                        <span class="text-xl font-bold text-gray-900 dark:text-white">HelloDoc</span>
+                        <img src="../assets/logo.svg" alt="Hellodoc Logo" class="h-8 w-8" />
+                        <span class="text-xl font-bold text-gray-900 dark:text-white">Hellodoc</span>
                     </div>
                     <button v-if="isSearchEnabled" type="button" @click="showSearchModal = true"
                         class="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition focus:outline-none"

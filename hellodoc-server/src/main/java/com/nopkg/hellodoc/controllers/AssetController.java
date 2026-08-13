@@ -50,7 +50,8 @@ public class AssetController {
             OffsetDateTime createdAt) {
     }
 
-    public record UrlAssetRequest(String url) {}
+    public record UrlAssetRequest(String url) {
+    }
 
     @PostMapping("/api/kb/{kbId}/assets")
     @RequireKbRole(com.nopkg.hellodoc.enums.KbRole.EDITOR)
@@ -112,10 +113,11 @@ public class AssetController {
             URLConnection conn = uri.toURL().openConnection();
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(15000);
-            conn.setRequestProperty("User-Agent", "HelloDoc-Image-Proxy/1.0");
+            conn.setRequestProperty("User-Agent", "Hellodoc-Image-Proxy/1.0");
 
             String contentType = conn.getContentType();
-            if (contentType == null || (!contentType.toLowerCase().startsWith("image/") && !contentType.toLowerCase().startsWith("video/"))) {
+            if (contentType == null || (!contentType.toLowerCase().startsWith("image/")
+                    && !contentType.toLowerCase().startsWith("video/"))) {
                 return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Only image or video content is supported");
             }
 
@@ -149,7 +151,8 @@ public class AssetController {
             }
 
             byte[] fileContent = buffer.toByteArray();
-            ByteArrayMultipartFile multipartFile = new ByteArrayMultipartFile(fileContent, "file", fileName, contentType);
+            ByteArrayMultipartFile multipartFile = new ByteArrayMultipartFile(fileContent, "file", fileName,
+                    contentType);
 
             Long userId = currentUserId();
             KbAsset asset = assetService.uploadAsset(kbId, docId, multipartFile, userId, fileName, null);

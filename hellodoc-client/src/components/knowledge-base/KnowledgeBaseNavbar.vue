@@ -125,8 +125,8 @@ const logout = () => {
             <div class="flex justify-between h-16 items-center">
                 <div class="flex items-center space-x-4 min-w-0 flex-1">
                     <div v-if="navStyle !== 'left'" class="flex items-center space-x-2">
-                        <img src="../../assets/logo.svg" alt="HelloDoc Logo" class="h-8 w-8" />
-                        <span class="text-xl font-bold text-gray-900 dark:text-white">HelloDoc</span>
+                        <img src="../../assets/logo.svg" alt="Hellodoc Logo" class="h-8 w-8" />
+                        <span class="text-xl font-bold text-gray-900 dark:text-white">Hellodoc</span>
                     </div>
                     <div :class="[navStyle === 'left' ? 'ml-0' : 'ml-2 sm:ml-6', { 'min-[975px]:hidden': navStyle === 'left' }]"
                         class="flex items-center min-w-0 flex-1 min-[975px]:flex-none">

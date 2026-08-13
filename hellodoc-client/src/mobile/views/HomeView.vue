@@ -4,8 +4,8 @@
     <HeaderNav>
       <template #left>
         <div class="flex items-center gap-2">
-          <img src="../../assets/logo.svg" alt="HelloDoc Logo" class="w-7 h-7 drop-shadow-sm" />
-          <span class="text-base font-black tracking-tight text-slate-900 dark:text-white">HelloDoc</span>
+          <img src="../../assets/logo.svg" alt="Hellodoc Logo" class="w-7 h-7 drop-shadow-sm" />
+          <span class="text-base font-black tracking-tight text-slate-900 dark:text-white">Hellodoc</span>
         </div>
       </template>
 

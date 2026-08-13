@@ -69,9 +69,9 @@ const handleLogin = async () => {
         <div
             class="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
             <div class="flex flex-col items-center">
-                <img src="../assets/logo.svg" alt="HelloDoc Logo" class="h-16 w-16 mb-2" />
+                <img src="../assets/logo.svg" alt="Hellodoc Logo" class="h-16 w-16 mb-2" />
                 <h2 class="text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
-                    HelloDoc
+                    Hellodoc
                 </h2>
                 <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
                     {{ t('auth.appSlogan') }}

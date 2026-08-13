@@ -2,7 +2,7 @@
   "name": "hellodoc-workspace",
   "version": "2.0.11",
   "private": true,
-  "description": "HelloDoc monorepo workspace",
+  "description": "hellodoc monorepo workspace",
   "scripts": {
     "dev": "bash dev.sh",
     "dev:server": "bash -c 'set -a; [ -f .env ] && source .env; set +a; cd hellodoc-server && ./gradlew bootRun'",

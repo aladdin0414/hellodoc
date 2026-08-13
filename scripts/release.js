@@ -178,7 +178,7 @@ function updateChangelog(version, releaseNotes) {
       content = `# Changelog\n\n${newSection}` + content;
     }
   } else {
-    content = `# Changelog\n\nAll notable changes to HelloDoc will be documented in this file.\n\n${newSection}`;
+    content = `# Changelog\n\nAll notable changes to Hellodoc will be documented in this file.\n\n${newSection}`;
   }
 
   fs.writeFileSync(CHANGELOG_PATH, content, 'utf-8');
@@ -218,7 +218,7 @@ function createPrompt() {
 
 // 主交互与发版逻辑
 async function main() {
-  console.log(colors.bold(colors.cyan('\n🚀 HelloDoc 统一自动发版工具\n')));
+  console.log(colors.bold(colors.cyan('\n🚀 Hellodoc 统一自动发版工具\n')));
 
   const { clientVersion, desktopVersion, serverVersion } = getCurrentVersions();
   console.log(`当前组件版本号状态：`);

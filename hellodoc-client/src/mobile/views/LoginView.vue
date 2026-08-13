@@ -3,8 +3,8 @@
     <div class="sm:mx-auto sm:w-full sm:max-w-md space-y-8">
       <!-- 品牌 Header -->
       <div class="text-center space-y-3">
-        <img src="../../assets/logo.svg" alt="HelloDoc Logo" class="w-16 h-16 mx-auto drop-shadow-2xl" />
-        <h1 class="text-2xl font-black text-white tracking-tight">HelloDoc</h1>
+        <img src="../../assets/logo.svg" alt="Hellodoc Logo" class="w-16 h-16 mx-auto drop-shadow-2xl" />
+        <h1 class="text-2xl font-black text-white tracking-tight">Hellodoc</h1>
         <p class="text-xs text-slate-400 font-medium">{{ t('mobile.login.subtitle') }}</p>
       </div>
 
