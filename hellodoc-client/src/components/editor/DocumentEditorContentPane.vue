@@ -246,7 +246,7 @@ const handleAiStreamChunk = (chunk: string) => {
     props.currentDoc.content += newIncrement
 }
 
-const handleAiStreamEnd = () => {
+const handleAiStreamEnd = async () => {
     const { output } = filterStreamingThinking(aiRawStreamText.value)
     const formattedOutput = formatChineseMarkdown(output)
     
@@ -257,10 +257,16 @@ const handleAiStreamEnd = () => {
         const to = editorInstance.state.selection.to
         editorInstance.chain().focus().insertContentAt({ from, to }, formattedOutput).run()
         
+        const currentMarkdown = ((editorInstance.storage as any)?.markdown as any)?.getMarkdown?.()
+        if (currentMarkdown && props.currentDoc) {
+            props.currentDoc.content = currentMarkdown
+        }
+        
         // 自动完成协同同步和更新
-        emit('save')
         aiStreamActive.value = false
         emit('aiGeneratingChange', false)
+        await nextTick()
+        emit('save')
         return
     }
 
@@ -278,6 +284,7 @@ const handleAiStreamEnd = () => {
     }
     aiStreamActive.value = false
     emit('aiGeneratingChange', false)
+    await nextTick()
     emit('save')
 }
 
@@ -303,7 +310,7 @@ const triggerAiAssistant = () => {
     aiMenuVisible.value = true
 }
 
-const insertContent = (rawText: string) => {
+const insertContent = async (rawText: string) => {
     if (!rawText) return
     const cleanText = formatChineseMarkdown(rawText)
 
@@ -312,6 +319,11 @@ const insertContent = (rawText: string) => {
         const editorInstance = localEditorRef.value.editor
         try {
             editorInstance.chain().focus().insertContent(`\n\n${cleanText}\n\n`).run()
+            const currentMarkdown = ((editorInstance.storage as any)?.markdown as any)?.getMarkdown?.()
+            if (currentMarkdown && props.currentDoc) {
+                props.currentDoc.content = currentMarkdown
+            }
+            await nextTick()
             emit('save')
             return
         } catch (e) {
@@ -327,12 +339,18 @@ const insertContent = (rawText: string) => {
             deviationStart: 0,
             deviationEnd: 0
         }))
+        const view = localEditorRef.value.getEditorView?.()
+        if (view && props.currentDoc) {
+            props.currentDoc.content = view.state.doc.toString()
+        }
+        await nextTick()
         emit('save')
         return
     }
 
     // 兜底：直接追加文档内容
     props.currentDoc.content = (props.currentDoc.content || '') + `\n\n${cleanText}\n\n`
+    await nextTick()
     emit('save')
 }
 

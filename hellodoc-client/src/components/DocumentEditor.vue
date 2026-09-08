@@ -87,11 +87,11 @@ const handleOpenAiAssistant = () => {
     }
 }
 
-const handleInsertAiContent = (text: string) => {
+const handleInsertAiContent = async (text: string) => {
     if (!text) return
     const cleanText = formatChineseMarkdown(text)
     if (contentPaneRef.value?.insertContent) {
-        contentPaneRef.value.insertContent(cleanText)
+        await contentPaneRef.value.insertContent(cleanText)
     } else if (mdEditorRef.value?.insert) {
         mdEditorRef.value.insert(() => ({
             targetValue: `\n\n${cleanText}\n\n`,
@@ -99,8 +99,15 @@ const handleInsertAiContent = (text: string) => {
             deviationStart: 0,
             deviationEnd: 0
         }))
+        const view = mdEditorRef.value.getEditorView?.()
+        if (view && currentDoc.value) {
+            currentDoc.value.content = view.state.doc.toString()
+        }
+        await nextTick()
+        handleSave()
     } else if (currentDoc.value) {
         currentDoc.value.content = (currentDoc.value.content || '') + `\n\n${cleanText}\n\n`
+        await nextTick()
         handleSave()
     }
 }
