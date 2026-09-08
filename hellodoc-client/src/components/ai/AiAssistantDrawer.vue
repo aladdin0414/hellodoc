@@ -1,8 +1,22 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
+import { marked } from 'marked'
 import { message } from '../../utils/message'
 import { useAiModels } from '../../composables/useAiModels'
 import { aiCompletionStream } from '../../api/ai'
+import { formatChineseMarkdown } from '../../utils/markdown'
+
+// 配置 marked 选项
+marked.setOptions({
+  gfm: true,
+  breaks: true
+})
+
+const renderMarkdown = (content: string) => {
+  if (!content) return ''
+  const formatted = formatChineseMarkdown(content)
+  return marked.parse(formatted, { async: false, breaks: true, gfm: true }) as string
+}
 
 const props = defineProps<{
   visible: boolean
@@ -162,7 +176,7 @@ watch(() => props.visible, (val) => {
     >
       <aside
         v-if="visible"
-        class="fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] bg-white dark:bg-[#161b22] shadow-2xl border-l border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden"
+        class="fixed inset-y-0 right-0 z-50 w-full sm:w-[500px] md:w-[560px] bg-white dark:bg-[#161b22] shadow-2xl border-l border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden"
       >
         <!-- 抽屉头部 -->
         <div class="h-16 px-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between flex-shrink-0 bg-gray-50/80 dark:bg-gray-800/40 backdrop-blur-sm">
@@ -276,7 +290,13 @@ watch(() => props.visible, (val) => {
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]"></span>
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]"></span>
               </div>
-              <!-- 正文展示（支持换行和纯净 Markdown 文本） -->
+              <!-- AI 回复：完整渲染为排版优雅的 Markdown -->
+              <div
+                v-else-if="msg.role === 'assistant'"
+                class="ai-markdown-content text-xs leading-relaxed break-words"
+                v-html="renderMarkdown(msg.content)"
+              ></div>
+              <!-- 用户提问：文本换行展示 -->
               <div v-else class="whitespace-pre-wrap break-words">{{ msg.content }}</div>
 
               <!-- AI 回复工具条 -->
@@ -341,3 +361,113 @@ watch(() => props.visible, (val) => {
     </transition>
   </div>
 </template>
+
+<style scoped>
+.ai-markdown-content :deep(h1) {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-top: 0.6rem;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid rgba(156, 163, 175, 0.2);
+  color: inherit;
+}
+.ai-markdown-content :deep(h2) {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-top: 0.55rem;
+  margin-bottom: 0.3rem;
+  color: inherit;
+}
+.ai-markdown-content :deep(h3) {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-top: 0.45rem;
+  margin-bottom: 0.25rem;
+  color: inherit;
+}
+.ai-markdown-content :deep(p) {
+  margin-bottom: 0.45rem;
+  line-height: 1.6;
+}
+.ai-markdown-content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.ai-markdown-content :deep(strong),
+.ai-markdown-content :deep(b) {
+  font-weight: 600;
+  color: inherit;
+}
+.ai-markdown-content :deep(ul) {
+  list-style-type: disc;
+  padding-left: 1.2rem;
+  margin-top: 0.3rem;
+  margin-bottom: 0.45rem;
+}
+.ai-markdown-content :deep(ol) {
+  list-style-type: decimal;
+  padding-left: 1.2rem;
+  margin-top: 0.3rem;
+  margin-bottom: 0.45rem;
+}
+.ai-markdown-content :deep(li) {
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+  line-height: 1.5;
+}
+.ai-markdown-content :deep(blockquote) {
+  border-left: 3px solid #6366f1;
+  padding-left: 0.6rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
+  opacity: 0.85;
+  font-style: italic;
+}
+.ai-markdown-content :deep(code) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.35rem;
+  background-color: rgba(156, 163, 175, 0.18);
+  color: #db2777;
+}
+.dark .ai-markdown-content :deep(code) {
+  color: #f472b6;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.ai-markdown-content :deep(pre) {
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.75rem;
+  background-color: #1e293b;
+  color: #f8fafc;
+  overflow-x: auto;
+}
+.dark .ai-markdown-content :deep(pre) {
+  background-color: #0d1117;
+}
+.ai-markdown-content :deep(pre code) {
+  padding: 0;
+  background-color: transparent;
+  color: inherit;
+  font-size: 0.72rem;
+}
+.ai-markdown-content :deep(table) {
+  width: 100%;
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+.ai-markdown-content :deep(th),
+.ai-markdown-content :deep(td) {
+  border: 1px solid rgba(156, 163, 175, 0.25);
+  padding: 0.3rem 0.5rem;
+}
+.ai-markdown-content :deep(th) {
+  background-color: rgba(156, 163, 175, 0.08);
+  font-weight: 600;
+}
+</style>
+
