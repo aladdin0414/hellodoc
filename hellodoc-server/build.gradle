@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.nopkg'
-version = '2.1.1'
+version = '2.1.2'
 description = 'hellodoc-server'
 
 java {

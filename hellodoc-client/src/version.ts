@@ -1,9 +1,12 @@
 // 本文件由 scripts/release.js 自动生成，请勿手动修改
-export const APP_VERSION = '2.1.1';
-export const BUILD_TIME = '2026/9/8 15:06:26';
-export const GIT_COMMIT = '65bfed5';
+export const APP_VERSION = '2.1.2';
+export const BUILD_TIME = '2026/9/8 22:04:41';
+export const GIT_COMMIT = '1be49cf';
 export const RELEASE_NOTES: string[] = [
-  "feat: 优化知识库阅读视图排版、TOC平滑导航与目录树体验并修复死循环问题"
+  "refactor: remove format brush feature and update toolbar icon styling",
+  "refactor: remove format brush feature and cleanup related components and styles",
+  "refactor: reset scroll position and TOC state on document navigation and ensure stable layout width",
+  "fix: ensure document content is updated and synchronized before triggering auto-save after AI content insertion"
 ];
 
 export default {

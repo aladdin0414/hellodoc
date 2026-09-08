@@ -1,5 +1,12 @@
 # Changelog
 
+## [v2.1.2] - 2026-09-08
+
+- refactor: remove format brush feature and update toolbar icon styling
+- refactor: remove format brush feature and cleanup related components and styles
+- refactor: reset scroll position and TOC state on document navigation and ensure stable layout width
+- fix: ensure document content is updated and synchronized before triggering auto-save after AI content insertion
+
 ## [v2.1.1] - 2026-09-08
 
 - feat: 优化知识库阅读视图排版、TOC平滑导航与目录树体验并修复死循环问题
