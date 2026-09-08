@@ -3,8 +3,6 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { message } from '../../utils/message'
 import { listConfigs, updateConfig, createConfig, refreshConfigCache } from '../../api/config'
-import zhCN from '../../i18n/locales/zh-CN/common'
-import enUS from '../../i18n/locales/en-US/common'
 import BaseDialog from '../shared/BaseDialog.vue'
 
 const { t, locale } = useI18n()
@@ -60,110 +58,11 @@ const fetchConfigs = async () => {
   configLoading.value = true
   try {
     const res: any = await listConfigs()
-    configs.value = res
+    configs.value = res || []
   } catch (err) {
     console.error('Fetch configs failed:', err)
   } finally {
     configLoading.value = false
-  }
-}
-
-const initializeSystemConfigs = async () => {
-  try {
-    const res: any = await listConfigs()
-    if (!res.some((c: any) => c.configKey === 'app.kb_search.enabled')) {
-      await createConfig({
-        configName: t('admin.defaultConfigs.kbSearch.name'),
-        configKey: 'app.kb_search.enabled',
-        configValue: 'true',
-        valueType: 'boolean',
-        isFrontend: true,
-        description: t('admin.defaultConfigs.kbSearch.desc'),
-        configNameI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.kbSearch.name, 
-          'en-US': enUS.admin.defaultConfigs.kbSearch.name 
-        },
-        descriptionI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.kbSearch.desc, 
-          'en-US': enUS.admin.defaultConfigs.kbSearch.desc 
-        }
-      })
-    }
-    if (!res.some((c: any) => c.configKey === 'app.collab.enabled')) {
-      await createConfig({
-        configName: t('admin.defaultConfigs.collab.name'),
-        configKey: 'app.collab.enabled',
-        configValue: 'false',
-        valueType: 'boolean',
-        isFrontend: true,
-        description: t('admin.defaultConfigs.collab.desc'),
-        configNameI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.collab.name, 
-          'en-US': enUS.admin.defaultConfigs.collab.name 
-        },
-        descriptionI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.collab.desc, 
-          'en-US': enUS.admin.defaultConfigs.collab.desc 
-        }
-      })
-    }
-    if (!res.some((c: any) => c.configKey === 'app.kb.nav_style')) {
-      await createConfig({
-        configName: t('admin.defaultConfigs.navStyle.name'),
-        configKey: 'app.kb.nav_style',
-        configValue: 'top',
-        valueType: 'string',
-        isFrontend: true,
-        description: t('admin.defaultConfigs.navStyle.desc'),
-        configNameI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.navStyle.name, 
-          'en-US': enUS.admin.defaultConfigs.navStyle.name 
-        },
-        descriptionI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.navStyle.desc, 
-          'en-US': enUS.admin.defaultConfigs.navStyle.desc 
-        }
-      })
-    }
-    if (!res.some((c: any) => c.configKey === 'ai.openai.base-url')) {
-      await createConfig({
-        configName: t('admin.defaultConfigs.aiUrl.name'),
-        configKey: 'ai.openai.base-url',
-        configValue: '',
-        valueType: 'string',
-        isFrontend: false,
-        description: t('admin.defaultConfigs.aiUrl.desc'),
-        configNameI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.aiUrl.name, 
-          'en-US': enUS.admin.defaultConfigs.aiUrl.name 
-        },
-        descriptionI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.aiUrl.desc, 
-          'en-US': enUS.admin.defaultConfigs.aiUrl.desc 
-        }
-      })
-    }
-    if (!res.some((c: any) => c.configKey === 'ai.openai.api-key')) {
-      await createConfig({
-        configName: t('admin.defaultConfigs.aiApiKey.name'),
-        configKey: 'ai.openai.api-key',
-        configValue: '',
-        valueType: 'string',
-        isFrontend: false,
-        description: t('admin.defaultConfigs.aiApiKey.desc'),
-        configNameI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.aiApiKey.name, 
-          'en-US': enUS.admin.defaultConfigs.aiApiKey.name 
-        },
-        descriptionI18n: { 
-          'zh-CN': zhCN.admin.defaultConfigs.aiApiKey.desc, 
-          'en-US': enUS.admin.defaultConfigs.aiApiKey.desc 
-        }
-      })
-    }
-    await fetchConfigs()
-  } catch (err) {
-    console.error('Initialize system configs failed:', err)
   }
 }
 
@@ -216,7 +115,7 @@ const handleRefreshCache = async () => {
 }
 
 onMounted(() => {
-  initializeSystemConfigs()
+  fetchConfigs()
 })
 </script>
 

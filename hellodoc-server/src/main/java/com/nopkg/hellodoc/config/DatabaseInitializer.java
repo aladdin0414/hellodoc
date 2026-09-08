@@ -84,12 +84,38 @@ public class DatabaseInitializer {
             // 初始化默认本地存储配置 (防止文件并发上传时缺少 id=1 引起外键约束错误)
             checkAndCreateDefaultStorageConfig();
 
+            // 统一初始化系统基础核心配置项 (sys_config)
+            checkAndInitSystemConfigs();
+
             // 统一初始化 AI 大模型配置表 (sys_ai_model) 及默认模型迁移
             checkAndCreateAiModelTable();
 
         } catch (Exception e) {
             logger.error("Database initialization failed", e);
             throw new RuntimeException("Database initialization failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 统一检查并自动补齐系统基础核心配置项 (sys_config)
+     */
+    private void checkAndInitSystemConfigs() {
+        String insertSql = """
+                INSERT INTO sys_config (config_name, config_key, config_value, value_type, description, config_group, is_system, is_frontend, status, config_name_i18n, description_i18n)
+                VALUES 
+                  ('知识库检索功能', 'app.kb_search.enabled', 'true', 'boolean', '是否开启知识库内容全局检索', 'app', true, true, 0, '{"zh-CN": "知识库检索功能", "en-US": "KB Search Feature"}', '{"zh-CN": "是否开启知识库内容全局检索", "en-US": "Whether to enable global knowledge base search"}'),
+                  ('实时协同编辑', 'app.collab.enabled', 'false', 'boolean', '是否开启多人在线实时协作编辑功能', 'app', true, true, 0, '{"zh-CN": "实时协同编辑", "en-US": "Realtime Collaboration"}', '{"zh-CN": "是否开启多人在线实时协作编辑功能", "en-US": "Whether to enable real-time collaborative editing"}'),
+                  ('知识库导航风格', 'app.kb.nav_style', 'top', 'string', '知识库目录的呈现风格 (top: 顶部标签, left: 左侧树)', 'app', true, true, 0, '{"zh-CN": "知识库导航风格", "en-US": "KB Navigation Style"}', '{"zh-CN": "知识库目录的呈现风格 (top: 顶部标签, left: 左侧树)", "en-US": "Navigation style for knowledge base (top or left)"}'),
+                  ('开启留言功能', 'app.enable_guestbook', 'true', 'boolean', '是否开启系统留言板功能', 'app', true, true, 0, '{"zh-CN": "开启留言功能", "en-US": "Enable Guestbook"}', '{"zh-CN": "是否开启系统留言板功能", "en-US": "Whether to enable system guestbook"}')
+                ON CONFLICT (config_key) DO NOTHING;
+                """;
+
+        try (Connection conn = DriverManager.getConnection(datasourceUrl, username, password);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(insertSql);
+            logger.info("已完成系统基础核心配置项 (sys_config) 自动检查与补齐");
+        } catch (Exception e) {
+            logger.warn("检查/补齐系统基础配置项失败: {}", e.getMessage());
         }
     }
 
