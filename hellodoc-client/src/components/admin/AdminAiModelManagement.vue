@@ -204,7 +204,8 @@ const handleTestConnection = async () => {
       id: isEditing.value && editingId.value ? editingId.value : undefined,
       baseUrl: form.baseUrl.trim(),
       apiKey: form.apiKey.trim() || undefined,
-      modelName: form.modelName.trim()
+      modelName: form.modelName.trim(),
+      disableThinking: form.disableThinking
     })
     testResult.value = {
       success: true,

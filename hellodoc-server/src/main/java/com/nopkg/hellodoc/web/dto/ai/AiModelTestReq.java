@@ -32,4 +32,9 @@ public class AiModelTestReq {
      * 测试提示词
      */
     private String prompt;
+
+    /**
+     * 是否禁用深度思考标签（若模型为推理模型，禁用后可大幅降低探测耗时与 token 消耗）
+     */
+    private Boolean disableThinking;
 }

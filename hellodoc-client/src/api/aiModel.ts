@@ -48,6 +48,7 @@ export interface AiModelTestReq {
     apiKey?: string
     modelName?: string
     prompt?: string
+    disableThinking?: boolean
 }
 
 export interface AiModelTestResp {
@@ -94,5 +95,5 @@ export const toggleActiveAiModel = (id: string): Promise<void> => {
 
 // 连通性测试 (管理员)
 export const testAiModelConnection = (data: AiModelTestReq): Promise<AiModelTestResp> => {
-    return request.post('/api/admin/ai/models/test', data)
+    return request.post('/api/admin/ai/models/test', data, { timeout: 30000 })
 }

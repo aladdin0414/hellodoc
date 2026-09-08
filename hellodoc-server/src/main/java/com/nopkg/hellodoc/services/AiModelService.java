@@ -223,6 +223,7 @@ public class AiModelService {
         String apiKey = req.getApiKey();
         String modelName = req.getModelName();
 
+        boolean disableThinking = true;
         // 若传递了已存在模型的 id，则补全空缺字段
         if (StringUtils.hasText(req.getId())) {
             Optional<SysAiModel> modelOpt = aiModelRepository.findById(req.getId());
@@ -231,7 +232,13 @@ public class AiModelService {
                 if (!StringUtils.hasText(baseUrl)) baseUrl = m.getBaseUrl();
                 if (!StringUtils.hasText(apiKey)) apiKey = m.getApiKey();
                 if (!StringUtils.hasText(modelName)) modelName = m.getModelName();
+                if (m.getDisableThinking() != null) {
+                    disableThinking = m.getDisableThinking();
+                }
             }
+        }
+        if (req.getDisableThinking() != null) {
+            disableThinking = req.getDisableThinking();
         }
 
         if (!StringUtils.hasText(baseUrl) || !StringUtils.hasText(apiKey) || !StringUtils.hasText(modelName)) {
@@ -239,8 +246,8 @@ public class AiModelService {
         }
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(6000);
-        factory.setReadTimeout(12000);
+        factory.setConnectTimeout(8000);
+        factory.setReadTimeout(25000);
         RestTemplate testRest = new RestTemplate(factory);
 
         String url = baseUrl.replaceAll("/+$", "") + "/chat/completions";
@@ -251,12 +258,21 @@ public class AiModelService {
 
         ObjectNode body = objectMapper.createObjectNode();
         body.put("model", modelName);
-        body.put("max_tokens", 16);
+        body.put("max_tokens", 32);
+
+        // 连通性测试时抑制深度思考（Thinking），避免模型产生数百 token 的 reasoning 导致耗时飙升至十几秒
+        if (disableThinking) {
+            body.putObject("thinking").put("type", "disabled");
+            body.put("enable_thinking", false);
+            body.putObject("chat_template_args").put("enable_thinking", false);
+            body.putObject("extra_body").put("enable_thinking", false);
+            body.putObject("extra_body").putObject("thinking").put("type", "disabled");
+        }
 
         ArrayNode messages = body.putArray("messages");
         ObjectNode userMsg = messages.addObject();
         userMsg.put("role", "user");
-        userMsg.put("content", StringUtils.hasText(req.getPrompt()) ? req.getPrompt() : "Hello, response with 1 word.");
+        userMsg.put("content", StringUtils.hasText(req.getPrompt()) ? req.getPrompt() : "Hello");
 
         long startTime = System.currentTimeMillis();
         try {
