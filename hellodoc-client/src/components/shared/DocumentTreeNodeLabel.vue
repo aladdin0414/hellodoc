@@ -26,10 +26,10 @@ const props = withDefaults(defineProps<{
 
 const getFileIconClass = (doc: TreeNodeLike) => {
     if (doc.isCover) {
-        return 'mr-2 shrink-0 text-yellow-500 dark:text-yellow-400'
+        return 'shrink-0 text-yellow-500 dark:text-yellow-400'
     }
     if (doc.status === 'published') {
-        return 'mr-2 shrink-0 text-emerald-600 dark:text-emerald-400'
+        return 'shrink-0 text-emerald-600 dark:text-emerald-400'
     }
     return props.fileIconClass
 }
@@ -57,19 +57,24 @@ const isPublishedFile = (doc: TreeNodeLike) => doc.type === 'file' && doc.status
 
 <template>
     <div class="flex items-center flex-1 min-w-0">
-        <span v-if="doc.type === 'folder'" :class="folderChevronClass">
+        <span v-if="doc.type === 'folder'" :class="folderChevronClass" class="w-5 h-5 shrink-0 flex items-center justify-center">
             <ChevronDown v-if="expanded" :size="14" />
             <ChevronRight v-else :size="14" />
         </span>
-        <span v-else :class="filePlaceholderClass"></span>
+        <span v-else :class="filePlaceholderClass" class="w-5 h-5 shrink-0"></span>
 
-        <component v-if="doc.type === 'folder'" :is="expanded ? FolderOpen : Folder" :size="16"
-            :class="[doc.isCover ? 'mr-2 shrink-0 text-yellow-500 dark:text-yellow-400' : (getIconColor(doc) ? 'mr-2 shrink-0' : folderIconClass)]"
-            :style="getFolderIconStyle(doc)" />
+        <!-- 文件夹图标容器 (保证统一基准与舒适的 mr-3 间距) -->
+        <span v-if="doc.type === 'folder'" class="w-5 h-5 mr-3 shrink-0 flex items-center justify-center">
+            <component :is="expanded ? FolderOpen : Folder" :size="16"
+                :class="[doc.isCover ? 'text-yellow-500 dark:text-yellow-400' : folderIconClass]"
+                :style="getFolderIconStyle(doc)" />
+        </span>
+
+        <!-- 文件图标容器 (保证与文件夹图标完全相同的宽度与 mr-3 间距) -->
         <template v-else>
-            <span class="relative mr-2 h-4 w-4 shrink-0">
+            <span class="relative w-5 h-5 mr-3 shrink-0 flex items-center justify-center">
                 <FileText :size="16"
-                    :class="[getFileIconClass(doc), getIconColor(doc) ? 'mr-2 shrink-0' : '']"
+                    :class="getFileIconClass(doc)"
                     :style="getFileIconStyle(doc)" />
                 <span v-if="isPublishedFile(doc)"
                     class="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-emerald-500 text-white ring-1 ring-white dark:ring-slate-900">

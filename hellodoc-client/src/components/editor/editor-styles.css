@@ -8,7 +8,9 @@
 
 /* ===== Tiptap 排版样式 ===== */
 .ProseMirror p {
-    margin: 0.75em 0;
+    margin: 1.25em 0;
+    line-height: 1.8;
+    letter-spacing: 0.005em;
     color: #1e293b;
 }
 .dark .ProseMirror p {
@@ -16,31 +18,72 @@
 }
 
 .ProseMirror .resizable-image-wrapper {
-    margin: 0.85em 0;
+    margin: 1.25em 0;
 }
 
 .ProseMirror video {
     display: block;
     max-width: 100%;
     height: auto;
-    margin: 0.9em 0;
+    margin: 1.25em 0;
     border-radius: 0.5rem;
 }
 
 .ProseMirror ul,
 .ProseMirror ol {
     margin: 0.85em 0;
-    padding-left: 1.5em;
+    padding-left: 1.6em;
 }
+
+.ProseMirror li > ul,
+.ProseMirror li > ol {
+    margin: 0.25em 0 0.35em;
+}
+
 .ProseMirror ul {
     list-style-type: disc;
 }
+
+.ProseMirror ul ul {
+    list-style-type: circle;
+}
+
+.ProseMirror ul ul ul {
+    list-style-type: square;
+}
+
 .ProseMirror ol {
     list-style-type: decimal;
 }
 
-.ProseMirror li p {
+/* 有序列表序号颜色 (次级灰色，如 1. 2. 3.) */
+.ProseMirror ol > li::marker {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.dark .ProseMirror ol > li::marker {
+    color: #94a3b8;
+}
+
+/* 无序列表圆点颜色 (优雅中性浅灰，如 • ◦) */
+.ProseMirror ul > li::marker {
+    color: #94a3b8;
+}
+
+.dark .ProseMirror ul > li::marker {
+    color: #64748b;
+}
+
+.ProseMirror li {
     margin: 0.3em 0;
+    line-height: 1.75;
+    letter-spacing: 0.005em;
+}
+
+.ProseMirror li p {
+    margin: 0.15em 0;
+    line-height: 1.75;
 }
 
 .ProseMirror h1,
@@ -49,10 +92,9 @@
 .ProseMirror h4,
 .ProseMirror h5,
 .ProseMirror h6 {
-    margin: 1.1em 0 0.45em;
     color: #0f172a;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
 }
 .dark .ProseMirror h1,
 .dark .ProseMirror h2,
@@ -63,40 +105,50 @@
     color: #f8fafc;
 }
 
-.ProseMirror h1,
-.ProseMirror h2 {
-    margin-top: 1.1em;
-    margin-bottom: 0.45em;
-}
-
 .ProseMirror h1 {
-    font-size: 1.7em;
-    line-height: 1.3;
+    font-size: 1.75em;
+    line-height: 1.35;
+    margin-top: 1.8em;
+    margin-bottom: 0.85em;
+}
+.ProseMirror h1:first-child {
+    margin-top: 0.25em;
+    margin-bottom: 1.1em;
 }
 
 .ProseMirror h2 {
-    font-size: 1.38em;
+    font-size: 1.4em;
     line-height: 1.4;
+    margin-top: 1.8em;
+    margin-bottom: 0.75em;
 }
 
 .ProseMirror h3 {
-    font-size: 1.16em;
+    font-size: 1.18em;
     line-height: 1.45;
+    margin-top: 1.5em;
+    margin-bottom: 0.6em;
 }
 
 .ProseMirror h4 {
-    font-size: 1.02em;
+    font-size: 1.05em;
     line-height: 1.45;
+    margin-top: 1.35em;
+    margin-bottom: 0.5em;
 }
 
 .ProseMirror h5 {
     font-size: 0.95em;
     line-height: 1.45;
+    margin-top: 1.2em;
+    margin-bottom: 0.45em;
 }
 
 .ProseMirror h6 {
     font-size: 0.9em;
     line-height: 1.45;
+    margin-top: 1.1em;
+    margin-bottom: 0.4em;
 }
 
 .ProseMirror code {
@@ -124,12 +176,13 @@
 }
 
 .ProseMirror pre {
+    position: relative;
     margin: 1em 0;
     background: #f8fafc;
     color: #334155;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 12px 14px;
+    padding: 12px 42px 12px 14px;
     overflow-x: auto;
 }
 .dark .ProseMirror pre {
@@ -426,4 +479,81 @@
     font-size: 1.05em;
     text-rendering: auto;
 }
+
+/* ===== 代码块右上角一键复制按钮 (Code Block Copy Button) ===== */
+.code-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    user-select: none;
+    z-index: 10;
+    opacity: 0.85;
+}
+
+.code-copy-btn:hover {
+    opacity: 1;
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.08);
+}
+
+.code-copy-btn:active {
+    transform: scale(0.94);
+}
+
+.dark .code-copy-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dark .code-copy-btn:hover {
+    background: #334155;
+    color: #f1f5f9;
+    border-color: #475569;
+}
+
+.code-copy-btn svg {
+    pointer-events: none;
+}
+
+.code-copy-btn .check-icon {
+    display: none;
+}
+
+.code-copy-btn.copied {
+    color: #10b981 !important;
+    border-color: #a7f3d0 !important;
+    background: #ecfdf5 !important;
+    opacity: 1;
+}
+
+.code-copy-btn.copied .copy-icon {
+    display: none;
+}
+
+.code-copy-btn.copied .check-icon {
+    display: block !important;
+}
+
+.dark .code-copy-btn.copied {
+    color: #34d399 !important;
+    border-color: #065f46 !important;
+    background: #064e3b !important;
+}
+
 

@@ -18,6 +18,14 @@ const getRouteCacheKey = (targetRoute: RouteLocationNormalizedLoaded) => {
   return String(targetRoute.name || targetRoute.path)
 }
 
+const getNonKeepAliveKey = (targetRoute: RouteLocationNormalizedLoaded) => {
+  // 知识库阅读页面按 kbId 复用组件，同一知识库内切换文档不销毁重建组件与树
+  if (targetRoute.name === 'PublicView') {
+    return `PublicView:${String(targetRoute.params.kbId ?? '')}`
+  }
+  return targetRoute.fullPath
+}
+
 router.beforeEach((to, from, next) => {
   // 如果进入了编辑页，并且是从非预览页（如首页）进入的，则清空缓存，以便重置状态
   if (to.name === 'Editor' && from.name !== 'PublicView') {
@@ -48,7 +56,7 @@ router.afterEach((to) => {
     <component
       v-if="!shouldKeepAliveRoute(currentRoute)"
       :is="Component"
-      :key="currentRoute.fullPath"
+      :key="getNonKeepAliveKey(currentRoute)"
     />
   </router-view>
   <Message />
