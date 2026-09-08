@@ -112,7 +112,9 @@ export const aiCompletionStream = async (data: AiCompletionReq, handlers: AiComp
                 eventName = line.slice(6).trim()
             } else if (line.startsWith('data:')) {
                 let content = line.slice(5)
-                if (content.startsWith(' ')) {
+                // 若为标准 SSE 格式 (data: <text>)，仅在确定是纯文本且由单个空格前导时剥离该协议空格
+                // 若内容为 JSON 格式（如 "abc"、{"text":...}），则完整保留
+                if (content.startsWith(' ') && !content.startsWith(' "') && !content.startsWith(' {') && !content.startsWith(' [')) {
                     content = content.slice(1)
                 }
                 dataLines.push(content)
@@ -120,8 +122,17 @@ export const aiCompletionStream = async (data: AiCompletionReq, handlers: AiComp
         }
         const payload = dataLines.join('\n')
         if (eventName === 'chunk') {
-            if (payload.length > 0) {
-                handlers.onChunk(payload)
+            let chunkText = payload
+            try {
+                const parsed = JSON.parse(payload)
+                if (typeof parsed === 'string') {
+                    chunkText = parsed
+                }
+            } catch {
+                // 兼容非 JSON 传输
+            }
+            if (chunkText.length > 0) {
+                handlers.onChunk(chunkText)
             }
             return
         }

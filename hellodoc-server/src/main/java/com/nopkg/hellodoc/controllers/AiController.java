@@ -28,6 +28,7 @@ public class AiController {
 
     private final AiService aiService;
     private final AiModelService aiModelService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @GetMapping("/models/active")
     @Operation(summary = "获取当前所有已激活的 AI 大模型列表")
@@ -65,7 +66,7 @@ public class AiController {
                 emitter.send(SseEmitter.event().name("model").data(model));
                 aiService.streamCompletion(req.getModelId(), req.getContext(), req.getPrompt(), req.getLang(), chunk -> {
                     try {
-                        emitter.send(SseEmitter.event().name("chunk").data(chunk));
+                        emitter.send(SseEmitter.event().name("chunk").data(objectMapper.writeValueAsString(chunk)));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
