@@ -39,25 +39,31 @@ export const formatChineseMarkdown = (content: string): string => {
         return `<!--MD_CODE_BLOCK_SLOT_${codeBlocks.length - 1}-->`
     })
 
-    // 2. 规范化行首无序列表 + 加粗：如 `***标题**:` 或 `***标题***` 转换为 `* **标题**:`
+    // 2. 将 LaTeX 标准定界符规范化为通用 Markdown 语法
+    // DeepSeek、OpenAI 等模型常输出 \[ ... \]（块级）与 \( ... \)（行内）
+    // 若不转换，CommonMark 会将反斜杠作为转义符吞掉，暴露出字面的 [ ... ] 与 ( ... )
+    text = text.replace(/\\\[([\s\S]+?)\\\]/g, (_, formula) => `\n\n$$\n${formula.trim()}\n$$\n\n`)
+    text = text.replace(/\\\(([\s\S]+?)\\\)/g, (_, formula) => `$${formula.trim()}$`)
+
+    // 3. 规范化行首无序列表 + 加粗：如 `***标题**:` 或 `***标题***` 转换为 `* **标题**:`
     text = text.replace(/(^|\n)[ \t]*\*{3,}[ \t]*([^*\n]+?)[ \t]*\*{2,3}/g, '$1* **$2**')
 
-    // 3. 将行首 Unicode 圆点（如 `•` 或 `·`）规范化为 Markdown 无序列表符号 `* `
+    // 4. 将行首 Unicode 圆点（如 `•` 或 `·`）规范化为 Markdown 无序列表符号 `* `
     text = text.replace(/(^|\n)[ \t]*[•·][ \t]*/g, '$1* ')
 
-    // 4. 规范化行首单个无序列表符号紧贴文字漏掉空格的情况（如 `*相关性` -> `* 相关性`）
+    // 5. 规范化行首单个无序列表符号紧贴文字漏掉空格的情况（如 `*相关性` -> `* 相关性`）
     text = text.replace(/(^|\n)[ \t]*([*+\-])([^\s*+\-\n])/g, '$1$2 $3')
 
-    // 5. 规范化行首有序列表序号紧贴文字漏掉空格的情况（如 `1.核心` -> `1. 核心`）
+    // 6. 规范化行首有序列表序号紧贴文字漏掉空格的情况（如 `1.核心` -> `1. 核心`）
     text = text.replace(/(^|\n)[ \t]*(\d+\.)([^\s\d\.\n])/g, '$1$2 $3')
 
-    // 6. 规范化行首引用符号紧贴文字漏掉空格的情况（如 `>引用` -> `> 引用`）
+    // 7. 规范化行首引用符号紧贴文字漏掉空格的情况（如 `>引用` -> `> 引用`）
     text = text.replace(/(^|\n)[ \t]*(>+)([^\s>\n])/g, '$1$2 $3')
 
-    // 7. 规范化 ATX 标题：确保 `#` 和标题文字之间有且仅有一个空格（如 `###标题` -> `### 标题`）
+    // 8. 规范化 ATX 标题：确保 `#` 和标题文字之间有且仅有一个空格（如 `###标题` -> `### 标题`）
     text = text.replace(/(^|\n)(#{1,6})([^\s#\n])/g, '$1$2 $3')
 
-    // 5. 针对中文标点/字符与 Markdown 加粗符号紧贴导致 CommonMark flanking 判定失效的问题
+    // 9. 针对中文标点/字符与 Markdown 加粗符号紧贴导致 CommonMark flanking 判定失效的问题
     // 同时自动 trim 加粗内部首尾的多余空格（例如 ** 文本 ** 或 **文本 **）
     text = text.replace(/(?<!\*)\*\*\s*([^*\n]+?)\s*\*\*(?!\*)/g, (match, inner, offset, fullStr) => {
         const trimmedInner = inner.trim()
@@ -72,7 +78,7 @@ export const formatChineseMarkdown = (content: string): string => {
         return `${needLeadingSpace ? ' ' : ''}**${trimmedInner}**${needTrailingSpace ? ' ' : ''}`
     })
 
-    // 6. 还原代码块
+    // 10. 还原代码块
     text = text.replace(/<!--MD_CODE_BLOCK_SLOT_(\d+)-->/g, (_, idx) => codeBlocks[Number(idx)] ?? '')
 
     return text
@@ -90,12 +96,8 @@ marked.setOptions({
 export const renderMarkdownToHtml = (rawContent: string): string => {
     if (!rawContent) return ''
 
-    // 1. 预先剥离思考标签与模型控制符
-    let text = rawContent
-        .replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '')
-        .replace(/<thought>[\s\S]*?(?:<\/thought>|$)/gi, '')
-        .replace(/<thinking>[\s\S]*?(?:<\/thinking>|$)/gi, '')
-        .replace(/<\|im_end\|>|<\|endoftext\|>|<\|im_start\|>|<\|end\|>/g, '')
+    // 1. 先进行中文、排版及 LaTeX 定界符标准化修复
+    const formatted = formatChineseMarkdown(rawContent)
 
     // 2. 提取并预先渲染 LaTeX 数学公式
     // 【关键设计】必须使用标准的独立 HTML 标签作为插槽占位，严禁使用下划线（如 __KATEX_SLOT__）
@@ -103,7 +105,7 @@ export const renderMarkdownToHtml = (rawContent: string): string => {
     const mathHtmlList: string[] = []
 
     // 2.1 提取块级公式 $$ ... $$
-    text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, formula) => {
+    let text = formatted.replace(/\$\$([\s\S]+?)\$\$/g, (_, formula) => {
         const trimmed = formula.trim()
         try {
             const html = katex.renderToString(trimmed, {
@@ -136,13 +138,10 @@ export const renderMarkdownToHtml = (rawContent: string): string => {
         }
     })
 
-    // 3. 执行中文排版与列表加粗标准化
-    const formatted = formatChineseMarkdown(text)
+    // 3. 执行 marked 解析
+    let html = marked.parse(text, { async: false, breaks: true, gfm: true }) as string
 
-    // 4. 执行 marked 解析
-    let html = marked.parse(formatted, { async: false, breaks: true, gfm: true }) as string
-
-    // 5. 将数学公式 HTML 插槽原样还原
+    // 4. 将数学公式 HTML 插槽原样还原
     html = html.replace(/<div class="katex-block-placeholder" data-index="(\d+)"><\/div>/g, (_, idx) => mathHtmlList[Number(idx)] ?? '')
     html = html.replace(/<span class="katex-inline-placeholder" data-index="(\d+)"><\/span>/g, (_, idx) => mathHtmlList[Number(idx)] ?? '')
 
