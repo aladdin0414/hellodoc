@@ -111,17 +111,23 @@ export const aiCompletionStream = async (data: AiCompletionReq, handlers: AiComp
             if (line.startsWith('event:')) {
                 eventName = line.slice(6).trim()
             } else if (line.startsWith('data:')) {
-                dataLines.push(line.slice(5).trimStart())
+                let content = line.slice(5)
+                if (content.startsWith(' ')) {
+                    content = content.slice(1)
+                }
+                dataLines.push(content)
             }
         }
         const payload = dataLines.join('\n')
+        if (eventName === 'chunk') {
+            if (payload.length > 0) {
+                handlers.onChunk(payload)
+            }
+            return
+        }
         if (!payload) return
         if (eventName === 'model') {
             handlers.onModel?.(payload)
-            return
-        }
-        if (eventName === 'chunk') {
-            handlers.onChunk(payload)
             return
         }
         if (eventName === 'error') {

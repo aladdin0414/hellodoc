@@ -364,7 +364,7 @@ public class AiService {
                     JsonNode contentNode = root.path("choices").path(0).path("delta").path("content");
                     if (!contentNode.isMissingNode() && !contentNode.isNull()) {
                         String chunk = contentNode.asText();
-                        if (!StringUtils.hasText(chunk)) {
+                        if (chunk == null || chunk.isEmpty()) {
                             continue;
                         }
 
@@ -385,13 +385,13 @@ public class AiService {
                         // 剔除特殊停止符
                         if (chunk.contains("<|im_end|>") || chunk.contains("<|endoftext|>")) {
                             chunk = chunk.replaceAll("<\\|im_end\\|>|<\\|endoftext\\|>", "");
-                            if (StringUtils.hasText(chunk)) {
+                            if (!chunk.isEmpty()) {
                                 onChunk.accept(chunk);
                             }
                             break;
                         }
 
-                        if (StringUtils.hasText(chunk)) {
+                        if (!chunk.isEmpty()) {
                             onChunk.accept(chunk);
                         }
                     }
