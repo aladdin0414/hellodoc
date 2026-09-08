@@ -11,26 +11,79 @@ export const stripMarkdownToc = (content: string): string => {
         .join('\n')
 }
 
+// 常见无参控制命令、希腊字母及符号列表（降序排列，保证最长宏前缀优先匹配）
+const KNOWN_UNARY_MACROS = [
+    'cdot', 'quad', 'qquad',
+    'lambda', 'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta',
+    'iota', 'kappa', 'mu', 'nu', 'xi', 'pi', 'rho', 'sigma', 'tau', 'upsilon',
+    'phi', 'chi', 'psi', 'omega',
+    'Gamma', 'Delta', 'Theta', 'Lambda', 'Xi', 'Pi', 'Sigma', 'Upsilon', 'Phi', 'Psi', 'Omega',
+    'partial', 'nabla', 'times', 'div', 'pm', 'mp', 'approx', 'neq', 'leq', 'geq',
+    'subset', 'supset', 'cap', 'cup', 'infty', 'forall', 'exists'
+].sort((a, b) => b.length - a.length)
+
 /**
- * LaTeX 公式自愈与容错修复
+ * 安全且具备自动容错自愈能力的 KaTeX 渲染函数
  *
- * 常见大模型缺陷场景：
- * 1. 宏命令与后随英文字母缺失空格粘连（如 \cdotij、\quadji、\lambdaq、\lambdaw、\timesx、\partialy）；
- *    在 LaTeX 中，\cdot、\quad、\lambda 是无参控制词，若紧贴字母会被识别为未定义的宏名（如 \cdotij），
- *    导致 KaTeX 无法解析并在界面报红。
- * 2. 连续多个反斜杠宏命令粘连（如 \quad\cdot 没有空格是合法的，但 \quadji 粘连字母非法）。
+ * 核心原则：
+ * 1. 【零副作用】：对于所有本身合法的公式（包括含 \left、\right、\int、\begin 等），直接原样一次性渲染通过，绝不修改任何字符；
+ * 2. 【精准靶向自愈】：仅当 KaTeX 明确报错 "Undefined control sequence: \xxx"（例如 \cdotij、\quadji、\lambdaq）时，
+ *    定位该未知宏，将其拆分为「已知宏 + 空格 + 变量」，循环修复后再次渲染，彻底解决大模型输出粘连导致的红字。
  */
-export const healLatexFormula = (formula: string): string => {
-    if (!formula) return ''
-    let healed = formula
+export const safeRenderKatex = (formula: string, displayMode: boolean): string => {
+    const trimmed = (formula || '').trim()
+    if (!trimmed) return ''
 
-    // 修复无参宏命令与后续变量字母粘连的情况（如 \cdotij -> \cdot ij, \quadji -> \quad ji, \lambdaq -> \lambda q）
-    healed = healed.replace(
-        /\\(cdot|quad|qquad|lambda|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|partial|nabla|times|div|pm|mp|approx|neq|le|ge|leq|geq|in|notin|subset|supset|cap|cup|to|leftarrow|rightarrow|Rightarrow|Leftarrow|infty|forall|exists|sin|cos|tan|log|ln|det|dim|ker|lim|max|min|arg|hom)([a-zA-Z])/g,
-        '\\$1 $2'
-    )
+    // 1. 优先尝试直接原样渲染
+    try {
+        return katex.renderToString(trimmed, { displayMode, throwOnError: true })
+    } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err)
+        const undefRegex = /Undefined control sequence:\s*\\([a-zA-Z]+)/
+        let match = errorMessage.match(undefRegex)
 
-    return healed
+        // 若不是未知宏命令错误，直接走 KaTeX 默认容错输出
+        if (!match) {
+            return katex.renderToString(trimmed, { displayMode, throwOnError: false })
+        }
+
+        // 2. 存在未知宏粘连，进行靶向自愈
+        let healed = trimmed
+        let iterations = 0
+        while (match && iterations < 10) {
+            iterations++
+            const badCmd = match[1]
+            if (!badCmd) break
+
+            // 查找 badCmd 是否以已知无参宏为前缀
+            let foundPrefix: string | null = null
+            for (const prefix of KNOWN_UNARY_MACROS) {
+                if (badCmd.startsWith(prefix) && badCmd.length > prefix.length) {
+                    foundPrefix = prefix
+                    break
+                }
+            }
+
+            if (!foundPrefix) {
+                break // 无法识别此前缀，终止自愈
+            }
+
+            const rest = badCmd.slice(foundPrefix.length)
+            const target = '\\' + badCmd
+            const replacement = '\\' + foundPrefix + ' ' + rest
+            healed = healed.split(target).join(replacement)
+
+            try {
+                return katex.renderToString(healed, { displayMode, throwOnError: true })
+            } catch (nextErr: unknown) {
+                const nextMsg = nextErr instanceof Error ? nextErr.message : String(nextErr)
+                match = nextMsg.match(undefRegex)
+            }
+        }
+
+        // 最终兜底渲染
+        return katex.renderToString(healed, { displayMode, throwOnError: false })
+    }
 }
 
 /**
@@ -136,15 +189,11 @@ export const renderMarkdownToHtml = (rawContent: string): string => {
 
     // 2.1 提取块级公式 $$ ... $$
     let text = formatted.replace(/\$\$([\s\S]+?)\$\$/g, (_, formula) => {
-        const healedFormula = healLatexFormula(formula.trim())
         try {
-            const html = katex.renderToString(healedFormula, {
-                displayMode: true,
-                throwOnError: false
-            })
+            const html = safeRenderKatex(formula, true)
             mathHtmlList.push(`<div class="katex-display-wrapper overflow-x-auto my-2 py-1 text-center">${html}</div>`)
         } catch {
-            mathHtmlList.push(`<pre class="katex-error text-xs text-red-500 my-1">$$${healedFormula}$$</pre>`)
+            mathHtmlList.push(`<pre class="katex-error text-xs text-red-500 my-1">$$${formula.trim()}$$</pre>`)
         }
         return `\n\n<div class="katex-block-placeholder" data-index="${mathHtmlList.length - 1}"></div>\n\n`
     })
@@ -156,12 +205,8 @@ export const renderMarkdownToHtml = (rawContent: string): string => {
         if (/^\d+(\.\d+)?$/.test(trimmed)) {
             return match
         }
-        const healedFormula = healLatexFormula(trimmed)
         try {
-            const html = katex.renderToString(healedFormula, {
-                displayMode: false,
-                throwOnError: false
-            })
+            const html = safeRenderKatex(trimmed, false)
             mathHtmlList.push(html)
             return `<span class="katex-inline-placeholder" data-index="${mathHtmlList.length - 1}"></span>`
         } catch {
