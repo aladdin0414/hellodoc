@@ -42,7 +42,6 @@ import {
     TabIndentExtension,
     SmartMarkdownTable
 } from './extensions/custom-extensions'
-import { useFormatBrush } from './composables/useFormatBrush'
 import VisualEditorToolbar from './VisualEditorToolbar.vue'
 import ImagePreview from '../ImagePreview.vue'
 import { formatChineseMarkdown } from '../../utils/markdown'
@@ -352,8 +351,6 @@ watch(() => props.isReadOnly, (newVal) => {
 onBeforeUnmount(() => {
     editor.value?.destroy()
 })
-
-const { isFormatBrushActive, toggleFormatBrush } = useFormatBrush(editor)
 
 const pageMode = ref(localStorage.getItem('hellodoc_editor_page_mode') || 'portrait')
 const isPlainTextMode = ref(false)
@@ -698,11 +695,9 @@ defineExpose({
             :paper-bg-color="props.paperBgColor"
             :show-paper-color-button="props.showPaperColorButton"
             :is-exporting-word="isExportingWord"
-            :is-format-brush-active="isFormatBrushActive"
             @update:paper-bg-color="(val) => emit('update:paperBgColor', val)"
             @toggle-plain-text-mode="togglePlainTextMode"
             @toggle-preview-mode="togglePreviewMode"
-            @toggle-format-brush="toggleFormatBrush"
             @export-word="exportWord"
             @upload-img="(files, callback) => emit('uploadImg', files, callback)"
         />
@@ -716,7 +711,6 @@ defineExpose({
         <div ref="contentScrollRef"
             :class="[
                 'flex-1 w-full overflow-y-auto',
-                isFormatBrushActive && !isPlainTextMode && !isPreviewMode ? 'format-brush-cursor' : '',
                 editorBgClass
             ]"
             @click="handleImageClick"

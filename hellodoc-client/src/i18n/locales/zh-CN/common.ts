@@ -355,8 +355,6 @@ export default {
             highlight: '文本高亮',
             italic: '斜体',
             strike: '删除线',
-            formatBrush: '格式刷',
-            cancelFormatBrush: '取消格式刷',
             blockType: '段落样式',
             paragraph: '正文',
             heading1: '标题1',

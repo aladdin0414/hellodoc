@@ -355,8 +355,6 @@ export default {
             highlight: 'Highlight',
             italic: 'Italic',
             strike: 'Strikethrough',
-            formatBrush: 'Format Painter',
-            cancelFormatBrush: 'Cancel Format Painter',
             blockType: 'Block Type',
             paragraph: 'Paragraph',
             heading1: 'Heading 1',

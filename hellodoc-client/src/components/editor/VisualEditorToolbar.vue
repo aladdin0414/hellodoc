@@ -11,14 +11,12 @@ const props = defineProps<{
     paperBgColor?: string
     showPaperColorButton?: boolean
     isExportingWord: boolean
-    isFormatBrushActive: boolean
 }>()
 
 const emit = defineEmits<{
     'update:pageMode': [val: string]
     'togglePlainTextMode': []
     'togglePreviewMode': []
-    'toggleFormatBrush': []
     'exportWord': []
     'uploadImg': [files: File[], callback: (urls: string[]) => void]
     'update:paperBgColor': [val: string]
@@ -98,10 +96,6 @@ onUnmounted(() => {
 
 const togglePlainTextMode = () => {
     emit('togglePlainTextMode')
-}
-
-const toggleFormatBrush = () => {
-    emit('toggleFormatBrush')
 }
 
 const togglePreviewMode = () => {
@@ -202,7 +196,7 @@ defineExpose({ closeDropdowns })
 
         <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="togglePlainTextMode" :class="{ 'is-active': isPlainTextMode }" :title="t('editor.toolbar.togglePlainTextMode')" class="toolbar-btn">
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2"/>
                     <path d="M9 7l-3 5 3 5"/>
                     <path d="M15 7l3 5-3 5"/>
@@ -215,7 +209,7 @@ defineExpose({ closeDropdowns })
                 :title="isPreviewMode ? t('editor.toolbar.exitDemoMode') : t('editor.toolbar.demoMode')"
                 class="toolbar-btn"
             >
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="12" rx="2"/>
                     <path d="M8 20h8"/>
                     <path d="M12 16v4"/>
@@ -226,7 +220,7 @@ defineExpose({ closeDropdowns })
         <template v-if="!isPlainTextMode">
         <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="toggleBold" :class="{ 'is-active': editor.isActive('bold') }" :title="t('editor.toolbar.bold')" class="toolbar-btn">
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
             </button>
             <button @click="toggleUnderline" :class="{ 'is-active': editor.isActive('underline') }" :title="t('editor.toolbar.underline')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" x2="20" y1="20" y2="20"/></svg>
@@ -235,13 +229,10 @@ defineExpose({ closeDropdowns })
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 8-8 4 4-8 8"/><path d="M4 20h4l9-9"/><path d="M2 22h20"/></svg>
             </button>
             <button @click="toggleItalic" :class="{ 'is-active': editor.isActive('italic') }" :title="t('editor.toolbar.italic')" class="toolbar-btn">
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--lean" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>
             </button>
             <button @click="toggleStrike" :class="{ 'is-active': editor.isActive('strike') }" :title="t('editor.toolbar.strike')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>
-            </button>
-            <button @click="toggleFormatBrush" :class="{ 'is-active': isFormatBrushActive }" :title="isFormatBrushActive ? t('editor.toolbar.cancelFormatBrush') : t('editor.toolbar.formatBrush')" class="toolbar-btn">
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="12" height="4" x="6" y="2" rx="1"/><path d="M6 6v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/><path d="M11 12v4"/><path d="M13 12v4"/><rect width="6" height="4" x="9" y="16" rx="1"/></svg>
             </button>
         </div>
 
@@ -304,17 +295,17 @@ defineExpose({ closeDropdowns })
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             </button>
             <button @click="toggleCodeBlock" :class="{ 'is-active': editor.isActive('codeBlock') }" :title="t('editor.toolbar.codeBlock')" class="toolbar-btn">
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m10 10-2 2 2 2"/><path d="m14 14 2-2-2-2"/></svg>
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m10 10-2 2 2 2"/><path d="m14 14 2-2-2-2"/></svg>
             </button>
             <button @click="addLink" :class="{ 'is-active': editor.isActive('link') }" :title="t('editor.toolbar.insertLink')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             </button>
             <button @click="addImage" :title="t('editor.toolbar.insertImage')" class="toolbar-btn">
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
             </button>
             <div class="relative">
                 <button @click="addTable" :title="t('editor.toolbar.insertTable')" class="toolbar-btn" :class="{ 'is-active': showTableSelector }">
-                    <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+                    <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
                 </button>
                 
                 <!-- Table Selector Popover -->
@@ -340,10 +331,10 @@ defineExpose({ closeDropdowns })
 
         <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="undo" :title="t('editor.toolbar.undo')" class="toolbar-btn">
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--lean" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
             </button>
             <button @click="redo" :title="t('editor.toolbar.redo')" class="toolbar-btn">
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--lean" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
             </button>
         </div>
         </template>
@@ -356,7 +347,7 @@ defineExpose({ closeDropdowns })
                     class="toolbar-btn"
                     :class="{ 'is-active': !!paperBgColor && paperBgColor !== '#ffffff' }"
                 >
-                    <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 0-4h-1a2 2 0 0 1 0-4h2a4 4 0 0 0 4-4 6 6 0 0 0-6-6z" />
                         <circle cx="7.5" cy="10" r="1" />
                         <circle cx="10" cy="7.5" r="1" />
@@ -387,12 +378,12 @@ defineExpose({ closeDropdowns })
                 :disabled="isExportingWord"
             >
                 <template v-if="isExportingWord">
-                    <svg class="toolbar-icon animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="toolbar-icon toolbar-icon--box animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                     </svg>
                     <span class="absolute inset-0 flex items-center justify-center text-[9px] font-mono leading-none pt-px">{{ exportElapsedSeconds }}</span>
                 </template>
-                <svg v-else viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-else viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <path d="M14 2v6h6"/>
                     <path d="M12 18v-6"/>
@@ -401,15 +392,15 @@ defineExpose({ closeDropdowns })
             </button>
             <button v-if="!isPlainTextMode" @click="togglePageMode" :class="{ 'is-active': pageMode !== 'full' }" :title="t('editor.toolbar.togglePageMode')" class="toolbar-btn">
                 <!-- 全宽模式图标 -->
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-if="pageMode === 'full'">
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-if="pageMode === 'full'">
                     <path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
                 </svg>
                 <!-- A4 竖向图标 -->
-                <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-else-if="pageMode === 'portrait'">
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-else-if="pageMode === 'portrait'">
                     <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
                 </svg>
                 <!-- A4 横向图标 (在竖向基础上旋转) -->
-                <svg viewBox="0 0 24 24" class="toolbar-icon rotate-90" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-else-if="pageMode === 'landscape'">
+                <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box rotate-90" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-else-if="pageMode === 'landscape'">
                     <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
                 </svg>
             </button>
@@ -429,20 +420,33 @@ defineExpose({ closeDropdowns })
     height: 16px;
     flex-shrink: 0;
     display: block;
+    transform-origin: center center;
+    transition: transform 0.15s ease;
 }
+
+/* 光学平衡微调：大外框/高密度封闭几何图标轻度收缩，消除视网膜膨胀感 */
+.toolbar-icon--box {
+    transform: scale(0.91);
+}
+
+/* 光学平衡微调：纤细单线条/单薄图标轻度补偿放大，消除虚浮纤细感 */
+.toolbar-icon--lean {
+    transform: scale(1.08);
+}
+
 .toolbar-select {
-    @apply h-8 pl-1.5 pr-4 rounded bg-transparent border-none text-[13px] font-bold text-gray-600 dark:text-gray-400 outline-none hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer;
+    @apply h-8 pl-1.5 pr-4 rounded bg-transparent border-none text-xs font-semibold text-gray-700 dark:text-gray-300 outline-none hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 2px center;
-    background-size: 12px;
+    background-size: 11px;
 }
 .toolbar-select:focus {
     @apply bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 ring-0;
 }
 .dark .toolbar-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .paper-color-grid {
