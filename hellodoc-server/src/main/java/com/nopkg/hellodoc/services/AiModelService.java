@@ -37,15 +37,18 @@ public class AiModelService {
     private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public AiModelService(AiModelRepository aiModelRepository,
                           ConfigService configService,
                           AiProperties aiProperties,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper,
+                          org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
         this.aiModelRepository = aiModelRepository;
         this.configService = configService;
         this.aiProperties = aiProperties;
         this.objectMapper = objectMapper;
+        this.jdbcTemplate = jdbcTemplate;
         this.restTemplate = new RestTemplate();
     }
 
@@ -56,6 +59,26 @@ public class AiModelService {
     @Transactional
     public void initDefaultModelIfNeeded() {
         try {
+            // 自动检测并创建数据表与索引，确保已有数据库在不手动执行 SQL 的情况下平滑无感升级
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS sys_ai_model (
+                    id VARCHAR(64) PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    provider VARCHAR(50) DEFAULT 'custom',
+                    base_url VARCHAR(500) NOT NULL,
+                    api_key VARCHAR(500) NOT NULL,
+                    model_name VARCHAR(100) NOT NULL,
+                    temperature NUMERIC(3, 2) DEFAULT 0.70,
+                    agent_prompt TEXT,
+                    is_default BOOLEAN DEFAULT FALSE,
+                    is_enabled BOOLEAN DEFAULT TRUE,
+                    disable_thinking BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_ai_model_status ON sys_ai_model(is_enabled, is_default);
+            """);
+
             if (aiModelRepository.count() == 0) {
                 String apiKey = configService.getConfigValue("ai.openai.api-key");
                 if (!StringUtils.hasText(apiKey)) {
