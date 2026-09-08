@@ -45,6 +45,7 @@ import {
 import { useFormatBrush } from './composables/useFormatBrush'
 import VisualEditorToolbar from './VisualEditorToolbar.vue'
 import ImagePreview from '../ImagePreview.vue'
+import { formatChineseMarkdown } from '../../utils/markdown'
 import './editor-styles.css'
 
 const props = defineProps<{
@@ -70,10 +71,14 @@ const emit = defineEmits<{
 const plainTextRef = ref<HTMLTextAreaElement | null>(null)
 const contentScrollRef = ref<HTMLDivElement | null>(null)
 const hasUserInteracted = ref(false)
-const normalizeMathMarkdown = (markdown: string) => markdown.replace(
-    /(^|\n)[ \t]*\$\s*\n([\s\S]*?)\n[ \t]*\$(?=\s*(\n|$))/g,
-    (_m, leading, body) => `${leading}$$\n${String(body ?? '').trim()}\n$$`
-)
+const normalizeMathMarkdown = (markdown: string) => {
+    if (!markdown) return ''
+    const withMath = markdown.replace(
+        /(^|\n)[ \t]*\$\s*\n([\s\S]*?)\n[ \t]*\$(?=\s*(\n|$))/g,
+        (_m, leading, body) => `${leading}$$\n${String(body ?? '').trim()}\n$$`
+    )
+    return formatChineseMarkdown(withMath)
+}
 const lowlight = createLowlight(common)
 lowlight.register('html', html)
 lowlight.register('css', css)

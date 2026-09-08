@@ -4,7 +4,7 @@ import 'katex/dist/katex.min.css'
 import { message } from '../../utils/message'
 import { useAiModels } from '../../composables/useAiModels'
 import { aiCompletionStream } from '../../api/ai'
-import { renderMarkdownToHtml } from '../../utils/markdown'
+import { renderMarkdownToHtml, formatChineseMarkdown } from '../../utils/markdown'
 
 const props = defineProps<{
   visible: boolean
@@ -139,7 +139,8 @@ const copyContent = async (text: string) => {
 
 // 插入到文档中
 const insertToDoc = (text: string) => {
-  emit('insert-to-doc', text)
+  const formatted = formatChineseMarkdown(text)
+  emit('insert-to-doc', formatted)
   message.success('已插入到当前文档光标处')
 }
 

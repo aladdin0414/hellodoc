@@ -19,6 +19,7 @@ import ImagePreview from './ImagePreview.vue'
 import AiAssistantDrawer from './ai/AiAssistantDrawer.vue'
 import type { SearchResult } from './SearchResultList.vue'
 import { message } from '../utils/message'
+import { formatChineseMarkdown } from '../utils/markdown'
 import { expandAncestorFolders } from '../utils/documentTree'
 import { useDocumentCollab } from '../composables/useDocumentCollab'
 import { useDocumentEditorMedia } from '../composables/useDocumentEditorMedia'
@@ -88,15 +89,18 @@ const handleOpenAiAssistant = () => {
 
 const handleInsertAiContent = (text: string) => {
     if (!text) return
-    if (mdEditorRef.value?.insert) {
+    const cleanText = formatChineseMarkdown(text)
+    if (contentPaneRef.value?.insertContent) {
+        contentPaneRef.value.insertContent(cleanText)
+    } else if (mdEditorRef.value?.insert) {
         mdEditorRef.value.insert(() => ({
-            targetValue: `\n\n${text}\n\n`,
+            targetValue: `\n\n${cleanText}\n\n`,
             select: false,
             deviationStart: 0,
             deviationEnd: 0
         }))
     } else if (currentDoc.value) {
-        currentDoc.value.content = (currentDoc.value.content || '') + `\n\n${text}\n\n`
+        currentDoc.value.content = (currentDoc.value.content || '') + `\n\n${cleanText}\n\n`
         handleSave()
     }
 }

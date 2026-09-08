@@ -303,8 +303,42 @@ const triggerAiAssistant = () => {
     aiMenuVisible.value = true
 }
 
+const insertContent = (rawText: string) => {
+    if (!rawText) return
+    const cleanText = formatChineseMarkdown(rawText)
+
+    // 富文本模式 (VisualEditor)：直接调用 Tiptap 在当前聚焦位置或末尾插入解析后的富文本节点
+    if (editorType.value !== 'markdown' && localEditorRef.value?.editor) {
+        const editorInstance = localEditorRef.value.editor
+        try {
+            editorInstance.chain().focus().insertContent(`\n\n${cleanText}\n\n`).run()
+            emit('save')
+            return
+        } catch (e) {
+            console.warn('Tiptap insertContent failed, fallback to content append:', e)
+        }
+    }
+
+    // Markdown 模式 (MdEditor)
+    if (localEditorRef.value?.insert) {
+        localEditorRef.value.insert(() => ({
+            targetValue: `\n\n${cleanText}\n\n`,
+            select: false,
+            deviationStart: 0,
+            deviationEnd: 0
+        }))
+        emit('save')
+        return
+    }
+
+    // 兜底：直接追加文档内容
+    props.currentDoc.content = (props.currentDoc.content || '') + `\n\n${cleanText}\n\n`
+    emit('save')
+}
+
 defineExpose({
-    triggerAiAssistant
+    triggerAiAssistant,
+    insertContent
 })
 </script>
 
