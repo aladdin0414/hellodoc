@@ -98,6 +98,7 @@ watch(expandedFolders, () => {
 }, { deep: true })
 
 const mainScrollRef = ref<HTMLElement | null>(null)
+const tocAsideRef = ref<HTMLElement | null>(null)
 const error = ref<{ code: number, message: string } | null>(null)
 const copied = ref(false)
 const isFavorite = ref(false)
@@ -320,8 +321,13 @@ const applyDocDetail = (id: number, res: any) => {
         checkIsFavorite(id).then((data: any) => isFavorite.value = data).catch(() => isFavorite.value = false)
     }
 
-    // 重新提取本页 TOC
-    extractToc()
+    // 切换文档后确保正文滚动条与目录状态归位
+    nextTick(() => {
+        resetScrollAndToc()
+    })
+
+    // 重新提取本页 TOC，并强制重置高亮至首项
+    extractToc(true)
 }
 
 const fetchDocDetail = async (id: number) => {
@@ -407,7 +413,17 @@ const selectDoc = (doc: any) => {
         toggleFolder(doc.id)
     } else {
         expandAncestorFolders(expandedFolders.value, documents.value, doc.id)
-        router.push({ name: 'PublicView', params: { kbId: props.kbId, docId: doc.id }, query: route.query })
+        if (props.docId === doc.id) {
+            // 点击同一个已激活文档，滚动条和文档目录也归位重置
+            resetScrollAndToc()
+            if (tocItems.value.length > 0) {
+                activeHeadingId.value = tocItems.value[0]?.id || ''
+                updateIndicator()
+            }
+        } else {
+            resetScrollAndToc()
+            router.push({ name: 'PublicView', params: { kbId: props.kbId, docId: doc.id }, query: route.query })
+        }
         if (isMobile.value) {
             isMobileDrawerOpen.value = false
         }
@@ -463,15 +479,51 @@ const handlePreviewContainerClick = async (event: MouseEvent) => {
     }
 }
 
+// 点击 TOC 标题定位平滑滚动
+let isClickNavigating = false
+let scrollStopTimer: any = null
+
+const unlockClickNav = () => {
+    isClickNavigating = false
+    if (scrollStopTimer) {
+        clearTimeout(scrollStopTimer)
+        scrollStopTimer = null
+    }
+}
+
+// 重置正文滚动条及文档目录（TOC）状态归位
+const resetScrollAndToc = () => {
+    if (scrollStopTimer) {
+        clearTimeout(scrollStopTimer)
+        scrollStopTimer = null
+    }
+    isClickNavigating = false
+
+    if (mainScrollRef.value) {
+        mainScrollRef.value.scrollTop = 0
+    }
+    if (tocAsideRef.value) {
+        tocAsideRef.value.scrollTop = 0
+    }
+    activeHeadingId.value = ''
+    indicatorStyle.value = {
+        top: '0px',
+        height: '0px',
+        opacity: 0
+    }
+}
+
 // 提取当前文档的标题作为本页 TOC 列表
 let extractTocTimer: any = null
-const extractToc = () => {
+const extractToc = (forceReset = false) => {
     if (extractTocTimer) clearTimeout(extractTocTimer)
 
-    const doExtract = () => {
+    const doExtract = (isInitial = false) => {
         const previewEl = document.querySelector('.kb-visual-preview')
         if (!previewEl) {
             tocItems.value = []
+            activeHeadingId.value = ''
+            indicatorStyle.value = { ...indicatorStyle.value, opacity: 0 }
             return
         }
 
@@ -496,7 +548,7 @@ const extractToc = () => {
 
         if (items.length > 0) {
             tocItems.value = items
-            if (!activeHeadingId.value || !items.some(i => i.id === activeHeadingId.value)) {
+            if (isInitial || !activeHeadingId.value || !items.some(i => i.id === activeHeadingId.value)) {
                 activeHeadingId.value = items[0]?.id || ''
             }
         } else {
@@ -504,28 +556,25 @@ const extractToc = () => {
             activeHeadingId.value = ''
         }
 
-        // 提取完成后立即校对一次滚动位置，并为代码块挂载复制按钮与更新指示器
-        handleContentScroll()
+        if (isInitial) {
+            if (mainScrollRef.value) {
+                mainScrollRef.value.scrollTop = 0
+            }
+            if (tocAsideRef.value) {
+                tocAsideRef.value.scrollTop = 0
+            }
+        } else {
+            handleContentScroll()
+        }
+
         enhanceCodeBlocks()
         updateIndicator()
     }
 
-    nextTick(doExtract)
-    extractTocTimer = setTimeout(doExtract, 150)
-    setTimeout(doExtract, 400)
-    setTimeout(doExtract, 900)
-}
-
-// 点击 TOC 标题定位平滑滚动
-let isClickNavigating = false
-let scrollStopTimer: any = null
-
-const unlockClickNav = () => {
-    isClickNavigating = false
-    if (scrollStopTimer) {
-        clearTimeout(scrollStopTimer)
-        scrollStopTimer = null
-    }
+    nextTick(() => doExtract(forceReset))
+    extractTocTimer = setTimeout(() => doExtract(forceReset && (mainScrollRef.value?.scrollTop ?? 0) === 0), 150)
+    setTimeout(() => doExtract(forceReset && (mainScrollRef.value?.scrollTop ?? 0) === 0), 400)
+    setTimeout(() => doExtract(forceReset && (mainScrollRef.value?.scrollTop ?? 0) === 0), 900)
 }
 
 const scrollToHeading = (id: string) => {
@@ -761,12 +810,17 @@ const getKbIcon = (iconName?: string | null) => {
     return null
 }
 
-watch(() => props.docId, (newId) => {
+watch(() => props.docId, (newId, oldId) => {
     if (newId) {
+        if (newId !== oldId) {
+            resetScrollAndToc()
+            tocItems.value = []
+        }
         fetchDocDetail(newId)
     } else {
         currentDoc.value = null
         tocItems.value = []
+        resetScrollAndToc()
     }
 }, { immediate: true })
 
@@ -1142,14 +1196,14 @@ watch(sharePopover, (newVal) => {
                     </div>
                 </div>
 
-                <!-- 正文 + TOC 滚动排版容器 -->
+                <!-- 正文 + TOC 滚动排版容器 (应用 no-scrollbar 隐藏右侧原生滚动条) -->
                 <main
                     ref="mainScrollRef"
                     @scroll="handleContentScroll"
                     @wheel="unlockClickNav"
                     @touchmove="unlockClickNav"
                     @pointerdown="unlockClickNav"
-                    class="flex-1 overflow-y-auto relative flex"
+                    class="flex-1 overflow-y-auto relative flex no-scrollbar"
                 >
                     <!-- 文档加载中遮罩 -->
                     <div v-if="docLoading" class="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-[#0f1117]/60 backdrop-blur-xs z-10">
@@ -1243,44 +1297,47 @@ watch(sharePopover, (newVal) => {
                         </div>
                     </div>
 
-                    <!-- 右侧 TOC 目录大纲 (On this page) - SiliconFlow 风格 -->
+                    <!-- 右侧 TOC 目录大纲 (On this page) - SiliconFlow 风格 (始终保留 w-64 占位，避免切换文档时中心内容横向晃动；应用 no-scrollbar 隐藏滚动条) -->
                     <aside
-                        v-if="!isStandalone && currentDoc && tocItems.length > 0"
-                        class="w-64 hidden xl:block shrink-0 sticky top-0 h-fit max-h-screen overflow-y-auto px-4 py-8 text-xs select-none"
+                        v-if="!isStandalone && (currentDoc || props.docId)"
+                        ref="tocAsideRef"
+                        class="w-64 hidden xl:block shrink-0 sticky top-0 h-fit max-h-screen overflow-y-auto px-4 py-8 text-xs select-none no-scrollbar"
                     >
-                        <div class="flex items-center gap-1.5 font-medium text-slate-800 dark:text-zinc-200 mb-3 text-xs tracking-tight">
-                            <Icons.AlignLeft class="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400" />
-                            <span>{{ t('kbView.doc.tocTitle', 'On this page') }}</span>
-                        </div>
-                        <ul ref="tocListRef" class="space-y-1 relative border-l border-slate-200/80 dark:border-zinc-800/80 pl-2.5">
-                            <!-- 动态平滑滑动的左侧紫色高亮指示条 (Indicator Slider) -->
-                            <div
-                                class="absolute -left-[1px] w-[2px] bg-purple-600 dark:bg-purple-400 rounded-full pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
-                                :style="indicatorStyle"
-                            ></div>
+                        <div v-show="tocItems.length > 0">
+                            <div class="flex items-center gap-1.5 font-medium text-slate-800 dark:text-zinc-200 mb-3 text-xs tracking-tight">
+                                <Icons.AlignLeft class="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400" />
+                                <span>{{ t('kbView.doc.tocTitle', 'On this page') }}</span>
+                            </div>
+                            <ul ref="tocListRef" class="space-y-1 relative border-l border-slate-200/80 dark:border-zinc-800/80 pl-2.5">
+                                <!-- 动态平滑滑动的左侧紫色高亮指示条 (Indicator Slider) -->
+                                <div
+                                    class="absolute -left-[1px] w-[2px] bg-purple-600 dark:bg-purple-400 rounded-full pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+                                    :style="indicatorStyle"
+                                ></div>
 
-                            <li
-                                v-for="item in tocItems"
-                                :key="item.id"
-                                :data-toc-id="item.id"
-                                class="relative group"
-                                :style="{ paddingLeft: `${Math.max(0, item.level - minTocLevel) * 0.75}rem` }"
-                            >
-                                <a
-                                    :href="`#${item.id}`"
-                                    @click.prevent="scrollToHeading(item.id)"
-                                    class="block py-1 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors truncate leading-relaxed"
-                                    :class="[
-                                        activeHeadingId === item.id
-                                            ? 'text-purple-600 dark:text-purple-400 font-medium'
-                                            : ''
-                                    ]"
-                                    :title="item.text"
+                                <li
+                                    v-for="item in tocItems"
+                                    :key="item.id"
+                                    :data-toc-id="item.id"
+                                    class="relative group"
+                                    :style="{ paddingLeft: `${Math.max(0, item.level - minTocLevel) * 0.75}rem` }"
                                 >
-                                    {{ item.text }}
-                                </a>
-                            </li>
-                        </ul>
+                                    <a
+                                        :href="`#${item.id}`"
+                                        @click.prevent="scrollToHeading(item.id)"
+                                        class="block py-1 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors truncate leading-relaxed"
+                                        :class="[
+                                            activeHeadingId === item.id
+                                                ? 'text-purple-600 dark:text-purple-400 font-medium'
+                                                : ''
+                                        ]"
+                                        :title="item.text"
+                                    >
+                                        {{ item.text }}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </aside>
                 </main>
             </div>
@@ -1349,6 +1406,17 @@ watch(sharePopover, (newVal) => {
 
 <style scoped>
 @import '../styles/kb-icon.css';
+
+/* 隐藏页面主内容与右侧目录原生滚动条 */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
 
 /* 滚动条轻微美化 */
 .scrollbar-subtle::-webkit-scrollbar {
