@@ -3943,3 +3943,25 @@ VALUES
   ('开启留言功能', 'app.enable_guestbook', 'true', 'boolean', '是否开启系统留言板功能', 'app', true, true, 0, '{"zh-CN": "开启留言功能", "en-US": "Enable Guestbook"}', '{"zh-CN": "是否开启系统留言板功能", "en-US": "Whether to enable system guestbook"}'),
   ('AI Agent 提示词', 'ai.openai.agent', '', 'string', 'AI 助手的系统提示词，留空时默认使用 YAML 配置值', 'ai', true, false, 0, '{"zh-CN": "AI Agent 提示词", "en-US": "AI Agent Prompt"}', '{"zh-CN": "AI 助手的系统提示词，留空时默认使用 YAML 配置值", "en-US": "System prompt for the AI assistant; when empty, it falls back to the YAML value"}')
 ON CONFLICT (config_key) DO NOTHING;
+
+--
+-- AI 模型独立配置表 (sys_ai_model)
+--
+CREATE TABLE IF NOT EXISTS public.sys_ai_model (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    provider VARCHAR(50) DEFAULT 'custom',
+    base_url VARCHAR(500) NOT NULL,
+    api_key VARCHAR(500) NOT NULL,
+    model_name VARCHAR(100) NOT NULL,
+    temperature NUMERIC(3, 2) DEFAULT 0.70,
+    agent_prompt TEXT,
+    is_default BOOLEAN DEFAULT FALSE,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    disable_thinking BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_model_status ON public.sys_ai_model(is_enabled, is_default);
+

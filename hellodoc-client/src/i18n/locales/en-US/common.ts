@@ -536,6 +536,47 @@ export default {
                 navStyleLeft: 'Left List Navigation'
             }
         },
+        aiModel: {
+            title: 'AI Models',
+            subtitle: 'Manage OpenAI compatible models, default fallback model and activation status',
+            addModel: 'Add Model',
+            editModel: 'Edit Model',
+            deleteModel: 'Delete Model',
+            testConnection: 'Test Connection',
+            testing: 'Testing...',
+            testSuccess: 'Connected successfully (Latency: {ms}ms)',
+            testFailed: 'Connection failed: {msg}',
+            setDefault: 'Set as Default',
+            defaultBadge: 'Default',
+            enabledBadge: 'Active',
+            disabledBadge: 'Inactive',
+            statusActive: 'Active',
+            statusInactive: 'Inactive',
+            total: '{total} models total, {active} active',
+            empty: 'No AI models configured yet. Click above to add one.',
+            confirmDelete: 'Are you sure you want to delete model "{name}"? This cannot be undone.',
+            form: {
+                name: 'Model Display Name',
+                namePlaceholder: 'e.g. DeepSeek Full, GPT-4o',
+                provider: 'Provider',
+                baseUrl: 'Base URL (OpenAI Compatible Endpoint)',
+                baseUrlPlaceholder: 'https://api.openai.com/v1',
+                apiKey: 'API Key',
+                apiKeyPlaceholder: 'sk-xxxxxxxxxxxxxxxxxxxxxxxx',
+                modelName: 'Model Identifier',
+                modelNamePlaceholder: 'e.g. deepseek-chat, gpt-4o',
+                temperature: 'Temperature',
+                temperatureDesc: 'Lower values are more deterministic, higher values are more creative (0.7 recommended)',
+                agentPrompt: 'Agent System Prompt',
+                agentPromptPlaceholder: 'Custom system prompt for this model. Leave empty to use system default prompt.',
+                isDefault: 'Set as Default Model',
+                isDefaultDesc: 'Used when user has not selected a specific model',
+                isEnabled: 'Active Status',
+                isEnabledDesc: 'Only active models can be selected by users in the AI assistant',
+                disableThinking: 'Disable Thinking Tags',
+                disableThinkingDesc: 'Filter out <think> tags for models with chain-of-thought to ensure clean output'
+            }
+        },
         defaultConfigs: {
             kbSearch: {
                 name: 'Knowledge Base Search',

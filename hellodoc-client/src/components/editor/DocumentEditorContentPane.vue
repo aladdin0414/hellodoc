@@ -7,6 +7,7 @@ import EditorAiContextMenu from './EditorAiContextMenu.vue'
 import VisualEditor from './VisualEditor.vue'
 import { useEditorPreference } from '../../composables/useEditorPreference'
 import { ref, watch, nextTick } from 'vue'
+import { formatChineseMarkdown } from '../../utils/markdown'
 
 const { editorType } = useEditorPreference()
 
@@ -247,13 +248,14 @@ const handleAiStreamChunk = (chunk: string) => {
 
 const handleAiStreamEnd = () => {
     const { output } = filterStreamingThinking(aiRawStreamText.value)
+    const formattedOutput = formatChineseMarkdown(output)
     
-    // 如果是富文本模式，通过 Tiptap 最终将累加完毕的 markdown 源码进行富文本的 insertContent 解析替换
+    // 如果是富文本模式，通过 Tiptap 最终将累加完毕且标准化清洗后的 markdown 源码进行富文本的 insertContent 解析替换
     if (editorType.value !== 'markdown' && localEditorRef.value?.editor) {
         const editorInstance = localEditorRef.value.editor
         const from = aiStreamStartPos.value
         const to = editorInstance.state.selection.to
-        editorInstance.chain().focus().insertContentAt({ from, to }, output).run()
+        editorInstance.chain().focus().insertContentAt({ from, to }, formattedOutput).run()
         
         // 自动完成协同同步和更新
         emit('save')
@@ -262,7 +264,16 @@ const handleAiStreamEnd = () => {
         return
     }
 
-    if (props.currentDoc.content.includes(aiStreamMarker.value)) {
+    // Markdown 模式：将流式期间插入的原始文本连同光标标记替换为标准化清洗后的 Markdown
+    const targetWithMarker = `${aiLastOutputText.value}${aiStreamMarker.value}`
+    if (aiLastOutputText.value && props.currentDoc.content.includes(targetWithMarker)) {
+        props.currentDoc.content = props.currentDoc.content.replace(targetWithMarker, formattedOutput)
+    } else if (aiLastOutputText.value && props.currentDoc.content.includes(aiLastOutputText.value)) {
+        props.currentDoc.content = props.currentDoc.content.replace(aiLastOutputText.value, formattedOutput)
+        if (props.currentDoc.content.includes(aiStreamMarker.value)) {
+            props.currentDoc.content = props.currentDoc.content.replace(aiStreamMarker.value, '')
+        }
+    } else if (props.currentDoc.content.includes(aiStreamMarker.value)) {
         props.currentDoc.content = props.currentDoc.content.replace(aiStreamMarker.value, '')
     }
     aiStreamActive.value = false

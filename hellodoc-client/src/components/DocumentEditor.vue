@@ -16,6 +16,7 @@ import DocumentEditorOverlays from './editor/DocumentEditorOverlays.vue'
 import RevisionDrawer from './editor/RevisionDrawer.vue'
 import RevisionDiffDialog from './editor/RevisionDiffDialog.vue'
 import ImagePreview from './ImagePreview.vue'
+import AiAssistantDrawer from './ai/AiAssistantDrawer.vue'
 import type { SearchResult } from './SearchResultList.vue'
 import { message } from '../utils/message'
 import { expandAncestorFolders } from '../utils/documentTree'
@@ -75,8 +76,29 @@ const setMdEditorRef = (instance: any) => {
 }
 
 const contentPaneRef = ref<any>(null)
+const showAiDrawer = ref(false)
+
 const handleOpenAiAssistant = () => {
-    contentPaneRef.value?.triggerAiAssistant()
+    // 唤起独立 AI 知识助理抽屉，方便用户多轮对话与问答
+    showAiDrawer.value = true
+    if (!showAiDrawer.value && contentPaneRef.value) {
+        contentPaneRef.value.triggerAiAssistant()
+    }
+}
+
+const handleInsertAiContent = (text: string) => {
+    if (!text) return
+    if (mdEditorRef.value?.insert) {
+        mdEditorRef.value.insert(() => ({
+            targetValue: `\n\n${text}\n\n`,
+            select: false,
+            deviationStart: 0,
+            deviationEnd: 0
+        }))
+    } else if (currentDoc.value) {
+        currentDoc.value.content = (currentDoc.value.content || '') + `\n\n${text}\n\n`
+        handleSave()
+    }
 }
 const focusEditorAfterDocCreate = async () => {
     for (let i = 0; i < 6; i += 1) {
@@ -1014,6 +1036,30 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
         :diff-compare-data="diffCompareData" :is-dark="isDark" @close="closeDiffModal"
         @restore="handleRestoreRevision" />
     <ImagePreview :show="showImagePreview" :src="previewImageSrc" @close="showImagePreview = false" />
+
+    <!-- 悬浮 AI 助理唤起按钮 (FAB) -->
+    <button
+        v-if="!isVisualPreviewMode && currentDoc?.type === 'file'"
+        @click="showAiDrawer = !showAiDrawer"
+        class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center transition-all duration-200 active:scale-95 focus:outline-none ring-2 ring-white dark:ring-gray-800"
+        title="AI 知识助理"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+            <path d="M20 3v4" />
+            <path d="M22 5h-4" />
+            <path d="M4 17v2" />
+            <path d="M5 18H3" />
+        </svg>
+    </button>
+
+    <!-- 独立 AI 知识助理抽屉 -->
+    <AiAssistantDrawer
+        :visible="showAiDrawer"
+        :document-context="currentDoc?.content"
+        @update:visible="showAiDrawer = $event"
+        @insert-to-doc="handleInsertAiContent"
+    />
 </template>
 
 

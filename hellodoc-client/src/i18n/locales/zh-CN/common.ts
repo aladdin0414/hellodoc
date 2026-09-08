@@ -536,6 +536,47 @@ export default {
                 navStyleLeft: '左侧列表 (Left)'
             }
         },
+        aiModel: {
+            title: 'AI 大模型配置',
+            subtitle: '管理系统内多个 OpenAI 协议兼容大模型，支持设置默认模型与激活状态',
+            addModel: '新增模型',
+            editModel: '编辑模型',
+            deleteModel: '删除模型',
+            testConnection: '测试连接',
+            testing: '测试中...',
+            testSuccess: '连接成功 (时延: {ms}ms)',
+            testFailed: '连接失败: {msg}',
+            setDefault: '设为默认',
+            defaultBadge: '默认模型',
+            enabledBadge: '已激活',
+            disabledBadge: '已停用',
+            statusActive: '激活中',
+            statusInactive: '已停用',
+            total: '共 {total} 个模型，激活 {active} 个',
+            empty: '暂无 AI 大模型配置，点击上方按钮新增',
+            confirmDelete: '确定要删除模型 "{name}" 吗？此操作不可恢复。',
+            form: {
+                name: '模型别名',
+                namePlaceholder: '例如：DeepSeek 满血版、通义千问 Plus',
+                provider: '服务商',
+                baseUrl: 'Base URL (OpenAI 兼容端点)',
+                baseUrlPlaceholder: 'https://api.openai.com/v1',
+                apiKey: 'API Key',
+                apiKeyPlaceholder: 'sk-xxxxxxxxxxxxxxxxxxxxxxxx',
+                modelName: '模型标识 (Model Name)',
+                modelNamePlaceholder: '例如：deepseek-chat、gpt-4o',
+                temperature: '生成温度 (Temperature)',
+                temperatureDesc: '值越低越精确稳定，值越高越具发散创造力（推荐 0.7）',
+                agentPrompt: 'Agent 定位提示词 (System Prompt)',
+                agentPromptPlaceholder: '输入专属于该模型的系统人设与格式规范，留空时继承系统标准写作导师提示词',
+                isDefault: '设为系统默认模型',
+                isDefaultDesc: '用户未主动指定时采用此模型（自动互斥）',
+                isEnabled: '激活状态',
+                isEnabledDesc: '仅激活状态的模型，前台用户才能在 AI 助理中自由选择',
+                disableThinking: '禁用深度思考标签',
+                disableThinkingDesc: '针对包含思考链的模型自动屏蔽思考标签，纯净输出最终答案'
+            }
+        },
         defaultConfigs: {
             kbSearch: {
                 name: '知识库检索功能',

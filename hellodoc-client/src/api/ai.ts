@@ -3,6 +3,7 @@ import { buildCommonRequestHeaders } from '../utils/requestHeaders'
 import axios from 'axios'
 
 export interface AiCompletionReq {
+    modelId?: string
     context: string
     prompt: string
 }
