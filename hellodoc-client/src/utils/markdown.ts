@@ -19,7 +19,8 @@ export const stripMarkdownToc = (content: string): string => {
  * 2. 大模型输出中常出现 Unicode 圆点 `•` 或 `·` 作为列表，需统一转换为 Markdown 列表语法；
  * 3. ATX 标题若 `#` 后无空格（如 `#标题`），需自动补充空格；
  * 4. 紧贴中文文字或标点的加粗边界定界符注入微小空格，确保 100% 成功解析为 `<strong>`；
- * 5. 严格保护代码块与 LaTeX 数学公式，避免公式内的 `_`、`*`、`\` 被误当作 Markdown 样式解析。
+ * 5. 严格保护代码块，避免代码块内的 `_`、`*`、`\` 被误当作 Markdown 样式解析；
+ * 6. 占位符禁止使用下划线（如 __SLOT__），防止与 Markdown 加粗定界符混淆产生格式错乱。
  */
 export const formatChineseMarkdown = (content: string): string => {
     if (!content) return ''
@@ -31,36 +32,23 @@ export const formatChineseMarkdown = (content: string): string => {
         .replace(/<thinking>[\s\S]*?(?:<\/thinking>|$)/gi, '')
         .replace(/<\|im_end\|>|<\|endoftext\|>|<\|im_start\|>|<\|end\|>/g, '')
 
-    // 1. 保护代码块 (多行代码块和行内代码)
+    // 1. 保护代码块 (使用 HTML 注释作为占位符，绝不包含 Markdown 敏感字符)
     const codeBlocks: string[] = []
     text = text.replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (match) => {
         codeBlocks.push(match)
-        return `__MD_CODE_BLOCK_${codeBlocks.length - 1}__`
+        return `<!--MD_CODE_BLOCK_SLOT_${codeBlocks.length - 1}-->`
     })
 
-    // 2. 保护数学公式，避免公式内的下划线 `_`、星号 `*` 等被加粗或斜体正则误改
-    const mathPlaceholders: string[] = []
-    // 保护块级公式 $$ ... $$
-    text = text.replace(/\$\$([\s\S]+?)\$\$/g, (match) => {
-        mathPlaceholders.push(match)
-        return `__MD_MATH_BLOCK_${mathPlaceholders.length - 1}__`
-    })
-    // 保护行内公式 $ ... $
-    text = text.replace(/(?<![\$\\])\$([^\$\n]+?)\$(?!\$)/g, (match) => {
-        mathPlaceholders.push(match)
-        return `__MD_MATH_BLOCK_${mathPlaceholders.length - 1}__`
-    })
-
-    // 3. 规范化行首无序列表 + 加粗：如 `***标题**:` 或 `***标题***` 转换为 `* **标题**:`
+    // 2. 规范化行首无序列表 + 加粗：如 `***标题**:` 或 `***标题***` 转换为 `* **标题**:`
     text = text.replace(/(^|\n)[ \t]*\*{3,}[ \t]*([^*\n]+?)[ \t]*\*{2,3}/g, '$1* **$2**')
 
-    // 4. 将行首 Unicode 圆点（如 `•` 或 `·`）规范化为 Markdown 无序列表符号 `* `
+    // 3. 将行首 Unicode 圆点（如 `•` 或 `·`）规范化为 Markdown 无序列表符号 `* `
     text = text.replace(/(^|\n)[ \t]*[•·][ \t]*/g, '$1* ')
 
-    // 5. 规范化 ATX 标题：确保 `#` 和标题文字之间有且仅有一个空格（如 `###标题` -> `### 标题`）
+    // 4. 规范化 ATX 标题：确保 `#` 和标题文字之间有且仅有一个空格（如 `###标题` -> `### 标题`）
     text = text.replace(/(^|\n)(#{1,6})([^\s#\n])/g, '$1$2 $3')
 
-    // 6. 针对中文标点/字符与 Markdown 加粗符号紧贴导致 CommonMark flanking 判定失效的问题
+    // 5. 针对中文标点/字符与 Markdown 加粗符号紧贴导致 CommonMark flanking 判定失效的问题
     // 同时自动 trim 加粗内部首尾的多余空格（例如 ** 文本 ** 或 **文本 **）
     text = text.replace(/(?<!\*)\*\*\s*([^*\n]+?)\s*\*\*(?!\*)/g, (match, inner, offset, fullStr) => {
         const trimmedInner = inner.trim()
@@ -75,11 +63,8 @@ export const formatChineseMarkdown = (content: string): string => {
         return `${needLeadingSpace ? ' ' : ''}**${trimmedInner}**${needTrailingSpace ? ' ' : ''}`
     })
 
-    // 7. 还原数学公式
-    text = text.replace(/__MD_MATH_BLOCK_(\d+)__/g, (_, idx) => mathPlaceholders[Number(idx)] ?? '')
-
-    // 8. 还原代码块
-    text = text.replace(/__MD_CODE_BLOCK_(\d+)__/g, (_, idx) => codeBlocks[Number(idx)] ?? '')
+    // 6. 还原代码块
+    text = text.replace(/<!--MD_CODE_BLOCK_SLOT_(\d+)-->/g, (_, idx) => codeBlocks[Number(idx)] ?? '')
 
     return text
 }
@@ -96,14 +81,20 @@ marked.setOptions({
 export const renderMarkdownToHtml = (rawContent: string): string => {
     if (!rawContent) return ''
 
-    // 1. 先进行中文和排版标准化修复
-    const formatted = formatChineseMarkdown(rawContent)
+    // 1. 预先剥离思考标签与模型控制符
+    let text = rawContent
+        .replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '')
+        .replace(/<thought>[\s\S]*?(?:<\/thought>|$)/gi, '')
+        .replace(/<thinking>[\s\S]*?(?:<\/thinking>|$)/gi, '')
+        .replace(/<\|im_end\|>|<\|endoftext\|>|<\|im_start\|>|<\|end\|>/g, '')
 
-    // 2. 提取并预先渲染 LaTeX 数学公式（防止 marked 误将其中的数学字符转义）
+    // 2. 提取并预先渲染 LaTeX 数学公式
+    // 【关键设计】必须使用标准的独立 HTML 标签作为插槽占位，严禁使用下划线（如 __KATEX_SLOT__）
+    // 否则在 CommonMark/Marked 规则下双下划线会被当作加粗语法解析，导致插槽名被当作文字泄漏且大范围误加粗。
     const mathHtmlList: string[] = []
 
     // 2.1 提取块级公式 $$ ... $$
-    let processed = formatted.replace(/\$\$([\s\S]+?)\$\$/g, (_, formula) => {
+    text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, formula) => {
         const trimmed = formula.trim()
         try {
             const html = katex.renderToString(trimmed, {
@@ -114,11 +105,11 @@ export const renderMarkdownToHtml = (rawContent: string): string => {
         } catch {
             mathHtmlList.push(`<pre class="katex-error text-xs text-red-500 my-1">$$${trimmed}$$</pre>`)
         }
-        return `__KATEX_SLOT_${mathHtmlList.length - 1}__`
+        return `\n\n<div class="katex-block-placeholder" data-index="${mathHtmlList.length - 1}"></div>\n\n`
     })
 
     // 2.2 提取行内公式 $ ... $
-    processed = processed.replace(/(?<![\$\\])\$([^\$\n]+?)\$(?!\$)/g, (match, formula) => {
+    text = text.replace(/(?<![\$\\])\$([^\$\n]+?)\$(?!\$)/g, (match, formula) => {
         const trimmed = formula.trim()
         // 排除纯数字金额 如 $100, $3.50
         if (/^\d+(\.\d+)?$/.test(trimmed)) {
@@ -130,19 +121,24 @@ export const renderMarkdownToHtml = (rawContent: string): string => {
                 throwOnError: false
             })
             mathHtmlList.push(html)
-            return `__KATEX_SLOT_${mathHtmlList.length - 1}__`
+            return `<span class="katex-inline-placeholder" data-index="${mathHtmlList.length - 1}"></span>`
         } catch {
             return match
         }
     })
 
-    // 3. 执行 marked 解析
-    let html = marked.parse(processed, { async: false, breaks: true, gfm: true }) as string
+    // 3. 执行中文排版与列表加粗标准化
+    const formatted = formatChineseMarkdown(text)
 
-    // 4. 将数学公式 HTML 插槽还原
-    html = html.replace(/__KATEX_SLOT_(\d+)__/g, (_, idx) => mathHtmlList[Number(idx)] ?? '')
+    // 4. 执行 marked 解析
+    let html = marked.parse(formatted, { async: false, breaks: true, gfm: true }) as string
+
+    // 5. 将数学公式 HTML 插槽原样还原
+    html = html.replace(/<div class="katex-block-placeholder" data-index="(\d+)"><\/div>/g, (_, idx) => mathHtmlList[Number(idx)] ?? '')
+    html = html.replace(/<span class="katex-inline-placeholder" data-index="(\d+)"><\/span>/g, (_, idx) => mathHtmlList[Number(idx)] ?? '')
 
     return html
 }
+
 
 
