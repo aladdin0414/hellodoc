@@ -4,13 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.nopkg.hellodoc.config.AiProperties;
 import com.nopkg.hellodoc.entities.SysAiModel;
 import com.nopkg.hellodoc.exceptions.BusinessException;
 import com.nopkg.hellodoc.repositories.AiModelRepository;
 import com.nopkg.hellodoc.web.ApiResponse;
 import com.nopkg.hellodoc.web.dto.ai.*;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -33,85 +31,14 @@ import java.util.stream.Collectors;
 public class AiModelService {
 
     private final AiModelRepository aiModelRepository;
-    private final ConfigService configService;
-    private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
-    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public AiModelService(AiModelRepository aiModelRepository,
-                          ConfigService configService,
-                          AiProperties aiProperties,
-                          ObjectMapper objectMapper,
-                          org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+                          ObjectMapper objectMapper) {
         this.aiModelRepository = aiModelRepository;
-        this.configService = configService;
-        this.aiProperties = aiProperties;
         this.objectMapper = objectMapper;
-        this.jdbcTemplate = jdbcTemplate;
         this.restTemplate = new RestTemplate();
-    }
-
-    /**
-     * 系统启动检查并初始化默认大模型配置（若数据库为空则从老配置平滑迁移）
-     */
-    @PostConstruct
-    @Transactional
-    public void initDefaultModelIfNeeded() {
-        try {
-            // 自动检测并创建数据表与索引，确保已有数据库在不手动执行 SQL 的情况下平滑无感升级
-            jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS sys_ai_model (
-                    id VARCHAR(64) PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    provider VARCHAR(50) DEFAULT 'custom',
-                    base_url VARCHAR(500) NOT NULL,
-                    api_key VARCHAR(500) NOT NULL,
-                    model_name VARCHAR(100) NOT NULL,
-                    temperature NUMERIC(3, 2) DEFAULT 0.70,
-                    agent_prompt TEXT,
-                    is_default BOOLEAN DEFAULT FALSE,
-                    is_enabled BOOLEAN DEFAULT TRUE,
-                    disable_thinking BOOLEAN DEFAULT TRUE,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                );
-                CREATE INDEX IF NOT EXISTS idx_ai_model_status ON sys_ai_model(is_enabled, is_default);
-            """);
-
-            if (aiModelRepository.count() == 0) {
-                String apiKey = configService.getConfigValue("ai.openai.api-key");
-                if (!StringUtils.hasText(apiKey)) {
-                    apiKey = aiProperties.getApiKey();
-                }
-                String baseUrl = configService.getConfigValue("ai.openai.base-url");
-                if (!StringUtils.hasText(baseUrl)) {
-                    baseUrl = aiProperties.getBaseUrl();
-                }
-                String model = configService.getConfigValue("ai.openai.model");
-                if (!StringUtils.hasText(model)) {
-                    model = aiProperties.getModel();
-                }
-
-                if (StringUtils.hasText(baseUrl) && StringUtils.hasText(model)) {
-                    SysAiModel defaultModel = new SysAiModel();
-                    defaultModel.setId(UUID.randomUUID().toString());
-                    defaultModel.setName(model.contains("deepseek") ? "DeepSeek 官方模型" : "系统默认模型");
-                    defaultModel.setProvider(model.contains("deepseek") ? "deepseek" : (model.contains("gpt") ? "openai" : "custom"));
-                    defaultModel.setBaseUrl(baseUrl);
-                    defaultModel.setApiKey(StringUtils.hasText(apiKey) ? apiKey : "sk-placeholder");
-                    defaultModel.setModelName(model);
-                    defaultModel.setTemperature(0.70);
-                    defaultModel.setIsDefault(true);
-                    defaultModel.setIsEnabled(true);
-                    defaultModel.setDisableThinking(true);
-                    aiModelRepository.save(defaultModel);
-                    log.info("成功初始化系统默认 AI 大模型记录: {} ({})", defaultModel.getName(), defaultModel.getModelName());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("检查并初始化默认 AI 模型记录异常（可能是数据库未准备就绪）: {}", e.getMessage());
-        }
     }
 
     /**

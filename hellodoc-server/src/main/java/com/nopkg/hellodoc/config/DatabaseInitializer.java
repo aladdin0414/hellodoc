@@ -84,6 +84,9 @@ public class DatabaseInitializer {
             // 初始化默认本地存储配置 (防止文件并发上传时缺少 id=1 引起外键约束错误)
             checkAndCreateDefaultStorageConfig();
 
+            // 统一初始化 AI 大模型配置表 (sys_ai_model) 及默认模型迁移
+            checkAndCreateAiModelTable();
+
         } catch (Exception e) {
             logger.error("Database initialization failed", e);
             throw new RuntimeException("Database initialization failed: " + e.getMessage(), e);
@@ -108,6 +111,82 @@ public class DatabaseInitializer {
             }
         } catch (Exception e) {
             logger.error("检查/补齐默认存储配置失败", e);
+        }
+    }
+
+    /**
+     * 统一检查并自动创建 AI 大模型配置表 (sys_ai_model) 及初始化默认模型
+     */
+    private void checkAndCreateAiModelTable() {
+        String createTableSql = """
+                CREATE TABLE IF NOT EXISTS sys_ai_model (
+                    id VARCHAR(64) PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    provider VARCHAR(50) DEFAULT 'custom',
+                    base_url VARCHAR(500) NOT NULL,
+                    api_key VARCHAR(500) NOT NULL,
+                    model_name VARCHAR(100) NOT NULL,
+                    temperature NUMERIC(3, 2) DEFAULT 0.70,
+                    agent_prompt TEXT,
+                    is_default BOOLEAN DEFAULT FALSE,
+                    is_enabled BOOLEAN DEFAULT TRUE,
+                    disable_thinking BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_ai_model_status ON sys_ai_model(is_enabled, is_default);
+                """;
+
+        try (Connection conn = DriverManager.getConnection(datasourceUrl, username, password);
+             Statement stmt = conn.createStatement()) {
+
+            stmt.execute(createTableSql);
+            logger.info("已完成 AI 大模型配置表 (sys_ai_model) 自动检查与结构同步");
+
+            // 检查是否需要从已有系统配置初始化一条默认模型记录
+            String checkCountSql = "SELECT COUNT(*) FROM sys_ai_model";
+            try (ResultSet rs = stmt.executeQuery(checkCountSql)) {
+                if (rs.next() && rs.getLong(1) == 0) {
+                    // 查询旧的系统配置
+                    String oldKey = null;
+                    String oldUrl = null;
+                    String oldModel = null;
+                    try (Statement queryStmt = conn.createStatement();
+                         ResultSet configRs = queryStmt.executeQuery(
+                             "SELECT config_key, config_value FROM sys_config WHERE config_key IN ('ai.openai.api-key', 'ai.openai.base-url', 'ai.openai.model')")) {
+                        while (configRs.next()) {
+                            String k = configRs.getString("config_key");
+                            String v = configRs.getString("config_value");
+                            if ("ai.openai.api-key".equals(k)) oldKey = v;
+                            if ("ai.openai.base-url".equals(k)) oldUrl = v;
+                            if ("ai.openai.model".equals(k)) oldModel = v;
+                        }
+                    }
+
+                    if (StringUtils.hasText(oldUrl) && StringUtils.hasText(oldModel)) {
+                        String id = java.util.UUID.randomUUID().toString();
+                        String name = oldModel.contains("deepseek") ? "DeepSeek 官方模型" : "系统默认模型";
+                        String provider = oldModel.contains("deepseek") ? "deepseek" : (oldModel.contains("gpt") ? "openai" : "custom");
+                        String apiKey = StringUtils.hasText(oldKey) ? oldKey : "sk-placeholder";
+
+                        String insertModelSql = "INSERT INTO sys_ai_model (id, name, provider, base_url, api_key, model_name, temperature, is_default, is_enabled, disable_thinking, created_at, updated_at) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, 0.70, true, true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+                        try (PreparedStatement ps = conn.prepareStatement(insertModelSql)) {
+                            ps.setString(1, id);
+                            ps.setString(2, name);
+                            ps.setString(3, provider);
+                            ps.setString(4, oldUrl);
+                            ps.setString(5, apiKey);
+                            ps.setString(6, oldModel);
+                            ps.executeUpdate();
+                            logger.info("已完成从历史系统配置自动迁移初始 AI 大模型: {} ({})", name, oldModel);
+                        }
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            logger.error("检查/创建 AI 大模型配置表失败", e);
         }
     }
 
