@@ -372,3 +372,58 @@
 .format-brush-cursor .ProseMirror {
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%233b82f6' d='M18 4V3c0-.55-.45-1-1-1H5c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V6h1v4H9v11c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-9h8V4h-3z'/%3E%3C/svg%3E") 8 20, crosshair !important;
 }
+
+/* ===== 数学公式排版与背景块样式 (参考 AI 知识助理对话渲染) ===== */
+.ProseMirror div[data-type="block-math"],
+.ProseMirror .tiptap-mathematics-render[data-type="block-math"] {
+    margin: 0.75rem 0;
+    padding: 0.5rem 0.8rem;
+    background-color: rgba(156, 163, 175, 0.08);
+    border-radius: 0.5rem;
+    text-align: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    cursor: pointer;
+    transition: background-color 0.2s ease, outline-color 0.2s ease;
+}
+
+.dark .ProseMirror div[data-type="block-math"],
+.dark .ProseMirror .tiptap-mathematics-render[data-type="block-math"] {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.ProseMirror div[data-type="block-math"]:hover,
+.ProseMirror .tiptap-mathematics-render[data-type="block-math"]:hover {
+    background-color: rgba(156, 163, 175, 0.14);
+}
+
+.dark .ProseMirror div[data-type="block-math"]:hover,
+.dark .ProseMirror .tiptap-mathematics-render[data-type="block-math"]:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.ProseMirror div[data-type="block-math"].ProseMirror-selectednode,
+.ProseMirror .tiptap-mathematics-render[data-type="block-math"].ProseMirror-selectednode {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+}
+
+.ProseMirror div[data-type="block-math"] .block-math-inner,
+.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .block-math-inner {
+    display: inline-block;
+    max-width: 100%;
+}
+
+.ProseMirror div[data-type="block-math"] .katex-display,
+.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .katex-display {
+    margin: 0.2rem 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.ProseMirror div[data-type="block-math"] .katex,
+.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .katex {
+    font-size: 1.05em;
+    text-rendering: auto;
+}
+

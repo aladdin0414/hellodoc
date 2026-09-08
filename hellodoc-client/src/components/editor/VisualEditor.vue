@@ -815,4 +815,52 @@ defineExpose({
 .visual-editor.is-preview-mode :deep(.resizable-image-wrapper.is-resizing img) {
     box-shadow: none !important;
 }
+
+/* 块级数学公式背景块（参考 AI 对话抽屉） */
+:deep(.ProseMirror div[data-type="block-math"]),
+:deep(.ProseMirror .tiptap-mathematics-render[data-type="block-math"]) {
+    margin: 0.75rem 0;
+    padding: 0.5rem 0.8rem;
+    background-color: rgba(156, 163, 175, 0.08);
+    border-radius: 0.5rem;
+    text-align: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    cursor: pointer;
+    transition: background-color 0.2s ease, outline-color 0.2s ease;
+}
+
+.dark :deep(.ProseMirror div[data-type="block-math"]),
+.dark :deep(.ProseMirror .tiptap-mathematics-render[data-type="block-math"]) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+:deep(.ProseMirror div[data-type="block-math"]:hover),
+:deep(.ProseMirror .tiptap-mathematics-render[data-type="block-math"]:hover) {
+    background-color: rgba(156, 163, 175, 0.14);
+}
+
+.dark :deep(.ProseMirror div[data-type="block-math"]:hover),
+.dark :deep(.ProseMirror .tiptap-mathematics-render[data-type="block-math"]:hover) {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+:deep(.ProseMirror div[data-type="block-math"] .block-math-inner),
+:deep(.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .block-math-inner) {
+    display: inline-block;
+    max-width: 100%;
+}
+
+:deep(.ProseMirror div[data-type="block-math"] .katex-display),
+:deep(.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .katex-display) {
+    margin: 0.2rem 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+:deep(.ProseMirror div[data-type="block-math"] .katex),
+:deep(.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .katex) {
+    font-size: 1.05em;
+    text-rendering: auto;
+}
 </style>
