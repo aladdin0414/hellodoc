@@ -179,10 +179,19 @@ public class DatabaseInitializer {
                             ps.setString(5, apiKey);
                             ps.setString(6, oldModel);
                             ps.executeUpdate();
-                            logger.info("已完成从历史系统配置自动迁移初始 AI 大模型: {} ({})", name, oldModel);
                         }
                     }
                 }
+            }
+
+            // 清理 sys_config 表中已完全废弃的大模型配置（统一已在 sys_ai_model 管理）
+            try (Statement cleanStmt = conn.createStatement()) {
+                int deleted = cleanStmt.executeUpdate("DELETE FROM sys_config WHERE config_key LIKE 'ai.%' OR config_group = 'ai'");
+                if (deleted > 0) {
+                    logger.info("已从 sys_config 清理历史弃用 AI 系统配置共 {} 项", deleted);
+                }
+            } catch (Exception e) {
+                logger.warn("清理历史 AI 系统配置项忽略: {}", e.getMessage());
             }
 
         } catch (Exception e) {

@@ -35,23 +35,17 @@ const getI18nText = (config: any, field: 'configName' | 'description') => {
   return config[field]
 }
 
-const isAiConfig = (config: any) => String(config?.configKey || '').startsWith('ai.openai.')
-const isLongTextConfig = (config: any) => config?.configKey === 'ai.openai.agent'
+const isAiConfig = (config: any) => {
+  const key = String(config?.configKey || '')
+  const group = String(config?.configGroup || '')
+  return key.startsWith('ai.') || group === 'ai'
+}
 
-const groupedConfigs = computed(() => {
-  const aiConfigs = configs.value.filter((config) => isAiConfig(config))
-  const otherConfigs = configs.value.filter((config) => !isAiConfig(config))
-  const groups: Array<{ key: string; title: string; items: any[] }> = []
-
-  if (aiConfigs.length > 0) {
-    groups.push({ key: 'ai', title: t('admin.settings.groups.ai'), items: aiConfigs })
-  }
-  if (otherConfigs.length > 0) {
-    groups.push({ key: 'other', title: t('admin.settings.groups.other'), items: otherConfigs })
-  }
-
-  return groups
+const systemConfigs = computed(() => {
+  return configs.value.filter((config) => !isAiConfig(config))
 })
+
+const isLongTextConfig = (config: any) => config?.valueType === 'textarea' || config?.valueType === 'text'
 
 const autoResizeTextarea = (event: Event) => {
   const textarea = event.target as HTMLTextAreaElement
@@ -252,59 +246,52 @@ onMounted(() => {
     </div>
 
     <div v-if="configLoading" class="py-12 text-center text-gray-500">{{ t('common.loading') }}</div>
-    <div v-else class="space-y-6">
-      <div v-for="group in groupedConfigs" :key="group.key" class="space-y-4">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ group.title }}</h3>
-          <span class="text-xs text-gray-400 dark:text-gray-500">{{ group.items.length }}</span>
+    <div v-else class="space-y-4">
+      <div v-for="config in systemConfigs" :key="config.id"
+        class="p-6 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ getI18nText(config, 'configName') }}</h4>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400">{{ getI18nText(config, 'description') || t('admin.settings.noDesc') }}</p>
         </div>
 
-        <div v-for="config in group.items" :key="config.id"
-          class="p-6 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ getI18nText(config, 'configName') }}</h4>
-            </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ getI18nText(config, 'description') || t('admin.settings.noDesc') }}</p>
-          </div>
-
-          <div class="w-full md:w-auto md:min-w-[600px] flex flex-col items-stretch gap-2">
-            <span class="self-start px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-[10px] text-gray-500 dark:text-gray-400 rounded font-mono">{{ config.configKey }}</span>
-            <template v-if="config.valueType === 'boolean'">
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" :checked="config.configValue === 'true'"
-                  @change="(e: any) => { const checked = e.target.checked; config.configValue = checked ? 'true' : 'false'; handleUpdateConfig(config) }"
-                  class="sr-only peer">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-              </label>
-            </template>
-            <template v-else-if="config.configKey === 'app.kb.nav_style'">
-              <select v-model="config.configValue"
-                @change="handleUpdateConfig(config)"
-                class="w-full md:w-[600px] px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                <option value="top">{{ t('admin.settings.form.navStyleTop') }}</option>
-                <option value="left">{{ t('admin.settings.form.navStyleLeft') }}</option>
-              </select>
-            </template>
-            <template v-else-if="isLongTextConfig(config)">
-              <textarea v-model="config.configValue"
-                @focus="autoResizeTextarea"
-                @input="autoResizeTextarea"
-                @blur="handleUpdateConfig(config)"
-                rows="4"
-                class="w-full md:w-[600px] px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none overflow-y-hidden"></textarea>
-            </template>
-            <template v-else>
-              <input v-model="config.configValue"
-                @blur="handleUpdateConfig(config)"
-                type="text"
-                class="w-full md:w-[600px] px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-            </template>
-          </div>
+        <div class="w-full md:w-auto md:min-w-[600px] flex flex-col items-stretch gap-2">
+          <span class="self-start px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-[10px] text-gray-500 dark:text-gray-400 rounded font-mono">{{ config.configKey }}</span>
+          <template v-if="config.valueType === 'boolean'">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" :checked="config.configValue === 'true'"
+                @change="(e: any) => { const checked = e.target.checked; config.configValue = checked ? 'true' : 'false'; handleUpdateConfig(config) }"
+                class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </template>
+          <template v-else-if="config.configKey === 'app.kb.nav_style'">
+            <select v-model="config.configValue"
+              @change="handleUpdateConfig(config)"
+              class="w-full md:w-[600px] px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+              <option value="top">{{ t('admin.settings.form.navStyleTop') }}</option>
+              <option value="left">{{ t('admin.settings.form.navStyleLeft') }}</option>
+            </select>
+          </template>
+          <template v-else-if="isLongTextConfig(config)">
+            <textarea v-model="config.configValue"
+              @focus="autoResizeTextarea"
+              @input="autoResizeTextarea"
+              @blur="handleUpdateConfig(config)"
+              rows="4"
+              class="w-full md:w-[600px] px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none overflow-y-hidden"></textarea>
+          </template>
+          <template v-else>
+            <input v-model="config.configValue"
+              @blur="handleUpdateConfig(config)"
+              type="text"
+              class="w-full md:w-[600px] px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+          </template>
         </div>
       </div>
 
-      <div v-if="groupedConfigs.length === 0" class="py-12 text-center text-gray-500">
+      <div v-if="systemConfigs.length === 0" class="py-12 text-center text-gray-500">
         {{ t('admin.settings.noConfigs') }}
       </div>
     </div>

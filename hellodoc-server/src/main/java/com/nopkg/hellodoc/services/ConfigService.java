@@ -51,11 +51,16 @@ public class ConfigService {
     }
 
     public List<SysConfig> listConfigs() {
-        return configRepository.findAll();
+        return configRepository.findAll().stream()
+                .filter(c -> c.getConfigKey() == null || !c.getConfigKey().startsWith("ai."))
+                .filter(c -> c.getConfigGroup() == null || !"ai".equalsIgnoreCase(c.getConfigGroup()))
+                .collect(Collectors.toList());
     }
 
     public Map<String, String> getFrontendConfigs() {
         return configRepository.findByIsFrontendTrue().stream()
+                .filter(c -> c.getConfigKey() == null || !c.getConfigKey().startsWith("ai."))
+                .filter(c -> c.getConfigGroup() == null || !"ai".equalsIgnoreCase(c.getConfigGroup()))
                 .collect(Collectors.toMap(SysConfig::getConfigKey, SysConfig::getConfigValue));
     }
 

@@ -3940,8 +3940,7 @@ ON CONFLICT (role_code) DO NOTHING;
 
 INSERT INTO public.sys_config (config_name, config_key, config_value, value_type, description, config_group, is_system, is_frontend, status, config_name_i18n, description_i18n)
 VALUES 
-  ('开启留言功能', 'app.enable_guestbook', 'true', 'boolean', '是否开启系统留言板功能', 'app', true, true, 0, '{"zh-CN": "开启留言功能", "en-US": "Enable Guestbook"}', '{"zh-CN": "是否开启系统留言板功能", "en-US": "Whether to enable system guestbook"}'),
-  ('AI Agent 提示词', 'ai.openai.agent', '', 'string', 'AI 助手的系统提示词，留空时默认使用 YAML 配置值', 'ai', true, false, 0, '{"zh-CN": "AI Agent 提示词", "en-US": "AI Agent Prompt"}', '{"zh-CN": "AI 助手的系统提示词，留空时默认使用 YAML 配置值", "en-US": "System prompt for the AI assistant; when empty, it falls back to the YAML value"}')
+  ('开启留言功能', 'app.enable_guestbook', 'true', 'boolean', '是否开启系统留言板功能', 'app', true, true, 0, '{"zh-CN": "开启留言功能", "en-US": "Enable Guestbook"}', '{"zh-CN": "是否开启系统留言板功能", "en-US": "Whether to enable system guestbook"}')
 ON CONFLICT (config_key) DO NOTHING;
 
 --
