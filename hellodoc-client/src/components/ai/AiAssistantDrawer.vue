@@ -1,22 +1,10 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
-import { marked } from 'marked'
+import 'katex/dist/katex.min.css'
 import { message } from '../../utils/message'
 import { useAiModels } from '../../composables/useAiModels'
 import { aiCompletionStream } from '../../api/ai'
-import { formatChineseMarkdown } from '../../utils/markdown'
-
-// 配置 marked 选项
-marked.setOptions({
-  gfm: true,
-  breaks: true
-})
-
-const renderMarkdown = (content: string) => {
-  if (!content) return ''
-  const formatted = formatChineseMarkdown(content)
-  return marked.parse(formatted, { async: false, breaks: true, gfm: true }) as string
-}
+import { renderMarkdownToHtml } from '../../utils/markdown'
 
 const props = defineProps<{
   visible: boolean
@@ -290,11 +278,11 @@ watch(() => props.visible, (val) => {
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]"></span>
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]"></span>
               </div>
-              <!-- AI 回复：完整渲染为排版优雅的 Markdown -->
+              <!-- AI 回复：完整渲染为排版优雅的 Markdown + KaTeX 数学公式 -->
               <div
                 v-else-if="msg.role === 'assistant'"
                 class="ai-markdown-content text-xs leading-relaxed break-words"
-                v-html="renderMarkdown(msg.content)"
+                v-html="renderMarkdownToHtml(msg.content)"
               ></div>
               <!-- 用户提问：文本换行展示 -->
               <div v-else class="whitespace-pre-wrap break-words">{{ msg.content }}</div>
@@ -468,6 +456,24 @@ watch(() => props.visible, (val) => {
 .ai-markdown-content :deep(th) {
   background-color: rgba(156, 163, 175, 0.08);
   font-weight: 600;
+}
+.ai-markdown-content :deep(.katex-display-wrapper) {
+  margin: 0.6rem 0;
+  padding: 0.4rem 0.6rem;
+  background-color: rgba(156, 163, 175, 0.07);
+  border-radius: 0.5rem;
+}
+.dark .ai-markdown-content :deep(.katex-display-wrapper) {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+.ai-markdown-content :deep(.katex-display) {
+  margin: 0.2rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.ai-markdown-content :deep(.katex) {
+  font-size: 1.05em;
+  text-rendering: auto;
 }
 </style>
 
