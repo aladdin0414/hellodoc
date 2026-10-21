@@ -35,6 +35,26 @@ jobs:
       - name: Build Application Package
         run: ./build.sh
 
+      - name: Show npm debug logs
+        if: failure()
+        shell: bash
+        run: |
+          shopt -s nullglob
+          for log_file in /home/runner/.npm/_logs/*-debug-0.log; do
+            echo "::group::${log_file##*/}"
+            tail -n 500 "$log_file"
+            echo "::endgroup::"
+          done
+
+      - name: Upload npm debug logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-debug-logs
+          path: /home/runner/.npm/_logs/*-debug-0.log
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Extract Tag Version
         id: get_version
         run: |
