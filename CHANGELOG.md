@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.1.5] - 2026-10-21
+
+- ci: add steps to capture and upload npm debug logs on workflow failure
+
 ## [v2.1.4] - 2026-10-21
 
 - build: update Node.js version, upgrade npm, and use npm ci for reliable client builds
