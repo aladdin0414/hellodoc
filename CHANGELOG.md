@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.1.6] - 2026-10-21
+
+- chore: track package-lock.json by updating gitignore and adding lock file
+
 ## [v2.1.5] - 2026-10-21
 
 - ci: add steps to capture and upload npm debug logs on workflow failure
