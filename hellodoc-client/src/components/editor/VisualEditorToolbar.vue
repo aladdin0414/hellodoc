@@ -11,6 +11,8 @@ const props = defineProps<{
     paperBgColor?: string
     showPaperColorButton?: boolean
     isExportingWord: boolean
+    isExportingMarkdown: boolean
+    canExportMarkdown: boolean
 }>()
 
 const emit = defineEmits<{
@@ -18,6 +20,7 @@ const emit = defineEmits<{
     'togglePlainTextMode': []
     'togglePreviewMode': []
     'exportWord': []
+    'exportMarkdown': []
     'uploadImg': [files: File[], callback: (urls: string[]) => void]
     'update:paperBgColor': [val: string]
 }>()
@@ -104,6 +107,10 @@ const togglePreviewMode = () => {
 
 const exportWord = () => {
     emit('exportWord')
+}
+
+const exportMarkdown = () => {
+    emit('exportMarkdown')
 }
 
 const togglePageMode = () => {
@@ -388,6 +395,25 @@ defineExpose({ closeDropdowns })
                     <path d="M14 2v6h6"/>
                     <path d="M12 18v-6"/>
                     <path d="m9 15 3 3 3-3"/>
+                </svg>
+            </button>
+            <button
+                v-if="!isPlainTextMode && canExportMarkdown"
+                @click="exportMarkdown"
+                :title="isExportingMarkdown ? t('editor.toolbar.exportingMarkdown') : t('editor.toolbar.exportMarkdown')"
+                class="toolbar-btn"
+                :class="{ 'opacity-50 cursor-not-allowed': isExportingMarkdown }"
+                :disabled="isExportingMarkdown"
+            >
+                <svg v-if="isExportingMarkdown" class="toolbar-icon toolbar-icon--box animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                    <path d="M12 18v-6"/>
+                    <path d="m9 15 3 3 3-3"/>
+                    <path d="M7 11h10"/>
                 </svg>
             </button>
             <button v-if="!isPlainTextMode" @click="togglePageMode" :class="{ 'is-active': pageMode !== 'full' }" :title="t('editor.toolbar.togglePageMode')" class="toolbar-btn">

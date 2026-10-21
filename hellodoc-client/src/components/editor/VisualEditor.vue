@@ -22,6 +22,8 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { Markdown } from 'tiptap-markdown'
 import { MermaidBlock } from './extensions/MermaidBlock'
 import { exportHtmlToWord } from './wordExport'
+import { downloadDocumentZip } from '../../utils/documentExport'
+import { message } from '../../utils/message'
 import 'katex/dist/katex.min.css'
 import { common, createLowlight } from 'lowlight'
 import css from 'highlight.js/lib/languages/css'
@@ -56,6 +58,9 @@ const props = defineProps<{
     isUploadingAssets?: boolean
     paperBgColor?: string
     showPaperColorButton?: boolean
+    kbId?: number
+    docId?: number
+    docName?: string
 }>()
 
 const emit = defineEmits<{
@@ -356,6 +361,7 @@ const pageMode = ref(localStorage.getItem('hellodoc_editor_page_mode') || 'portr
 const isPlainTextMode = ref(false)
 const isPreviewMode = ref(false)
 const isExportingWord = ref(false)
+const isExportingMarkdown = ref(false)
 const plainTextValue = ref(props.modelValue)
 const toolbarRef = ref<InstanceType<typeof VisualEditorToolbar> | null>(null)
 const editorBgClass = computed(() => {
@@ -596,6 +602,22 @@ const exportWord = async () => {
     }
 }
 
+const exportMarkdown = async () => {
+    if (isExportingMarkdown.value || !props.kbId || !props.docId || !props.docName) return
+
+    isExportingMarkdown.value = true
+    try {
+        message.info(t('kbView.export.preparing'))
+        await downloadDocumentZip(props.kbId, props.docId, props.docName)
+        message.success(t('kbView.export.started'))
+    } catch (error) {
+        console.error(error)
+        message.error(t('kbView.export.failed'))
+    } finally {
+        isExportingMarkdown.value = false
+    }
+}
+
 const onPlainTextInput = (event: Event) => {
     const value = (event.target as HTMLTextAreaElement).value
     plainTextValue.value = value
@@ -695,10 +717,13 @@ defineExpose({
             :paper-bg-color="props.paperBgColor"
             :show-paper-color-button="props.showPaperColorButton"
             :is-exporting-word="isExportingWord"
+            :is-exporting-markdown="isExportingMarkdown"
+            :can-export-markdown="!!props.kbId && !!props.docId && !!props.docName"
             @update:paper-bg-color="(val) => emit('update:paperBgColor', val)"
             @toggle-plain-text-mode="togglePlainTextMode"
             @toggle-preview-mode="togglePreviewMode"
             @export-word="exportWord"
+            @export-markdown="exportMarkdown"
             @upload-img="(files, callback) => emit('uploadImg', files, callback)"
         />
 

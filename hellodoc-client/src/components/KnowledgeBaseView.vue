@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
-import { getPublicKbDetail, getPublicDocuments, getPublicDocumentDetail, getAuthDocuments, getAuthDocumentDetail, getKbDetail, exportDocument, searchInKb, searchPublicInKb } from '../api/kb'
+import { getPublicKbDetail, getPublicDocuments, getPublicDocumentDetail, getAuthDocuments, getAuthDocumentDetail, getKbDetail, searchInKb, searchPublicInKb } from '../api/kb'
 import { getFrontendConfigs } from '../api/config'
 import { toggleFavorite as apiToggleFavorite, checkIsFavorite } from '../api/favorite'
 import { getMe } from '../api/user'
@@ -16,6 +16,7 @@ import { buildOrderedDocuments, expandAncestorFolders } from '../utils/documentT
 import { useTheme } from '../composables/useTheme'
 import { getIconStyle as utilGetIconStyle, getIconBgStyle as utilGetIconBgStyle } from '../utils/color'
 import { stripMarkdownToc } from '../utils/markdown'
+import { downloadDocumentZip } from '../utils/documentExport'
 import VisualEditor from './editor/VisualEditor.vue'
 import * as Icons from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
@@ -676,16 +677,7 @@ const handleExport = async () => {
     const doc = contextMenu.value.doc
     try {
         message.info(t('kbView.export.preparing'))
-        const res: any = await exportDocument(props.kbId, doc.id)
-        const blob = new Blob([res], { type: 'application/zip' })
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `${doc.name}.zip`)
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
+        await downloadDocumentZip(props.kbId, doc.id, doc.name)
         message.success(t('kbView.export.started'))
     } catch (e) {
         console.error(e)
@@ -701,16 +693,7 @@ const handleExportCurrentDoc = async () => {
     if (!currentDoc.value) return
     try {
         message.info(t('kbView.export.preparing'))
-        const res: any = await exportDocument(props.kbId, currentDoc.value.id)
-        const blob = new Blob([res], { type: 'application/zip' })
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `${currentDoc.value.name}.zip`)
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
+        await downloadDocumentZip(props.kbId, currentDoc.value.id, currentDoc.value.name)
         message.success(t('kbView.export.started'))
     } catch (e) {
         console.error(e)

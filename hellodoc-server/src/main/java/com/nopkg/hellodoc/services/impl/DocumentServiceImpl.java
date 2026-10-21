@@ -7,6 +7,7 @@ import com.nopkg.hellodoc.entities.KbDocument;
 import com.nopkg.hellodoc.entities.KbDocumentContent;
 import com.nopkg.hellodoc.entities.KbDocumentRevision;
 import com.nopkg.hellodoc.entities.KbKnowledgeBase;
+import com.nopkg.hellodoc.entities.KbAsset;
 import com.nopkg.hellodoc.enums.DocStatus;
 import com.nopkg.hellodoc.enums.DocType;
 import com.nopkg.hellodoc.exceptions.BusinessException;
@@ -19,6 +20,7 @@ import com.nopkg.hellodoc.services.KbService;
 import com.nopkg.hellodoc.services.PermissionChecker;
 import com.nopkg.hellodoc.services.RevisionService;
 import com.nopkg.hellodoc.services.SearchService;
+import com.nopkg.hellodoc.services.AssetService;
 import com.nopkg.hellodoc.services.relation.DocumentSavedEvent;
 import com.nopkg.hellodoc.web.ApiResponse;
 import com.nopkg.hellodoc.web.dto.kb.DocCreateDTO;
@@ -34,6 +36,10 @@ import org.springframework.util.StringUtils;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,6 +57,10 @@ public class DocumentServiceImpl implements DocumentService {
     private final ApplicationEventPublisher eventPublisher;
     private final KbDocRelationRepository docRelationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AssetService assetService;
+
+    private static final Pattern MANAGED_MARKDOWN_IMAGE = Pattern.compile(
+            "(!\\[[^\\]]*\\]\\()(/api/assets/(\\d+)/raw)(\\))");
 
     @Override
     @Transactional
@@ -709,15 +719,14 @@ public class DocumentServiceImpl implements DocumentService {
         // Better: recursively build paths starting from root.
 
         try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(outputStream)) {
-            // Helper to build paths
-            buildZipEntries(docs, rootDoc, "", zos);
+            buildZipEntries(docs, rootDoc, "", zos, new HashSet<>());
         } catch (java.io.IOException e) {
             throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "Failed to generate zip");
         }
     }
 
     private void buildZipEntries(List<KbDocument> allDocs, KbDocument current, String currentPath,
-            java.util.zip.ZipOutputStream zos) throws java.io.IOException {
+            java.util.zip.ZipOutputStream zos, Set<Long> exportedAssetIds) throws java.io.IOException {
         String name = current.getName();
         // Safe filename
         name = name.replaceAll("[\\\\/:*?\"<>|]", "_");
@@ -725,12 +734,12 @@ public class DocumentServiceImpl implements DocumentService {
         String entryPath = StringUtils.hasText(currentPath) ? currentPath + "/" + name : name;
 
         if (current.getType() == com.nopkg.hellodoc.enums.DocType.FILE) {
-            java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(entryPath + ".md");
             try {
-                zos.putNextEntry(entry);
                 String content = contentRepository.findByDocId(current.getId())
                         .map(KbDocumentContent::getContent)
                         .orElse("");
+                content = exportManagedMarkdownImages(content, currentPath, zos, exportedAssetIds);
+                zos.putNextEntry(new java.util.zip.ZipEntry(entryPath + ".md"));
                 zos.write(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 zos.closeEntry();
             } catch (java.util.zip.ZipException e) {
@@ -751,9 +760,47 @@ public class DocumentServiceImpl implements DocumentService {
             // Find children
             for (KbDocument doc : allDocs) {
                 if (doc.getParent() != null && doc.getParent().getId().equals(current.getId())) {
-                    buildZipEntries(allDocs, doc, entryPath, zos);
+                    buildZipEntries(allDocs, doc, entryPath, zos, exportedAssetIds);
                 }
             }
         }
+    }
+
+    private String exportManagedMarkdownImages(String content, String documentDirectory,
+            java.util.zip.ZipOutputStream zos, Set<Long> exportedAssetIds) throws java.io.IOException {
+        Matcher matcher = MANAGED_MARKDOWN_IMAGE.matcher(content);
+        StringBuffer rewritten = new StringBuffer();
+        while (matcher.find()) {
+            Long assetId = Long.valueOf(matcher.group(3));
+            KbAsset asset = assetService.getAssetPublic(assetId);
+            String assetFileName = assetId + "_" + safeAssetFileName(asset.getFileName());
+            String zipAssetPath = "assets/" + assetFileName;
+
+            if (exportedAssetIds.add(assetId)) {
+                zos.putNextEntry(new java.util.zip.ZipEntry(zipAssetPath));
+                try (java.io.InputStream input = assetService.getAssetContentPublic(assetId)) {
+                    input.transferTo(zos);
+                }
+                zos.closeEntry();
+            }
+
+            matcher.appendReplacement(rewritten, Matcher.quoteReplacement(
+                    matcher.group(1) + relativeAssetPath(documentDirectory, assetFileName) + matcher.group(4)));
+        }
+        matcher.appendTail(rewritten);
+        return rewritten.toString();
+    }
+
+    private static String relativeAssetPath(String documentDirectory, String assetFileName) {
+        if (!StringUtils.hasText(documentDirectory)) {
+            return "assets/" + assetFileName;
+        }
+        int depth = documentDirectory.split("/").length;
+        return "../".repeat(depth) + "assets/" + assetFileName;
+    }
+
+    private static String safeAssetFileName(String fileName) {
+        String safeName = StringUtils.hasText(fileName) ? fileName : "asset";
+        return safeName.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 }

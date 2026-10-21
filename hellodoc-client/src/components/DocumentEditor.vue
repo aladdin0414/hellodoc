@@ -988,6 +988,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
                     @request-edit-lock="requestEditLock" @open-ai-assistant="handleOpenAiAssistant" />
 
                 <DocumentEditorContentPane ref="contentPaneRef" :current-doc="currentDoc" :doc-loading="docLoading" :is-mobile="isMobile"
+                    :kb-id="kbId"
                     :is-uploading-assets="isUploadingAssets" :is-dark="isDark"
                     :is-read-only-by-collab="isReadOnlyByCollab" :set-editor-ref="setMdEditorRef"
                     :show-paper-color-button="showPaperColorButton"

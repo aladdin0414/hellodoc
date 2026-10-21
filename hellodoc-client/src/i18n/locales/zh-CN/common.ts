@@ -382,6 +382,8 @@ export default {
             alignRight: '右对齐',
             exportWord: '导出 Word',
             exportingWord: '导出中...',
+            exportMarkdown: '导出 Markdown ZIP',
+            exportingMarkdown: '导出中...',
             inputLinkUrl: '输入链接地址',
             demoMode: '演示模式',
             exitDemoMode: '退出演示模式'

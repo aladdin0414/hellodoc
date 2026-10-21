@@ -31,6 +31,7 @@ const props = defineProps<{
     placeholder?: string
     codeFoldable?: boolean
     previewEnabled?: boolean
+    kbId: number
     setEditorRef: (instance: any) => void
 }>()
 
@@ -388,6 +389,7 @@ defineExpose({
             </template>
             <template v-else>
                 <VisualEditor :ref="handleSetEditorRef" v-model="currentDoc.content" :placeholder="placeholder" :is-read-only="isReadOnlyByCollab"
+                    :kb-id="kbId" :doc-id="currentDoc.id" :doc-name="currentDoc.name || ''"
                     :paper-bg-color="currentDoc.paperBgColor"
                     :show-paper-color-button="showPaperColorButton"
                     :is-uploading-assets="isUploadingAssets"

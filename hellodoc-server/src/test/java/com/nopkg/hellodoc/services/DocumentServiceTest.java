@@ -4,6 +4,7 @@ import com.nopkg.hellodoc.entities.KbDocument;
 import com.nopkg.hellodoc.entities.KbDocumentContent;
 import com.nopkg.hellodoc.entities.KbDocumentRevision;
 import com.nopkg.hellodoc.entities.KbKnowledgeBase;
+import com.nopkg.hellodoc.entities.KbAsset;
 import com.nopkg.hellodoc.enums.DocType;
 import com.nopkg.hellodoc.repositories.KbDocumentContentRepository;
 import com.nopkg.hellodoc.repositories.KbDocumentRepository;
@@ -20,7 +21,13 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +51,8 @@ public class DocumentServiceTest {
     private ApplicationEventPublisher eventPublisher;
     @Mock
     private KbDocRelationRepository docRelationRepository;
+    @Mock
+    private AssetService assetService;
 
     @InjectMocks
     private DocumentServiceImpl documentService;
@@ -200,5 +209,44 @@ public class DocumentServiceTest {
         verify(documentRepository, times(4)).save(any(KbDocument.class));
         verify(contentRepository, times(2)).save(any(KbDocumentContent.class));
         verify(searchService, times(4)).updateIndex(any(Long.class));
+    }
+
+    @Test
+    public void testExportIncludesManagedMarkdownImage() throws Exception {
+        Long userId = 1L;
+        Long kbId = 2L;
+        Long docId = 3L;
+        KbKnowledgeBase kb = new KbKnowledgeBase();
+        kb.setId(kbId);
+        KbDocument doc = new KbDocument();
+        doc.setId(docId);
+        doc.setKb(kb);
+        doc.setName("Guide");
+        doc.setType(DocType.FILE);
+
+        KbDocumentContent content = new KbDocumentContent();
+        content.setDocId(docId);
+        content.setContent("![diagram](/api/assets/42/raw)");
+        when(documentRepository.findSubtree(kbId, docId)).thenReturn(List.of(doc));
+        when(contentRepository.findByDocId(docId)).thenReturn(Optional.of(content));
+        KbAsset asset = new KbAsset();
+        asset.setFileName("diagram.png");
+        when(assetService.getAssetPublic(42L)).thenReturn(asset);
+        when(assetService.getAssetContentPublic(42L))
+                .thenReturn(new ByteArrayInputStream("image-bytes".getBytes(StandardCharsets.UTF_8)));
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        documentService.exportToZip(userId, kbId, docId, output);
+
+        java.util.Map<String, byte[]> entries = new java.util.HashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(output.toByteArray()))) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                entries.put(entry.getName(), zip.readAllBytes());
+            }
+        }
+        assertArrayEquals("image-bytes".getBytes(StandardCharsets.UTF_8), entries.get("assets/42_diagram.png"));
+        assertEquals("![diagram](assets/42_diagram.png)",
+                new String(entries.get("Guide.md"), StandardCharsets.UTF_8));
     }
 }

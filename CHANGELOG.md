@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.1.3] - 2026-10-21
+
+- v2.1.3 版本发布与日常维护
+
 ## [v2.1.2] - 2026-09-08
 
 - refactor: remove format brush feature and update toolbar icon styling

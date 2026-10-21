@@ -382,6 +382,8 @@ export default {
             alignRight: 'Align Right',
             exportWord: 'Export Word',
             exportingWord: 'Exporting...',
+            exportMarkdown: 'Export Markdown ZIP',
+            exportingMarkdown: 'Exporting...',
             inputLinkUrl: 'Enter link URL',
             demoMode: 'Demo Mode',
             exitDemoMode: 'Exit Demo Mode'
