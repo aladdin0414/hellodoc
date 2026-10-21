@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.1.4] - 2026-10-21
+
+- build: update Node.js version, upgrade npm, and use npm ci for reliable client builds
+
 ## [v2.1.3] - 2026-10-21
 
 - v2.1.3 版本发布与日常维护
