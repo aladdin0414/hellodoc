@@ -79,7 +79,7 @@ build_frontend() {
     cd "$CLIENT_DIR"
     if [ ! -d "node_modules" ]; then
         log_info "安装前端依赖..."
-        npm install
+        npm ci --no-audit --no-fund
     fi
     npm run build
     log_success "前端构建完成，输出目录: $SERVER_DIR/src/main/resources/static"
