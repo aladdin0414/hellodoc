@@ -11,16 +11,17 @@ import { defaultMarkdownSerializer } from 'prosemirror-markdown'
 import markdownItMark from 'markdown-it-mark'
 import markdownItMath from 'markdown-it-math'
 
-// 覆盖 text 节点的 markdown 序列化，避免自动追加反斜杠转义
+// Escape literal Markdown and HTML entities so text survives a save/load round trip.
 export const PlainTextMarkdownText = Text.extend({
     addStorage() {
         return {
             markdown: {
                 serialize(state: any, node: any) {
                     const rawText = (node.text || '')
+                        .replace(/&/g, '&amp;')
                         .replace(/</g, '&lt;')
                         .replace(/>/g, '&gt;')
-                    state.text(rawText, false)
+                    state.text(rawText)
                 },
             },
         }
@@ -364,11 +365,18 @@ export const TabIndentExtension = Extension.create({
     addKeyboardShortcuts() {
         return {
             Tab: () => {
-                if (this.editor.isActive('table')) return false
-                const { from, to } = this.editor.state.selection
-                const tr = this.editor.state.tr.insertText('    ', from, to)
-                this.editor.view.dispatch(tr.scrollIntoView())
-                return true
+                if (this.editor.isActive('table') || this.editor.isActive('codeBlock')) return false
+                if (this.editor.isActive('taskItem')) return this.editor.commands.sinkListItem('taskItem')
+                if (this.editor.isActive('listItem')) return this.editor.commands.sinkListItem('listItem')
+                // Leave selections intact and allow keyboard navigation out of the editor.
+                if (!this.editor.state.selection.empty) return false
+                return this.editor.commands.insertContent({ type: 'text', text: '    ' })
+            },
+            'Shift-Tab': () => {
+                if (this.editor.isActive('table') || this.editor.isActive('codeBlock')) return false
+                if (this.editor.isActive('taskItem')) return this.editor.commands.liftListItem('taskItem')
+                if (this.editor.isActive('listItem')) return this.editor.commands.liftListItem('listItem')
+                return false
             },
         }
     },

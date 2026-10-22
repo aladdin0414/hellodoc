@@ -7,6 +7,8 @@ const { t } = useI18n()
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
+import type { Transaction } from '@tiptap/pm/state'
+import type { Editor, JSONContent } from '@tiptap/core'
 import { StarterKit } from '@tiptap/starter-kit'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { Subscript } from '@tiptap/extension-subscript'
@@ -46,7 +48,6 @@ import {
 } from './extensions/custom-extensions'
 import VisualEditorToolbar from './VisualEditorToolbar.vue'
 import ImagePreview from '../ImagePreview.vue'
-import { formatChineseMarkdown } from '../../utils/markdown'
 import './editor-styles.css'
 
 const props = defineProps<{
@@ -75,14 +76,57 @@ const emit = defineEmits<{
 const plainTextRef = ref<HTMLTextAreaElement | null>(null)
 const contentScrollRef = ref<HTMLDivElement | null>(null)
 const hasUserInteracted = ref(false)
-const normalizeMathMarkdown = (markdown: string) => {
-    if (!markdown) return ''
-    const withMath = markdown.replace(
-        /(^|\n)[ \t]*\$\s*\n([\s\S]*?)\n[ \t]*\$(?=\s*(\n|$))/g,
-        (_m, leading, body) => `${leading}$$\n${String(body ?? '').trim()}\n$$`
-    )
-    return formatChineseMarkdown(withMath)
+// User-authored Markdown must not pass through AI output repair rules.
+const pendingInsertions = new Set<() => void>()
+const cancelPendingInsertions = () => {
+    pendingInsertions.forEach(cancel => cancel())
+    pendingInsertions.clear()
 }
+
+// Track the original selection through edits while an asset uploads.
+const createUploadInsertion = (target: Editor, position?: number) => {
+    const docId = props.docId
+    let from = position ?? target.state.selection.from
+    let to = position ?? target.state.selection.to
+    let active = true
+    const cancel = () => {
+        active = false
+        target.off('transaction', mapPosition)
+        pendingInsertions.delete(cancel)
+    }
+    const mapPosition = ({ transaction }: { transaction: Transaction }) => {
+        const start = transaction.mapping.mapResult(from, 1)
+        const end = transaction.mapping.mapResult(to, -1)
+        if (start.deletedAcross && end.deletedAcross) {
+            cancel()
+            return
+        }
+        from = start.pos
+        to = Math.max(from, end.pos)
+    }
+    target.on('transaction', mapPosition)
+    pendingInsertions.add(cancel)
+    return (content: string | JSONContent[]) => {
+        if (!active) return
+        cancel()
+        if (target.isDestroyed || props.docId !== docId || props.isReadOnly || isPreviewMode.value) return
+        if (Array.isArray(content) && content.length === 0) return
+        hasUserInteracted.value = true
+        target.commands.insertContentAt({ from, to }, content, { updateSelection: false })
+    }
+}
+
+const uploadedAssets = (files: File[], urls: string[]): JSONContent[] => urls.map((url, index) => {
+    const file = files[index]
+    if (file?.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(url)) {
+        return { type: 'image', attrs: { src: url } }
+    }
+    const fileName = file?.name || url.split('/').pop()?.split('?')[0] || i18n.global.t('toolbar.file')
+    return {
+        type: 'paragraph',
+        content: [{ type: 'text', text: fileName, marks: [{ type: 'link', attrs: { href: url, target: '_blank' } }] }],
+    }
+})
 const lowlight = createLowlight(common)
 lowlight.register('html', html)
 lowlight.register('css', css)
@@ -98,6 +142,7 @@ const editor = useEditor({
             paragraph: false,
             heading: false,
             codeBlock: false,
+            hardBreak: false,
         }),
         TabIndentExtension,
         MermaidBlock,
@@ -156,7 +201,7 @@ const editor = useEditor({
             placeholder: props.placeholder || i18n.global.t('editor.startWriting') || 'Start writing...',
         }),
     ],
-    content: normalizeMathMarkdown(props.modelValue),
+    content: props.modelValue,
     editable: !props.isReadOnly,
     editorProps: {
         handlePaste: (_view, event) => {
@@ -188,52 +233,11 @@ const editor = useEditor({
                 }
             })
 
-            const textData = clipboardData.getData('text/plain')
-            if (textData) {
-                const isMarkdownTable = /^\s*\|.*\|\s*\n\s*\|[\s\-\|:]+\|\s*\n/.test(textData)
-                if (isMarkdownTable) {
-                    const lines = textData.trim().split('\n').map(l => l.trim()).filter(l => l.startsWith('|') && l.endsWith('|'))
-                    if (lines.length >= 2 && /^\|[\s\-\|:]+\|$/.test(lines[1] || '')) {
-                        event.preventDefault()
-                        let html = '<table>'
-                        lines.forEach((line, index) => {
-                            if (index === 1) return
-                            html += '<tr>'
-                            const cells = line.split('|').slice(1, -1).map(c => c.trim())
-                            cells.forEach(cell => {
-                                if (index === 0) html += `<th><p>${cell}</p></th>`
-                                else html += `<td><p>${cell}</p></td>`
-                            })
-                            html += '</tr>'
-                        })
-                        html += '</table>'
-                        editor.value?.chain().focus().insertContent(html).run()
-                        return true
-                    }
-                }
-            }
-
             if (files.length > 0) {
                 event.preventDefault()
-                emit('uploadImg', files, (urls) => {
-                    if (urls && urls.length > 0 && editor.value) {
-                        let htmlContent = ''
-                        urls.forEach((url, index) => {
-                            const file = files[index]
-                            const isImage = file?.type?.startsWith('image/') || 
-                                            /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(url)
-                            
-                            if (isImage) {
-                                htmlContent += `<img src="${url}" />`
-                            } else {
-                                const defaultFileText = i18n.global.t('toolbar.file') || 'File'
-                                const fileName = file?.name || url.split('/').pop()?.split('?')[0] || defaultFileText
-                                htmlContent += `<p><a href="${url}" target="_blank" class="file-link">${fileName}</a></p>`
-                            }
-                        })
-                        editor.value.chain().focus().insertContent(htmlContent).run()
-                    }
-                })
+                if (!editor.value) return true
+                const insert = createUploadInsertion(editor.value)
+                emit('uploadImg', files, urls => insert(uploadedAssets(files, urls)))
                 return true
             }
 
@@ -264,6 +268,8 @@ const editor = useEditor({
                     event.preventDefault()
                     const externalUrls = externalImgs.map(img => img.getAttribute('src')!)
 
+                    if (!editor.value) return true
+                    const insert = createUploadInsertion(editor.value)
                     emit('uploadImgFromUrl', externalUrls, (newUrls) => {
                         // 将转存成功的 URL 替换回 DOM
                         externalImgs.forEach((img, index) => {
@@ -272,9 +278,7 @@ const editor = useEditor({
                             }
                         })
                         // 将处理后的 HTML 插入编辑器
-                        if (editor.value) {
-                            editor.value.chain().focus().insertContent(doc.body.innerHTML).run()
-                        }
+                        insert(doc.body.innerHTML)
                     })
                     return true
                 }
@@ -282,48 +286,22 @@ const editor = useEditor({
 
             return false
         },
-        handleDrop: (_view, event) => {
+        handleDrop: (view, event) => {
             const files = Array.from(event.dataTransfer?.files || [])
             if (files.length > 0) {
                 event.preventDefault()
-                emit('uploadImg', files, (urls) => {
-                    if (urls && urls.length > 0 && editor.value) {
-                        let htmlContent = ''
-                        urls.forEach((url, index) => {
-                            const file = files[index]
-                            const isImage = file?.type?.startsWith('image/') || 
-                                            /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(url)
-
-                            if (isImage) {
-                                htmlContent += `<img src="${url}" />`
-                            } else {
-                                const defaultFileText = i18n.global.t('toolbar.file') || 'File'
-                                const fileName = file?.name || url.split('/').pop()?.split('?')[0] || defaultFileText
-                                htmlContent += `<p><a href="${url}" target="_blank" class="file-link">${fileName}</a></p>`
-                            }
-                        })
-                        editor.value.chain().focus().insertContent(htmlContent).run()
-                    }
-                })
+                if (!editor.value) return true
+                const dropPos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos
+                const insert = createUploadInsertion(editor.value, dropPos)
+                emit('uploadImg', files, urls => insert(uploadedAssets(files, urls)))
                 return true
             }
             return false
         },
-        handleKeyDown: (view, event) => {
-            if (event.key !== 'Tab') return false
-            if (!editor.value) return false
-            if (editor.value.isActive('table')) return false
-
-            event.preventDefault()
-            const { from, to } = view.state.selection
-            const tr = view.state.tr.insertText('    ', from, to)
-            view.dispatch(tr.scrollIntoView())
-            return true
-        }
     },
     onUpdate: ({ editor }) => {
         const markdown = ((editor.storage as any).markdown as any).getMarkdown()
-        if (!hasUserInteracted.value && markdown !== normalizeMathMarkdown(props.modelValue)) {
+        if (!hasUserInteracted.value && markdown !== props.modelValue) {
             return
         }
         emit('update:modelValue', markdown)
@@ -335,9 +313,8 @@ const editor = useEditor({
 
 // 处理外部内容变化 (由协同或其他逻辑引起)
 watch(() => props.modelValue, (newVal) => {
-    const normalizedValue = normalizeMathMarkdown(newVal)
-    if (editor.value && normalizedValue !== ((editor.value.storage as any).markdown as any).getMarkdown()) {
-        editor.value.commands.setContent(normalizedValue, { emitUpdate: false } as any)
+    if (editor.value && newVal !== ((editor.value.storage as any).markdown as any).getMarkdown()) {
+        editor.value.commands.setContent(newVal, { emitUpdate: false } as any)
         hasUserInteracted.value = false
     }
     if (newVal !== plainTextValue.value) {
@@ -349,11 +326,14 @@ watch(() => props.modelValue, (newVal) => {
     }
 })
 
+watch(() => props.docId, cancelPendingInsertions, { flush: 'sync' })
+
 watch(() => props.isReadOnly, (newVal) => {
     editor.value?.setEditable(!newVal && !isPreviewMode.value)
 })
 
 onBeforeUnmount(() => {
+    cancelPendingInsertions()
     editor.value?.destroy()
 })
 
