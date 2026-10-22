@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, type Ref } from 'vue'
+import { onMounted, onBeforeUnmount, type Ref } from 'vue'
 import { buildCommonRequestHeaders } from '../../utils/requestHeaders'
 
 interface LifecycleDoc {
@@ -6,6 +6,8 @@ interface LifecycleDoc {
     name: string
     content: string
     type: string
+    paperBgColor?: string
+    paperBgImage?: string
 }
 
 interface UseDocumentEditorLifecycleOptions {
@@ -49,10 +51,12 @@ export const useDocumentEditorLifecycle = (options: UseDocumentEditorLifecycleOp
                 const snapshot = {
                     name: options.currentDoc.value.name,
                     content: options.currentDoc.value.content,
-                    type: options.currentDoc.value.type
+                    type: options.currentDoc.value.type,
+                    paperBgColor: options.currentDoc.value.paperBgColor,
+                    paperBgImage: options.currentDoc.value.paperBgImage
                 }
-                const url = `/api/kbs/${options.kbId.value}/documents/${options.currentDoc.value.id}`
-                if (typeof navigator.sendBeacon === 'function') {
+                const url = `/api/kb/${options.kbId.value}/documents/${options.currentDoc.value.id}`
+                if (typeof fetch === 'function') {
                     fetch(url, {
                         method: 'PUT',
                         headers: buildCommonRequestHeaders({ includeContentTypeJson: true }),
@@ -77,7 +81,8 @@ export const useDocumentEditorLifecycle = (options: UseDocumentEditorLifecycleOp
         window.addEventListener('beforeunload', handleBeforeUnload)
     })
 
-    onUnmounted(() => {
+    onBeforeUnmount(() => {
+        options.flushSaveAndDraft()
         window.removeEventListener('resize', options.updateIsMobile)
         window.removeEventListener('click', options.closeAllMenus)
         window.removeEventListener('keydown', handleKeyDown)

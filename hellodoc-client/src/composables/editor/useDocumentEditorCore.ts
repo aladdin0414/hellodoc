@@ -62,6 +62,8 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
     const LOCAL_DRAFT_DELAY_MS = 500
     let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
     let localDraftTimer: ReturnType<typeof setTimeout> | null = null
+    let disposed = false
+    let retryDelayMs = 5000
     let pendingSaveReason: 'manual' | 'auto' | null = null
 
     const hasUnsavedChanges = computed(() => {
@@ -174,6 +176,7 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
             paperBgImage: doc.paperBgImage
         }
 
+        saveDraftToLocal(doc)
         saving.value = true
         try {
             await updateDocument(options.kbId.value, snapshot.id, {
@@ -197,17 +200,36 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
             }
             lastSavedAt.value = Date.now()
             lastSaveReason.value = reason
-            clearLocalDraft(snapshot.id)
+            retryDelayMs = 5000
+            if (options.currentDoc.value?.id === snapshot.id && hasUnsavedChanges.value) {
+                saveDraftToLocal(options.currentDoc.value)
+            } else {
+                // A different document may be active now; preserve any newer draft.
+                try {
+                    const raw = localStorage.getItem(getLocalDraftKey(snapshot.id))
+                    const draft = raw ? JSON.parse(raw) as LocalDraftPayload : null
+                    if (draft && draft.name === snapshot.name && draft.content === snapshot.content &&
+                        (draft.paperBgColor || '') === (snapshot.paperBgColor || '') &&
+                        (draft.paperBgImage || '') === (snapshot.paperBgImage || '')) {
+                        clearLocalDraft(snapshot.id)
+                    }
+                } catch (error) {
+                    console.error('Check saved draft failed:', error)
+                }
+            }
             return true
         } catch (error) {
             console.error('Save failed:', error)
-            saveDraftToLocal({
-                id: snapshot.id,
-                name: snapshot.name,
-                content: snapshot.content,
-                paperBgColor: snapshot.paperBgColor,
-                paperBgImage: snapshot.paperBgImage
-            })
+            if (options.currentDoc.value?.id === snapshot.id) {
+                saveDraftToLocal(options.currentDoc.value)
+                if (!disposed) {
+                    if (autoSaveTimer) clearTimeout(autoSaveTimer)
+                    autoSaveTimer = setTimeout(() => {
+                        void saveDocument({ silent: true, reason: 'auto' })
+                    }, retryDelayMs)
+                    retryDelayMs = Math.min(retryDelayMs * 2, 30000)
+                }
+            }
             if (!silent) {
                 message.error(i18n.global.t('editor.saveFailed'))
             }
@@ -348,6 +370,7 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
     }
 
     const clearSaveTimers = () => {
+        disposed = true
         if (localDraftTimer) {
             clearTimeout(localDraftTimer)
             localDraftTimer = null
