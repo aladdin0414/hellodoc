@@ -21,11 +21,18 @@ import org.springframework.web.client.RestTemplate;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.CancellationException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.List;
+import com.nopkg.hellodoc.web.dto.ai.AiChatMessage;
 import java.util.function.Consumer;
 
 /**
@@ -40,15 +47,19 @@ public class AiService {
     private final AiModelRepository aiModelRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final AiStreamRuntime streams;
+    private final HttpClient streamingClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
     public AiService(AiProperties aiProperties,
                       ConfigService configService,
                       AiModelRepository aiModelRepository,
-                      ObjectMapper objectMapper) {
+                      ObjectMapper objectMapper,
+                      AiStreamRuntime streams) {
         this.aiProperties = aiProperties;
         this.configService = configService;
         this.aiModelRepository = aiModelRepository;
         this.objectMapper = objectMapper;
+        this.streams = streams;
         this.restTemplate = new RestTemplate();
     }
 
@@ -204,6 +215,10 @@ public class AiService {
      * 非流式同步调用大模型补全
      */
     public String getCompletion(String modelId, String context, String prompt, String lang) {
+        return getCompletion(modelId, context, prompt, lang, List.of());
+    }
+
+    public String getCompletion(String modelId, String context, String prompt, String lang, List<AiChatMessage> history) {
         ResolvedModelConfig config = resolveModelConfig(modelId);
 
         log.info("AI Completion Request - Model: {} ({}), URL: {}, Timeout: {}ms",
@@ -233,14 +248,7 @@ public class AiService {
             applyDisableThinking(body);
         }
 
-        ArrayNode messages = body.putArray("messages");
-        ObjectNode systemMsg = messages.addObject();
-        systemMsg.put("role", "system");
-        systemMsg.put("content", config.getAgentPrompt());
-
-        ObjectNode userMsg = messages.addObject();
-        userMsg.put("role", "user");
-        userMsg.put("content", buildUserContent(context, prompt, lang));
+        body.set("messages", buildMessages(config, context, prompt, lang, history));
 
         HttpEntity<String> request = new HttpEntity<>(body.toString(), headers);
 
@@ -283,6 +291,16 @@ public class AiService {
      * SSE 流式调用大模型补全
      */
     public void streamCompletion(String modelId, String context, String prompt, String lang, Consumer<String> onChunk) {
+        streamCompletion(modelId, context, prompt, lang, List.of(), new AiStreamControl(), onChunk);
+    }
+
+    public int getStreamTimeout(String modelId) {
+        int timeout = resolveModelConfig(modelId).getTimeout();
+        return timeout > 0 ? Math.min(timeout, 120000) : 60000;
+    }
+
+    public void streamCompletion(String modelId, String context, String prompt, String lang,
+                                 List<AiChatMessage> history, AiStreamControl control, Consumer<String> onChunk) {
         ResolvedModelConfig config = resolveModelConfig(modelId);
 
         log.info("AI Stream Request - Model: {} ({}), URL: {}",
@@ -293,17 +311,10 @@ public class AiService {
         }
 
         String url = config.getBaseUrl().replaceAll("/+$", "") + "/chat/completions";
-        HttpURLConnection connection = null;
+        InputStream responseBody = null;
+        int timeout = getStreamTimeout(modelId);
+        ScheduledFuture<?> expiry = streams.deadline(control::cancel, timeout);
         try {
-            URL endpoint = new URL(url);
-            connection = (HttpURLConnection) endpoint.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(0); // 避免长文本断流
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Authorization", "Bearer " + config.getApiKey());
-
             ObjectNode body = objectMapper.createObjectNode();
             body.put("model", config.getModelName());
             body.put("stream", true);
@@ -314,27 +325,25 @@ public class AiService {
                 applyDisableThinking(body);
             }
 
-            ArrayNode messages = body.putArray("messages");
-            ObjectNode systemMsg = messages.addObject();
-            systemMsg.put("role", "system");
-            systemMsg.put("content", config.getAgentPrompt());
+            body.set("messages", buildMessages(config, context, prompt, lang, history));
 
-            ObjectNode userMsg = messages.addObject();
-            userMsg.put("role", "user");
-            userMsg.put("content", buildUserContent(context, prompt, lang));
-
-            byte[] payload = body.toString().getBytes(StandardCharsets.UTF_8);
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(payload);
-            }
-
-            int statusCode = connection.getResponseCode();
+            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                    .timeout(Duration.ofMillis(timeout))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + config.getApiKey())
+                    .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8)).build();
+            CompletableFuture<HttpResponse<InputStream>> pending = streamingClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream());
+            control.attach(() -> pending.cancel(true));
+            HttpResponse<InputStream> response = pending.join();
+            responseBody = response.body();
+            InputStream stream = responseBody;
+            control.attach(() -> {
+                pending.cancel(true);
+                try { stream.close(); } catch (java.io.IOException ignored) { }
+            });
+            int statusCode = response.statusCode();
             if (statusCode < 200 || statusCode >= 300) {
-                InputStream errorStream = connection.getErrorStream();
-                String errorBody = "";
-                if (errorStream != null) {
-                    errorBody = new String(errorStream.readAllBytes(), StandardCharsets.UTF_8);
-                }
+                String errorBody = new String(responseBody.readAllBytes(), StandardCharsets.UTF_8);
                 String errorMsg = "AI API response exception: " + statusCode;
                 if (StringUtils.hasText(errorBody)) {
                     try {
@@ -348,64 +357,72 @@ public class AiService {
                 throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, errorMsg);
             }
 
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(responseBody, StandardCharsets.UTF_8))) {
                 String line;
-                boolean inThinkTag = false;
-                while ((line = reader.readLine()) != null) {
+                ThinkingStreamFilter filter = new ThinkingStreamFilter();
+                boolean completed = false;
+                while (!control.isCancelled() && (line = reader.readLine()) != null) {
                     String trimmed = line.trim();
                     if (!trimmed.startsWith("data:")) {
                         continue;
                     }
                     String jsonPayload = trimmed.substring(5).trim();
                     if ("[DONE]".equals(jsonPayload)) {
+                        completed = true;
                         break;
                     }
                     JsonNode root = objectMapper.readTree(jsonPayload);
-                    JsonNode contentNode = root.path("choices").path(0).path("delta").path("content");
+                    JsonNode choice = root.path("choices").path(0);
+                    if (!choice.path("finish_reason").isMissingNode() && !choice.path("finish_reason").isNull()) completed = true;
+                    JsonNode contentNode = choice.path("delta").path("content");
                     if (!contentNode.isMissingNode() && !contentNode.isNull()) {
                         String chunk = contentNode.asText();
                         if (chunk == null || chunk.isEmpty()) {
                             continue;
                         }
 
-                        // 过滤 <think> 思考标签
-                        if (chunk.contains("<think>")) {
-                            inThinkTag = true;
-                            chunk = chunk.substring(0, chunk.indexOf("<think>"));
-                        }
-                        if (inThinkTag) {
-                            if (chunk.contains("</think>")) {
-                                inThinkTag = false;
-                                chunk = chunk.substring(chunk.indexOf("</think>") + 8);
-                            } else {
-                                continue;
-                            }
-                        }
-
-                        // 剔除特殊停止符
-                        if (chunk.contains("<|im_end|>") || chunk.contains("<|endoftext|>")) {
-                            chunk = chunk.replaceAll("<\\|im_end\\|>|<\\|endoftext\\|>", "");
-                            if (!chunk.isEmpty()) {
-                                onChunk.accept(chunk);
-                            }
-                            break;
-                        }
-
-                        if (!chunk.isEmpty()) {
-                            onChunk.accept(chunk);
-                        }
+                        String visible = filter.accept(chunk);
+                        if (!visible.isEmpty()) onChunk.accept(visible);
+                        if (filter.isStopped()) { completed = true; break; }
                     }
                 }
+                if (control.isCancelled()) throw new CancellationException("AI generation cancelled or timed out");
+                String tail = filter.finish();
+                if (!tail.isEmpty()) onChunk.accept(tail);
+                if (!completed) throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "AI upstream response ended before completion");
             }
+
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
             throw new BusinessException(ApiResponse.Code.SYSTEM_ERROR, "Failed to stream AI response: " + e.getMessage());
         } finally {
-            if (connection != null) {
-                connection.disconnect();
+            expiry.cancel(false);
+            control.detach();
+            if (responseBody != null) {
+                try { responseBody.close(); } catch (java.io.IOException ignored) { }
             }
         }
+    }
+
+    private ArrayNode buildMessages(ResolvedModelConfig config, String context, String prompt, String lang, List<AiChatMessage> history) {
+        ArrayNode messages = objectMapper.createArrayNode();
+        messages.addObject().put("role", "system").put("content", config.getAgentPrompt());
+        if (history != null) {
+            int size = 0;
+            if (history.size() > 20) throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Too many conversation messages");
+            for (AiChatMessage entry : history) {
+                if (entry == null || !("user".equals(entry.getRole()) || "assistant".equals(entry.getRole()))
+                        || !StringUtils.hasText(entry.getContent()) || entry.getContent().length() > 32000) {
+                    throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Invalid conversation message");
+                }
+                size += entry.getContent().length();
+                if (size > 64000) throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Conversation history is too long");
+                messages.addObject().put("role", entry.getRole()).put("content", entry.getContent());
+            }
+        }
+        messages.addObject().put("role", "user").put("content", buildUserContent(context, prompt, lang));
+        return messages;
     }
 
     private void applyDisableThinking(ObjectNode body) {

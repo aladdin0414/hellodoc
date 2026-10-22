@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onBeforeUnmount } from 'vue'
 import 'katex/dist/katex.min.css'
 import { message } from '../../utils/message'
 import { useAiModels } from '../../composables/useAiModels'
-import { aiCompletionStream } from '../../api/ai'
+import { aiCompletionStream, type AiChatMessage } from '../../api/ai'
 import { renderMarkdownToHtml, formatChineseMarkdown } from '../../utils/markdown'
 
 const props = defineProps<{
   visible: boolean
   documentContext?: string
+  docId?: number
+  isReadOnly?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:visible', val: boolean): void
-  (e: 'insert-to-doc', content: string): void
+  (e: 'insert-to-doc', content: string, docId?: number): void
 }>()
 
 const { activeModels, currentModelId, fetchActiveModels, selectModel, selectedModel } = useAiModels()
@@ -24,12 +26,25 @@ interface ChatMessage {
   content: string
   modelName?: string
   loading?: boolean
+  status?: 'complete' | 'stopped' | 'error'
 }
 
 const messages = ref<ChatMessage[]>([])
 const inputPrompt = ref('')
 const isGenerating = ref(false)
 const messagesContainerRef = ref<HTMLDivElement | null>(null)
+let activeRequest: AbortController | null = null
+let messageSequence = 0
+const stopGeneration = () => activeRequest?.abort()
+const resetConversation = () => {
+  stopGeneration()
+  activeRequest = null
+  isGenerating.value = false
+  messages.value = []
+  inputPrompt.value = ''
+}
+onBeforeUnmount(stopGeneration)
+watch(() => props.docId, resetConversation, { flush: 'sync' })
 
 // 快捷开场白提问建议
 const quickSuggestions = [
@@ -48,6 +63,7 @@ const scrollToBottom = async () => {
 }
 
 const handleClose = () => {
+  stopGeneration()
   emit('update:visible', false)
 }
 
@@ -61,8 +77,21 @@ const handleSend = async () => {
   const prompt = inputPrompt.value.trim()
   if (!prompt || isGenerating.value) return
 
-  // 放入用户问题
-  const userMsgId = Date.now().toString()
+  // Include complete turns only; interrupted/error responses are not model context.
+  const history: AiChatMessage[] = []
+  for (let i = 0; i + 1 < messages.value.length; i += 2) {
+    const user = messages.value[i]!
+    const assistant = messages.value[i + 1]!
+    if (user.role === 'user' && assistant.role === 'assistant' && assistant.status === 'complete') {
+      history.push({ role: 'user', content: user.content }, { role: 'assistant', content: assistant.content.slice(0, 32000) })
+    }
+  }
+  while (history.length > 20 || history.reduce((sum, msg) => sum + msg.content.length, 0) > 64000) history.splice(0, 2)
+  const request = new AbortController()
+  activeRequest = request
+  const docId = props.docId
+  const isCurrent = () => activeRequest === request && props.docId === docId && !request.signal.aborted
+  const userMsgId = String(++messageSequence)
   messages.value.push({
     id: userMsgId,
     role: 'user',
@@ -71,7 +100,7 @@ const handleSend = async () => {
   inputPrompt.value = ''
 
   // 放入 AI 占位消息
-  const aiMsgId = (Date.now() + 1).toString()
+  const aiMsgId = String(++messageSequence)
   const currentModelName = selectedModel.value?.name || 'AI'
   messages.value.push({
     id: aiMsgId,
@@ -88,36 +117,44 @@ const handleSend = async () => {
     await aiCompletionStream({
       modelId: currentModelId.value || undefined,
       context: props.documentContext || '',
-      prompt: prompt
+      prompt: prompt,
+      history,
     }, {
       onModel: (model) => {
-        if (aiMsg && model) {
+        if (isCurrent() && aiMsg && model) {
           aiMsg.modelName = model
         }
       },
       onChunk: (chunk) => {
-        if (aiMsg) {
+        if (isCurrent() && aiMsg) {
           aiMsg.loading = false
           aiMsg.content += chunk
           scrollToBottom()
         }
       },
       onDone: () => {
-        if (aiMsg) {
+        if (isCurrent() && aiMsg) {
+          aiMsg.status = 'complete'
           aiMsg.loading = false
         }
       }
-    })
+    }, { signal: request.signal })
   } catch (err: any) {
-    message.error(err?.message || 'AI 回复生成中断')
+    if (activeRequest !== request) return
+    const interrupted = request.signal.aborted
+    if (!interrupted) message.error(err?.message || 'AI 回复生成中断')
     const aiMsg = messages.value.find(m => m.id === aiMsgId)
-    if (aiMsg && !aiMsg.content) {
-      aiMsg.content = `[生成出错: ${err?.message || '网络异常'}]`
+    if (aiMsg) {
+      aiMsg.status = interrupted ? 'stopped' : 'error'
       aiMsg.loading = false
+      if (!aiMsg.content) aiMsg.content = interrupted ? '已停止生成' : `[生成出错: ${err?.message || '网络异常'}]`
     }
   } finally {
-    isGenerating.value = false
-    await scrollToBottom()
+    if (activeRequest === request) {
+      activeRequest = null
+      isGenerating.value = false
+      await scrollToBottom()
+    }
   }
 }
 
@@ -139,15 +176,17 @@ const copyContent = async (text: string) => {
 
 // 插入到文档中
 const insertToDoc = (text: string) => {
+  if (props.isReadOnly || isGenerating.value) return
   const formatted = formatChineseMarkdown(text)
-  emit('insert-to-doc', formatted)
-  message.success('已插入到当前文档光标处')
+  emit('insert-to-doc', formatted, props.docId)
 }
 
 watch(() => props.visible, (val) => {
   if (val) {
     fetchActiveModels()
     scrollToBottom()
+  } else {
+    stopGeneration()
   }
 })
 </script>
@@ -187,6 +226,7 @@ watch(() => props.visible, (val) => {
             <!-- 模型切换选择器 -->
             <select
               :value="currentModelId"
+              :disabled="isGenerating"
               @change="selectModel(($event.target as HTMLSelectElement).value)"
               class="text-xs font-medium bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg px-2.5 py-1.5 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[150px] truncate shadow-sm"
               title="切换当前使用的大模型"
@@ -203,6 +243,7 @@ watch(() => props.visible, (val) => {
             <!-- 清空历史 -->
             <button
               @click="clearHistory"
+              :disabled="isGenerating"
               class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               title="清空对话"
             >
@@ -303,6 +344,8 @@ watch(() => props.visible, (val) => {
                   复制
                 </button>
                 <button
+                  v-if="msg.status === 'complete'"
+                  :disabled="isReadOnly || isGenerating"
                   @click="insertToDoc(msg.content)"
                   class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-medium"
                 >
@@ -321,6 +364,7 @@ watch(() => props.visible, (val) => {
           <div class="relative rounded-2xl border border-gray-200 dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-gray-50 dark:bg-gray-800/60 p-2 transition-all">
             <textarea
               v-model="inputPrompt"
+              maxlength="32000"
               rows="3"
               :disabled="isGenerating"
               @keydown.enter.exact.prevent="handleSend"
@@ -329,7 +373,8 @@ watch(() => props.visible, (val) => {
             ></textarea>
             <div class="flex items-center justify-between pt-1 px-1">
               <span class="text-[10px] text-gray-400">当前模型: {{ selectedModel?.name || '默认模型' }}</span>
-              <button
+              <button v-if="isGenerating" @click="stopGeneration" class="text-xs text-red-600 px-3 py-1.5">停止生成</button>
+              <button v-else
                 @click="handleSend"
                 :disabled="!inputPrompt.trim() || isGenerating"
                 class="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"

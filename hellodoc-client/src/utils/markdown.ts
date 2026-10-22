@@ -1,5 +1,6 @@
 import { marked } from 'marked'
 import katex from 'katex'
+import DOMPurify from 'dompurify'
 
 /**
  * 清除 Markdown 文本中的 [[toc]] 标签
@@ -221,7 +222,7 @@ export const renderMarkdownToHtml = (rawContent: string): string => {
     html = html.replace(/<div class="katex-block-placeholder" data-index="(\d+)"><\/div>/g, (_, idx) => mathHtmlList[Number(idx)] ?? '')
     html = html.replace(/<span class="katex-inline-placeholder" data-index="(\d+)"><\/span>/g, (_, idx) => mathHtmlList[Number(idx)] ?? '')
 
-    return html
+    return DOMPurify.sanitize(html, { FORBID_TAGS: ['style', 'form', 'input', 'textarea', 'button'] })
 }
 
 

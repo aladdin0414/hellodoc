@@ -1,6 +1,9 @@
 package com.nopkg.hellodoc.web.dto.ai;
 
 import lombok.Data;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+import java.util.List;
 
 /**
  * AI 补全/对话请求体
@@ -26,4 +29,8 @@ public class AiCompletionReq {
      * 语言偏好（如 zh-CN）
      */
     private String lang;
+
+    @Valid
+    @Size(max = 20)
+    private List<AiChatMessage> history;
 }

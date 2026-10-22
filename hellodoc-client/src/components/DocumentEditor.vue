@@ -87,8 +87,8 @@ const handleOpenAiAssistant = () => {
     }
 }
 
-const handleInsertAiContent = async (text: string) => {
-    if (!text) return
+const handleInsertAiContent = async (text: string, sourceDocId?: number) => {
+    if (!text || isReadOnlyByCollab.value || sourceDocId !== currentDoc.value?.id) return
     const cleanText = formatChineseMarkdown(text)
     if (contentPaneRef.value?.insertContent) {
         await contentPaneRef.value.insertContent(cleanText)
@@ -1069,6 +1069,8 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
     <AiAssistantDrawer
         :visible="showAiDrawer"
         :document-context="currentDoc?.content"
+        :doc-id="currentDoc?.id"
+        :is-read-only="isReadOnlyByCollab"
         @update:visible="showAiDrawer = $event"
         @insert-to-doc="handleInsertAiContent"
     />
