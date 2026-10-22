@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.1.7] - 2026-10-22
+
+- fix: secure AI assistant conversations and stream cancellation
+- fix: improve asset upload insertion tracking and remove markdown normalization in VisualEditor
+
 ## [v2.1.6] - 2026-10-21
 
 - chore: track package-lock.json by updating gitignore and adding lock file
