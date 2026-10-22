@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.1.8] - 2026-10-22
+
+- fix: use public npm URLs for reproducible CI installs
+
 ## [v2.1.7] - 2026-10-22
 
 - fix: secure AI assistant conversations and stream cancellation
