@@ -4,6 +4,7 @@ import { Text } from '@tiptap/extension-text'
 import HardBreak from '@tiptap/extension-hard-break'
 import { Paragraph } from '@tiptap/extension-paragraph'
 import { Heading } from '@tiptap/extension-heading'
+import { BulletList, OrderedList } from '@tiptap/extension-list'
 import Highlight from '@tiptap/extension-highlight'
 import { Table } from '@tiptap/extension-table'
 import { InlineMath, BlockMath } from '@tiptap/extension-mathematics'
@@ -83,6 +84,67 @@ export const MarkdownHeading = Heading.extend({
         return {
             markdown: {
                 serialize: serializeAlignedBlock(fallbackHeadingSerialize),
+            },
+        }
+    },
+})
+
+const hasFormattedList = (node: any) => {
+    let found = node.type.name === 'orderedList' && !!node.attrs.listFormat
+    node.descendants((child: any) => {
+        if (child.type.name === 'orderedList' && child.attrs.listFormat) found = true
+        return !found
+    })
+    return found
+}
+
+const serializeListAsHtml = (state: any, node: any) => {
+    state.write(getHTMLFromFragment(Fragment.from(node), node.type.schema))
+    state.closeBlock(node)
+}
+
+export const MarkdownBulletList = BulletList.extend({
+    addStorage() {
+        return {
+            markdown: {
+                serialize: (state: any, node: any) => {
+                    if (hasFormattedList(node)) return serializeListAsHtml(state, node)
+                    return state.renderList(node, '  ', () => '- ')
+                },
+                parse: {},
+            },
+        }
+    },
+})
+
+export const MarkdownOrderedList = OrderedList.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            listFormat: {
+                default: null,
+                parseHTML: element => ['decimal', 'paren', 'mixed', 'outline', 'circle'].includes(element.getAttribute('data-list-format') || '')
+                    ? element.getAttribute('data-list-format') : null,
+                renderHTML: attributes => attributes.listFormat ? { 'data-list-format': attributes.listFormat } : {},
+            },
+        }
+    },
+    addStorage() {
+        return {
+            markdown: {
+                serialize(state: any, node: any, parent: any, index: number) {
+                    if (hasFormattedList(node)) return serializeListAsHtml(state, node)
+                    const start = node.attrs.start || 1
+                    const width = String(start + node.childCount - 1).length
+                    let adjacent = 0
+                    while (index - adjacent > 0 && parent.child(index - adjacent - 1).type === node.type) adjacent++
+                    const separator = adjacent % 2 ? ') ' : '. '
+                    state.renderList(node, state.repeat(' ', width + 2), (i: number) => {
+                        const value = String(start + i)
+                        return state.repeat(' ', width - value.length) + value + separator
+                    })
+                },
+                parse: {},
             },
         }
     },

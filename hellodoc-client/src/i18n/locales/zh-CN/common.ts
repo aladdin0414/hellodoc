@@ -365,6 +365,7 @@ export default {
             heading6: '标题6',
             blockquote: '引用',
             bulletList: '无序列表',
+            listFormat: '列表编号格式',
             orderedList: '有序列表',
             taskList: '任务列表',
             inlineCode: '行内代码',

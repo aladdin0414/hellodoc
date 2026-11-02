@@ -56,10 +56,15 @@
     list-style-type: decimal;
 }
 
-/* 有序列表序号颜色 (次级灰色，如 1. 2. 3.) */
+/* 有序列表序号颜色 */
 .ProseMirror ol > li::marker {
     color: #64748b;
     font-weight: 500;
+}
+
+/* 嵌套有序列表使用右括号区分层级。 */
+.ProseMirror ol ol > li::marker {
+    content: counter(list-item) ") ";
 }
 
 .dark .ProseMirror ol > li::marker {

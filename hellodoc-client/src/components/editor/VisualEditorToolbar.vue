@@ -70,6 +70,23 @@ const onBlockTypeChange = (event: Event) => {
 
 const toggleBulletList = () => props.editor?.chain().focus().toggleBulletList().run()
 const toggleOrderedList = () => props.editor?.chain().focus().toggleOrderedList().run()
+const setOrderedListFormat = (event: Event) => {
+    const select = event.target as HTMLSelectElement
+    const format = select.value
+    select.value = ''
+    const editor = props.editor
+    if (!editor || !format) return
+    if (!editor.isActive('orderedList')) editor.chain().focus().toggleOrderedList().run()
+    const { $from } = editor.state.selection
+    for (let depth = 1; depth <= $from.depth; depth++) {
+        const node = $from.node(depth)
+        if (node.type.name === 'orderedList') {
+            editor.view.dispatch(editor.state.tr.setNodeMarkup($from.before(depth), undefined, { ...node.attrs, listFormat: format }))
+            editor.commands.focus()
+            break
+        }
+    }
+}
 const toggleTaskList = () => props.editor?.chain().focus().toggleTaskList().run()
 const toggleBlockquote = () => props.editor?.chain().focus().toggleBlockquote().run()
 const toggleCodeBlock = () => props.editor?.chain().focus().toggleCodeBlock().run()
@@ -289,6 +306,14 @@ defineExpose({ closeDropdowns })
             <button @click="toggleOrderedList" :class="{ 'is-active': editor.isActive('orderedList') }" :title="t('editor.toolbar.orderedList')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
             </button>
+            <select class="toolbar-btn list-format-select" :aria-label="t('editor.toolbar.listFormat')" :title="t('editor.toolbar.listFormat')" @change="setOrderedListFormat" @mousedown.stop>
+                <option value="" disabled hidden selected>{{ t('editor.toolbar.listFormat') }}</option>
+                <option value="decimal">1. / 1.</option>
+                <option value="paren">1. / 1)</option>
+                <option value="circle">1. / ◦</option>
+                <option value="mixed">1. / a. / i.</option>
+                <option value="outline">1. / 1.1 / 1.1.1</option>
+            </select>
             <button @click="toggleTaskList" :class="{ 'is-active': editor.isActive('taskList') }" :title="t('editor.toolbar.taskList')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="6" x="3" y="5" rx="1"/><path d="m3 17 2 2 4-4"/><line x1="13" x2="21" y1="6" y2="6"/><line x1="13" x2="21" y1="12" y2="12"/><line x1="13" x2="21" y1="18" y2="18"/></svg>
             </button>
@@ -437,6 +462,19 @@ defineExpose({ closeDropdowns })
 <style scoped>
 .toolbar-btn {
     @apply h-8 w-8 inline-flex items-center justify-center p-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200 font-bold text-xs leading-none;
+}
+.list-format-select {
+    appearance: none;
+    width: 24px;
+    color: transparent;
+    font-size: 0;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 16px no-repeat;
+    text-align: center;
+    cursor: pointer;
+}
+.list-format-select option {
+    color: #1e293b;
+    font-size: 14px;
 }
 .toolbar-btn.is-active {
     @apply bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400;

@@ -365,6 +365,7 @@ export default {
             heading6: 'Heading 6',
             blockquote: 'Blockquote',
             bulletList: 'Bullet List',
+            listFormat: 'List numbering format',
             orderedList: 'Ordered List',
             taskList: 'Task List',
             inlineCode: 'Inline Code',

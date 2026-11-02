@@ -417,3 +417,35 @@ div.github-theme li > p {
     border: 1px solid var(--md-border-color, #e2e8f0) !important;
 }
 
+
+/* 有序列表模板同时用于编辑器和 Markdown 预览。 */
+[data-list-format="decimal"][data-list-format] > li::marker,
+[data-list-format="decimal"][data-list-format] ol > li::marker { content: counter(list-item) ". "; }
+[data-list-format="paren"][data-list-format] > li::marker { content: counter(list-item) ". "; }
+[data-list-format="paren"][data-list-format] ol > li::marker { content: counter(list-item) ") "; }
+[data-list-format="mixed"][data-list-format] > li::marker { content: counter(list-item) ". "; }
+[data-list-format="mixed"][data-list-format] ol > li::marker { content: counter(list-item, lower-alpha) ". "; }
+[data-list-format="mixed"][data-list-format] ol ol > li::marker { content: counter(list-item, lower-roman) ". "; }
+[data-list-format="outline"][data-list-format] > li::marker,
+[data-list-format="outline"][data-list-format] ol > li::marker { content: counters(list-item, ".") ". "; }
+
+[data-list-format="circle"][data-list-format] > li::marker { content: counter(list-item) ". "; }
+[data-list-format="circle"][data-list-format] ol { list-style-type: circle !important; }
+[data-list-format="circle"][data-list-format] ol > li::marker {
+    content: normal;
+    color: #94a3b8;
+    font-weight: normal;
+}
+.dark [data-list-format="circle"][data-list-format] ol > li::marker { color: #64748b; }
+
+/* 有序列表嵌套在无序列表时，从模板的第二级开始显示。 */
+ul > li > ol[data-list-format="paren"][data-list-format] > li::marker { content: counter(list-item) ") "; }
+ul > li > ol[data-list-format="mixed"][data-list-format] > li::marker { content: counter(list-item, lower-alpha) ". "; }
+ul > li > ol[data-list-format="mixed"][data-list-format] ol > li::marker { content: counter(list-item, lower-roman) ". "; }
+ul > li > ol[data-list-format="circle"][data-list-format] { list-style-type: circle !important; }
+ul > li > ol[data-list-format="circle"][data-list-format] > li::marker {
+    content: normal;
+    color: #94a3b8;
+    font-weight: normal;
+}
+.dark ul > li > ol[data-list-format="circle"][data-list-format] > li::marker { color: #64748b; }

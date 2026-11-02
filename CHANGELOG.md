@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.1.9] - 2026-11-02
+
+- fix: improve autosave retry logic, local draft preservation, and lifecycle cleanup
+- ci: migrate actions to Node 24 and pin Ubuntu runner
+- 改进可视化编辑器多级列表格式选择及嵌套列表保存。
+
 ## [v2.1.8] - 2026-10-22
 
 - fix: use public npm URLs for reproducible CI installs

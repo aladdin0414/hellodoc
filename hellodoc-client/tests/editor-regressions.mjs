@@ -180,3 +180,33 @@ test('heading and bullet input rules still trigger when typing a space', async (
     } finally { context.close() }
 })
 await rm(output, { force: true })
+
+test('ordered list format survives Markdown serialization and reload', async () => {
+    const context = await mount('1. first\n2. second')
+    try {
+        context.editor.commands.setTextSelection(3)
+        for (const format of ['mixed', 'circle']) {
+            context.editor.commands.updateAttributes('orderedList', { listFormat: format })
+            const saved = context.editor.storage.markdown.getMarkdown()
+            assert.ok(saved.includes(`data-list-format="${format}"`))
+            context.editor.commands.setContent(saved)
+            assert.equal(context.editor.state.doc.firstChild.attrs.listFormat, format)
+            assert.equal(context.editor.state.doc.textContent, 'firstsecond')
+        }
+    } finally { context.close() }
+})
+
+test('formatted ordered list inside a bullet survives serialization', async () => {
+    const context = await mount('- parent\n  1. child\n  2. another\n- next')
+    try {
+        let position
+        context.editor.state.doc.descendants((node, pos) => { if (node.type.name === 'orderedList') position = pos })
+        assert.notEqual(position, undefined)
+        context.editor.commands.setTextSelection(position + 3)
+        context.editor.commands.updateAttributes('orderedList', { listFormat: 'circle' })
+        const before = context.editor.getJSON()
+        const saved = context.editor.storage.markdown.getMarkdown()
+        context.editor.commands.setContent(saved)
+        assert.deepEqual(context.editor.getJSON(), before, saved)
+    } finally { context.close() }
+})
