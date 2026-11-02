@@ -45,6 +45,9 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
     implementation 'org.mindrot:jbcrypt:0.4'
 
+    implementation 'io.modelcontextprotocol.sdk:mcp-core:1.1.5'
+    implementation 'io.modelcontextprotocol.sdk:mcp-json-jackson2:1.1.5'
+
     // Markdown & HTML & Diff Processing
     implementation 'com.vladsch.flexmark:flexmark-all:0.64.8'
     implementation 'org.jsoup:jsoup:1.18.3'

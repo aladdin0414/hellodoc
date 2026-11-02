@@ -199,7 +199,12 @@ public class DocumentServiceTest {
             return d;
         });
 
-        KbDocument duplicatedRoot = documentService.duplicate(userId, kbId, rootId);
+        KbDocument duplicatedRoot;
+        try (var messages = mockStatic(com.nopkg.hellodoc.utils.MessageUtils.class)) {
+            messages.when(() -> com.nopkg.hellodoc.utils.MessageUtils.get("doc.copy_suffix", "Copy"))
+                    .thenReturn("副本");
+            duplicatedRoot = documentService.duplicate(userId, kbId, rootId);
+        }
 
         assertNotNull(duplicatedRoot);
         assertEquals("Root (副本)", duplicatedRoot.getName());
