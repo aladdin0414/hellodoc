@@ -1,6 +1,6 @@
 {
   "name": "hellodoc-workspace",
-  "version": "2.1.9",
+  "version": "2.2.0",
   "private": true,
   "description": "hellodoc monorepo workspace",
   "scripts": {

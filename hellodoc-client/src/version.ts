@@ -1,11 +1,11 @@
 // 本文件由 scripts/release.js 自动生成，请勿手动修改
-export const APP_VERSION = '2.1.9';
-export const BUILD_TIME = '2026/11/2 18:31:13';
-export const GIT_COMMIT = 'ee4977c';
+export const APP_VERSION = '2.2.0';
+export const BUILD_TIME = '2026/11/2 22:48:50';
+export const GIT_COMMIT = 'c3aa26c';
 export const RELEASE_NOTES: string[] = [
-  "fix: improve autosave retry logic, local draft preservation, and lifecycle cleanup",
-  "ci: migrate actions to Node 24 and pin Ubuntu runner",
-  "改进可视化编辑器多级列表格式选择及嵌套列表保存。"
+  "新增 MCP 接口，支持 AI 按事项归档 Markdown 文档。",
+  "新增本地 MCP 桥接程序，复用现有账号并支持知识库范围配置。",
+  "支持并发请求防重、超时结果查询与现有知识库权限校验。"
 ];
 
 export default {

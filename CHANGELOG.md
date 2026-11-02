@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.2.0] - 2026-11-02
+
+- 新增 MCP 接口，支持 AI 按事项归档 Markdown 文档。
+- 新增本地 MCP 桥接程序，复用现有账号并支持知识库范围配置。
+- 支持并发请求防重、超时结果查询与现有知识库权限校验。
+
 ## [v2.1.9] - 2026-11-02
 
 - fix: improve autosave retry logic, local draft preservation, and lifecycle cleanup
