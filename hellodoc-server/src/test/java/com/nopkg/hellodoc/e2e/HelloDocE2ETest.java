@@ -63,7 +63,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class HelloDocE2ETest {
 
     private static final Path UPLOAD_DIR = Paths.get("build", "test-uploads-e2e");
-    private static final Path APD_DOC_PATH = Paths.get("/Users/liyc/code/github-me/hellodoc/api-doc/api-doc.md");
+    private static final Path APD_DOC_PATH = Paths.get("build", "test-api-doc", "api-doc.md");
 
     @Autowired
     private MockMvc mockMvc;

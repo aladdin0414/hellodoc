@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
 // 项目根目录
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -350,11 +350,15 @@ async function main() {
     const tagMsgBody = releaseNotes.map((n) => `- ${n}`).join('\n');
     const fullTagMsg = tagMsgHeader + tagMsgBody;
 
-    execSync('git add .', { cwd: ROOT_DIR });
-    execSync(`git commit -m "${commitMsg}"`, { cwd: ROOT_DIR });
+    const releaseFiles = [ROOT_PKG_PATH, CLIENT_PKG_PATH, DESKTOP_PKG_PATH,
+      SERVER_GRADLE_PATH, CLIENT_VERSION_TS_PATH, CHANGELOG_PATH]
+      .filter((file) => fs.existsSync(file))
+      .map((file) => path.relative(ROOT_DIR, file));
+    execFileSync('git', ['add', '--', ...releaseFiles], { cwd: ROOT_DIR });
+    execFileSync('git', ['commit', '--only', '-m', commitMsg, '--', ...releaseFiles], { cwd: ROOT_DIR });
 
     // 使用临时文件处理多行 Git Tag 消息
-    const tempTagMsgPath = path.join(ROOT_DIR, '.git', 'RELEASE_TAG_MSG_TMP');
+    const tempTagMsgPath = execFileSync('git', ['rev-parse', '--git-path', 'RELEASE_TAG_MSG_TMP'], { cwd: ROOT_DIR, encoding: 'utf8' }).trim();
     fs.writeFileSync(tempTagMsgPath, fullTagMsg, 'utf-8');
     try {
       execSync(`git tag -a "v${targetVersion}" -F "${tempTagMsgPath}"`, { cwd: ROOT_DIR });
@@ -369,7 +373,7 @@ async function main() {
     execSync('git push origin HEAD --follow-tags', { cwd: ROOT_DIR, stdio: 'inherit' });
     console.log(colors.green(`  ✓ 远程 Gitea 代码及 Tag (v${targetVersion}) 推送成功！`));
   } catch (e) {
-    console.log(colors.yellow(`  ! Git 自动提交或推送跳过/未变动 (${e.message})`));
+    throw new Error(`Git 提交、打标签或推送失败: ${e.message}`, { cause: e });
   }
 
   console.log(colors.bold('\n[4/4] 发版流程全部完成！🎉'));

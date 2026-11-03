@@ -1,154 +1,85 @@
 package com.nopkg.hellodoc.e2e;
 
-import com.nopkg.hellodoc.web.ApiResponse;
-import org.junit.jupiter.api.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nopkg.hellodoc.entities.SysUser;
+import com.nopkg.hellodoc.entities.SysUserAuth;
+import com.nopkg.hellodoc.repositories.UserRepository;
+import com.nopkg.hellodoc.repositories.UserAuthRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.HashMap;
+import java.time.Instant;
 import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
 
-@Disabled("Requires a real server running on http://localhost:8080")
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class RealApiFullE2ETest {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class RealApiFullE2ETest {
+    @LocalServerPort int port;
+    @Autowired UserRepository users;
+    @Autowired UserAuthRepository auths;
+    @Autowired PasswordEncoder encoder;
+    @Autowired ObjectMapper mapper;
+    private final RestTemplate http = new RestTemplate();
 
-        private final String BASE_URL = "http://localhost:8080";
-        private final RestTemplate restTemplate = new RestTemplate();
-
-        private String adminToken;
-        private String userToken;
-        private Long kbId;
-        private Long docId;
-        private String username = "e2e_user_" + System.currentTimeMillis();
-
-        @Test
-        @Order(1)
-        @DisplayName("Step 1: Admin Login & System Config Check")
-        void step1_adminFlow() {
-                Map<String, String> loginReq = new HashMap<>();
-                loginReq.put("username", "admin");
-                loginReq.put("password", "admin123");
-
-                ApiResponse<Map<String, Object>> res = restTemplate.exchange(
-                                BASE_URL + "/api/auth/login", HttpMethod.POST, new HttpEntity<>(loginReq),
-                                new org.springframework.core.ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {
-                                }).getBody();
-
-                assertNotNull(res);
-                assertEquals(0, res.getCode());
-                adminToken = (String) res.getData().get("accessToken");
-                assertNotNull(adminToken);
-
-                ApiResponse<Object> dictRes = restTemplate.exchange(
-                                BASE_URL + "/api/public/configs/frontend", HttpMethod.GET, null,
-                                new org.springframework.core.ParameterizedTypeReference<ApiResponse<Object>>() {
-                                }).getBody();
-                assertNotNull(dictRes);
-                assertEquals(0, dictRes.getCode());
-        }
-
-        @Test
-        @Order(2)
-        @DisplayName("Step 2: User Register & Login")
-        void step2_userAuthFlow() {
-                Map<String, String> regReq = new HashMap<>();
-                regReq.put("username", username);
-                regReq.put("password", "111111");
-                regReq.put("nickname", "E2E User");
-
-                ApiResponse<Object> regRes = restTemplate.exchange(
-                                BASE_URL + "/api/auth/register", HttpMethod.POST, new HttpEntity<>(regReq),
-                                new org.springframework.core.ParameterizedTypeReference<ApiResponse<Object>>() {
-                                }).getBody();
-                assertNotNull(regRes);
-                assertEquals(0, regRes.getCode());
-
-                Map<String, String> loginReq = new HashMap<>();
-                loginReq.put("username", username);
-                loginReq.put("password", "111111");
-
-                ApiResponse<Map<String, Object>> loginRes = restTemplate.exchange(
-                                BASE_URL + "/api/auth/login", HttpMethod.POST, new HttpEntity<>(loginReq),
-                                new org.springframework.core.ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {
-                                }).getBody();
-                assertNotNull(loginRes);
-                assertEquals(0, loginRes.getCode());
-                userToken = (String) loginRes.getData().get("accessToken");
-                assertNotNull(userToken);
-        }
-
-        @Test
-        @Order(3)
-        @DisplayName("Step 3: KB & Document Creation")
-        void step3_contentFlow() {
-                HttpHeaders headers = new HttpHeaders();
-                headers.setBearerAuth(userToken);
-                headers.setContentType(MediaType.APPLICATION_JSON);
-
-                // Explicitly using lowercase "private" to avoid enum serialization issues
-                String kbJson = String.format("{\"title\":\"E2E KB %s\", \"visibility\":\"private\"}", username);
-
-                HttpEntity<String> entity = new HttpEntity<>(kbJson, headers);
-                ApiResponse<Map<String, Object>> kbRes = restTemplate.exchange(
-                                BASE_URL + "/api/kb/createKnowledgeBase", HttpMethod.POST, entity,
-                                new org.springframework.core.ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {
-                                }).getBody();
-
-                assertNotNull(kbRes);
-                if (kbRes.getCode() != 0) {
-                        System.err.println("KB Create Failed: " + kbRes.getMessage());
-                }
-                assertEquals(0, kbRes.getCode());
-                kbId = Long.valueOf(kbRes.getData().get("id").toString());
-
-                Map<String, String> docReq = new HashMap<>();
-                docReq.put("name", "E2E Doc");
-                docReq.put("type", "file");
-                docReq.put("content", "Initial Content [[link]]");
-
-                HttpEntity<Map<String, String>> docEntity = new HttpEntity<>(docReq, headers);
-                ApiResponse<Map<String, Object>> docRes = restTemplate.exchange(
-                                BASE_URL + "/api/kb/" + kbId + "/documents", HttpMethod.POST, docEntity,
-                                new org.springframework.core.ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {
-                                }).getBody();
-                if (docRes.getCode() != 0) {
-                        System.err.println("Doc Create Failed: " + docRes.getMessage());
-                }
-                assertEquals(0, docRes.getCode());
-                docId = Long.valueOf(docRes.getData().get("id").toString());
-        }
-
-        @Test
-        @Order(4)
-        @DisplayName("Step 4: Update, Revision & Cleanup")
-        void step4_revisionAndCleanup() {
-                HttpHeaders headers = new HttpHeaders();
-                headers.setBearerAuth(userToken);
-                headers.setContentType(MediaType.APPLICATION_JSON);
-
-                Map<String, String> updateReq = new HashMap<>();
-                updateReq.put("content", "Updated Content");
-                HttpEntity<Map<String, String>> updateEntity = new HttpEntity<>(updateReq, headers);
-                restTemplate.exchange(BASE_URL + "/api/kb/" + kbId + "/documents/" + docId, HttpMethod.PUT,
-                                updateEntity,
-                                ApiResponse.class);
-
-                Map<String, String> revReq = new HashMap<>();
-                revReq.put("content", "Revision Content");
-                revReq.put("message", "v1.0");
-                HttpEntity<Map<String, String>> revEntity = new HttpEntity<>(revReq, headers);
-                ApiResponse<Map<String, Object>> revRes = restTemplate.exchange(
-                                BASE_URL + "/api/kb/" + kbId + "/documents/" + docId + "/revisions", HttpMethod.POST,
-                                revEntity,
-                                new org.springframework.core.ParameterizedTypeReference<ApiResponse<Map<String, Object>>>() {
-                                }).getBody();
-                assertNotNull(revRes);
-                assertEquals(0, revRes.getCode());
-
-                restTemplate.exchange(BASE_URL + "/api/kb/" + kbId, HttpMethod.DELETE, new HttpEntity<>(headers),
-                                ApiResponse.class);
-        }
+    @Test void realHttpRegistrationDocumentVersionAndRevisionFlow() throws Exception {
+        SysUser admin = new SysUser();
+        admin.setNickname("e2e_admin"); admin.setStatus((short) 0);
+        admin.setCreateTime(Instant.now()); admin.setUpdateTime(Instant.now());
+        admin = users.save(admin);
+        SysUserAuth auth = new SysUserAuth();
+        auth.setUser(admin); auth.setIdentityType("PASSWORD"); auth.setIdentifier("e2e_admin");
+        auth.setCredential(encoder.encode("e2e-test-password")); auth.setStatus((short) 0);
+        auth.setVerified(true); auth.setCreateTime(Instant.now()); auths.save(auth);
+        assertFalse(login("e2e_admin", "e2e-test-password").isBlank());
+        JsonNode config = request(HttpMethod.GET, "/api/public/configs/frontend", null, null);
+        assertEquals(0, config.path("code").asInt());
+        String username = "e2e_" + System.nanoTime();
+        JsonNode registration = request(HttpMethod.POST, "/api/auth/register", null,
+                Map.of("username", username, "password", "111111", "nickname", "E2E User"));
+        assertEquals(0, registration.path("code").asInt(), registration.toString());
+        String token = login(username, "111111");
+        JsonNode kb = request(HttpMethod.POST, "/api/kb/createKnowledgeBase", token,
+                Map.of("title", "E2E KB", "visibility", "private"));
+        assertEquals(0, kb.path("code").asInt(), kb.toString());
+        long kbId = kb.path("data").path("id").asLong();
+        JsonNode created = request(HttpMethod.POST, "/api/kb/" + kbId + "/documents", token,
+                Map.of("name", "E2E Doc", "type", "file", "content", "Initial Content"));
+        assertEquals(0, created.path("code").asInt(), created.toString());
+        long docId = created.path("data").path("id").asLong();
+        int version = created.path("data").path("version").asInt();
+        String doc = "/api/kb/" + kbId + "/documents/" + docId;
+        JsonNode missingVersion = request(HttpMethod.PUT, doc, token, Map.of("content", "Unversioned"));
+        assertEquals(1015, missingVersion.path("code").asInt(), missingVersion.toString());
+        JsonNode updated = request(HttpMethod.PUT, doc, token, Map.of("content", "Updated Content", "expectedVersion", version));
+        assertEquals(0, updated.path("code").asInt(), updated.toString());
+        int updatedVersion = updated.path("data").path("version").asInt();
+        assertTrue(updatedVersion > version);
+        JsonNode stale = request(HttpMethod.PUT, doc, token, Map.of("content", "Stale Content", "expectedVersion", version));
+        assertEquals(1014, stale.path("code").asInt(), stale.toString());
+        JsonNode revision = request(HttpMethod.POST, doc + "/revisions", token,
+                Map.of("content", "Revision Content", "message", "v1.0", "expectedVersion", updatedVersion));
+        assertEquals(0, revision.path("code").asInt(), revision.toString());
+        JsonNode fetched = request(HttpMethod.GET, doc, token, null);
+        assertEquals(0, fetched.path("code").asInt(), fetched.toString());
+        assertEquals("Revision Content", fetched.path("data").path("content").asText());
+        JsonNode deleted = request(HttpMethod.DELETE, "/api/kb/" + kbId, token, null);
+        assertEquals(0, deleted.path("code").asInt(), deleted.toString());
+    }
+    private String login(String username, String password) throws Exception {
+        JsonNode result = request(HttpMethod.POST, "/api/auth/login", null, Map.of("username", username, "password", password));
+        assertEquals(0, result.path("code").asInt(), result.toString());
+        return result.path("data").path("accessToken").asText();
+    }
+    private JsonNode request(HttpMethod method, String path, String token, Object body) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (token != null) headers.setBearerAuth(token);
+        ResponseEntity<String> response = http.exchange("http://127.0.0.1:" + port + path, method, new HttpEntity<>(body, headers), String.class);
+        return mapper.readTree(response.getBody());
+    }
 }
