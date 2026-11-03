@@ -3,14 +3,14 @@ import { getRevisionHistory, getRevisionContent, restoreRevision } from '../../a
 import { message } from '../../utils/message'
 import { i18n } from '../../i18n'
 
-interface UseDocumentRevisionsOptions<TDoc extends { id: number; content?: string }> {
+interface UseDocumentRevisionsOptions<TDoc extends { id: number; content?: string; version: number }> {
     currentDoc: Ref<TDoc | null>
     loadDocumentById: (docId: number, options?: { navigate?: boolean; optimisticActive?: boolean }) => Promise<any>
     showRevisions: Ref<boolean>
     showDiffModal: Ref<boolean>
 }
 
-export const useDocumentRevisions = <TDoc extends { id: number; content?: string }>(
+export const useDocumentRevisions = <TDoc extends { id: number; content?: string; version: number }>(
     options: UseDocumentRevisionsOptions<TDoc>
 ) => {
     const showRevisions = options.showRevisions
@@ -85,7 +85,7 @@ export const useDocumentRevisions = <TDoc extends { id: number; content?: string
     const handleRestoreRevision = async () => {
         if (!options.currentDoc.value || !selectedRevision.value) return
         try {
-            await restoreRevision(options.currentDoc.value.id, selectedRevision.value.version)
+            await restoreRevision(options.currentDoc.value.id, selectedRevision.value.version, options.currentDoc.value.version)
             message.success(i18n.global.t('editor.restoredVersion', { version: selectedRevision.value.version }))
             showDiffModal.value = false
             showRevisions.value = false

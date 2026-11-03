@@ -44,7 +44,7 @@ async function main() {
   server.setRequestHandler(CallToolRequestSchema, async request => {
     if (!allowed.has(request.params.name)) throw new Error('Unsupported HelloDoc tool.');
     const result = await remote.callTool({ name: request.params.name, arguments: prepareToolArguments(request.params.name, request.params.arguments ?? {}, kb) });
-    if (['create_document', 'search_documents', 'read_document'].includes(request.params.name)) {
+    if (['create_document', 'search_documents', 'read_document', 'update_document'].includes(request.params.name)) {
       addSourceUrls(result, base);
     }
     return result;

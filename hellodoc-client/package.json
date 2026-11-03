@@ -8,7 +8,10 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "test:editor": "node --test tests/editor-regressions.mjs",
-    "test:ai": "node --test tests/ai-regressions.mjs"
+    "test:ai": "node --test tests/ai-regressions.mjs",
+    "test:autosave": "node --test tests/autosave-regressions.mjs",
+    "test:mobile-version": "node --test tests/mobile-version-regressions.mjs",
+    "test:lifecycle-version": "node --test tests/editor-lifecycle-version.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",

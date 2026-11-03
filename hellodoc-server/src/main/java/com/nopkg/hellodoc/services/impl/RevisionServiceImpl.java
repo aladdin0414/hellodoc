@@ -31,6 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class RevisionServiceImpl implements RevisionService {
+    @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
     private final KbDocumentRevisionRepository revisionRepository;
     private final KbDocumentRepository documentRepository;
@@ -45,7 +46,7 @@ public class RevisionServiceImpl implements RevisionService {
         if (docId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("doc.id_cannot_be_empty", "docId cannot be empty"));
         }
-        KbDocument doc = documentRepository.findById(docId)
+        KbDocument doc = documentRepository.findByIdForUpdate(docId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
 
         Integer maxVersion = revisionRepository.findTopByDocIdOrderByVersionDesc(docId)
@@ -124,7 +125,13 @@ public class RevisionServiceImpl implements RevisionService {
 
     @Override
     @Transactional
-    public void restoreRevision(Long docId, Integer version, Long userId) {
+    public void restoreRevision(Long docId, Integer version, Long userId, Integer expectedVersion) {
+        KbDocument locked = documentRepository.findByIdForUpdate(docId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
+        entityManager.refresh(locked, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        if (expectedVersion == null) throw new BusinessException(ApiResponse.Code.VERSION_REQUIRED);
+        if (!expectedVersion.equals(locked.getCurrentVersion() == null ? 0 : locked.getCurrentVersion()))
+            throw new BusinessException(ApiResponse.Code.VERSION_CONFLICT);
         String content = getRevisionContent(docId, version);
         KbDocumentRevision restored = createRevision(docId, content, RevisionType.RESTORE,
                 "Restored from version " + version, userId);

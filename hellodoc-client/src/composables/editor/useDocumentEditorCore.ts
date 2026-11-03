@@ -19,6 +19,7 @@ export interface EditorDocListItem {
 
 export interface EditorDocDetail extends EditorDocListItem {
     content: string
+    version: number
 }
 
 export type SaveReason = 'manual' | 'auto' | 'lifecycle'
@@ -29,6 +30,7 @@ interface LocalDraftPayload {
     paperBgColor?: string
     paperBgImage?: string
     savedAt: number
+    version?: number
 }
 
 interface UseDocumentEditorCoreOptions {
@@ -64,6 +66,8 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
     let localDraftTimer: ReturnType<typeof setTimeout> | null = null
     let disposed = false
     let retryDelayMs = 5000
+    const conflictedDocId = ref<number | null>(null)
+    let conflictedBaseVersion: number | undefined
     let pendingSaveReason: 'manual' | 'auto' | null = null
 
     const hasUnsavedChanges = computed(() => {
@@ -98,7 +102,8 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
                 content: doc.content || '',
                 paperBgColor: doc.paperBgColor || '',
                 paperBgImage: doc.paperBgImage || '',
-                savedAt: Date.now()
+                savedAt: Date.now(),
+                version: conflictedDocId.value === doc.id ? conflictedBaseVersion : (doc as EditorDocDetail).version
             }
             localStorage.setItem(getLocalDraftKey(doc.id), JSON.stringify(payload))
         } catch (error) {
@@ -121,11 +126,6 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
             const raw = localStorage.getItem(getLocalDraftKey(doc.id))
             if (!raw) return
             const payload = JSON.parse(raw) as LocalDraftPayload
-            const serverUpdatedAt = Date.parse(String((doc as any)?.updatedAt || ''))
-            if (Number.isFinite(serverUpdatedAt) && (payload?.savedAt ?? 0) <= serverUpdatedAt) {
-                clearLocalDraft(doc.id)
-                return
-            }
             const localName = payload?.name ?? ''
             const localContent = payload?.content ?? ''
             const hasPaperBgColor = Object.prototype.hasOwnProperty.call(payload, 'paperBgColor')
@@ -144,7 +144,13 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
             doc.content = localContent
             doc.paperBgColor = localPaperBgColor
             doc.paperBgImage = localPaperBgImage
-            message.warning(i18n.global.t('editor.localDraftRestored'))
+            if (payload.version !== doc.version) {
+                conflictedDocId.value = doc.id
+                conflictedBaseVersion = payload.version
+                message.warning(i18n.global.t('error.versionConflict'))
+            } else {
+                message.warning(i18n.global.t('editor.localDraftRestored'))
+            }
         } catch (error) {
             console.error('Restore local draft failed:', error)
         }
@@ -156,6 +162,11 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
         const doc = options.currentDoc.value
         if (!doc) return false
         if (docLoading.value) return false
+        if (conflictedDocId.value === doc.id) {
+            saveDraftToLocal(doc)
+            if (!silent) message.error(i18n.global.t('error.versionConflict'))
+            return false
+        }
         if (!hasUnsavedChanges.value) {
             clearLocalDraft(doc.id)
             return true
@@ -172,6 +183,7 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
             name: doc.name,
             content: doc.content,
             type: doc.type,
+            version: doc.version,
             paperBgColor: doc.paperBgColor,
             paperBgImage: doc.paperBgImage
         }
@@ -179,7 +191,8 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
         saveDraftToLocal(doc)
         saving.value = true
         try {
-            await updateDocument(options.kbId.value, snapshot.id, {
+            const saved: any = await updateDocument(options.kbId.value, snapshot.id, {
+                expectedVersion: snapshot.version,
                 name: snapshot.name,
                 content: snapshot.content,
                 type: snapshot.type,
@@ -187,12 +200,14 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
                 paperBgImage: snapshot.paperBgImage
             })
 
+            if (typeof saved?.version !== 'number') throw new Error('Server returned no document version')
             const index = options.documents.value.findIndex(d => d.id === snapshot.id)
             if (index !== -1 && options.documents.value[index]) {
                 options.documents.value[index].name = snapshot.name
             }
 
             if (options.currentDoc.value && options.currentDoc.value.id === snapshot.id) {
+                options.currentDoc.value.version = saved.version
                 originalDocContent.value = snapshot.content || ''
                 originalDocName.value = snapshot.name
                 originalDocPaperBgColor.value = snapshot.paperBgColor || ''
@@ -222,7 +237,12 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
             console.error('Save failed:', error)
             if (options.currentDoc.value?.id === snapshot.id) {
                 saveDraftToLocal(options.currentDoc.value)
-                if (!disposed) {
+                if ((error as { code?: number })?.code === 1014 || (error as { code?: number })?.code === 1015) {
+                    conflictedDocId.value = snapshot.id
+                    conflictedBaseVersion = snapshot.version
+                    pendingSaveReason = null
+                    message.warning(i18n.global.t('error.versionConflict'))
+                } else if (!disposed) {
                     if (autoSaveTimer) clearTimeout(autoSaveTimer)
                     autoSaveTimer = setTimeout(() => {
                         void saveDocument({ silent: true, reason: 'auto' })
@@ -261,6 +281,7 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
             const data: any = await getDocumentDetail(options.kbId.value, docId)
             if (requestId !== latestDocLoadRequestId.value) return null
             options.currentDoc.value = data
+            conflictedDocId.value = null
             setOriginalFromDoc(data)
             lastSavedAt.value = null
             lastSaveReason.value = null
@@ -321,7 +342,11 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
         const doc = options.currentDoc.value
         if (!doc || doc.type !== 'file') return false
         if (docLoading.value) return false
-        if (!force && hasUnsavedChanges.value) return false
+        if (hasUnsavedChanges.value) {
+            saveDraftToLocal(doc)
+            if (force) message.warning(i18n.global.t('error.versionConflict'))
+            return false
+        }
 
         const requestId = ++latestDocSyncRequestId.value
         try {
@@ -329,6 +354,7 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
             if (requestId !== latestDocSyncRequestId.value) return false
             if (!options.currentDoc.value || options.currentDoc.value.id !== doc.id) return false
             options.currentDoc.value = data
+            conflictedDocId.value = null
             setOriginalFromDoc(data)
             return true
         } catch (error) {
@@ -340,9 +366,38 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
         }
     }
 
+    const versionConflict = computed(() => !!options.currentDoc.value && conflictedDocId.value === options.currentDoc.value.id)
+    const discardConflictingDraftAndReload = async () => {
+        const id = options.currentDoc.value?.id
+        if (!id || !versionConflict.value || !options.currentDoc.value) return false
+        const prior = { name: options.currentDoc.value.name, content: options.currentDoc.value.content,
+            paperBgColor: options.currentDoc.value.paperBgColor, paperBgImage: options.currentDoc.value.paperBgImage }
+        try {
+            const data: any = await getDocumentDetail(options.kbId.value, id)
+            const current = options.currentDoc.value
+            if (current?.id !== id || !versionConflict.value) return false
+            if (current.name !== prior.name || current.content !== prior.content ||
+                current.paperBgColor !== prior.paperBgColor || current.paperBgImage !== prior.paperBgImage) {
+                saveDraftToLocal(current)
+                message.warning(i18n.global.t('error.versionConflict'))
+                return false
+            }
+            clearLocalDraft(id)
+            conflictedDocId.value = null
+            conflictedBaseVersion = undefined
+            options.currentDoc.value = data
+            setOriginalFromDoc(data)
+            return true
+        } catch (error) {
+            console.error('Reload failed:', error)
+            message.error(i18n.global.t('editor.syncFailed'))
+            return false
+        }
+    }
+
     const scheduleAutoSave = () => {
         if (autoSaveTimer) clearTimeout(autoSaveTimer)
-        if (!options.currentDoc.value || !hasUnsavedChanges.value) return
+        if (!options.currentDoc.value || !hasUnsavedChanges.value || conflictedDocId.value === options.currentDoc.value.id) return
         autoSaveTimer = setTimeout(() => {
             void saveDocument({ silent: true, reason: 'auto' })
         }, AUTO_SAVE_DELAY_MS)
@@ -387,6 +442,8 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
         originalDocContent,
         originalDocName,
         hasUnsavedChanges,
+        versionConflict,
+        discardConflictingDraftAndReload,
         lastSavedAt,
         lastSaveReason,
         lastSavedLabel,

@@ -26,4 +26,9 @@ public enum TargetType {
         }
         return USER;
     }
+    @jakarta.persistence.Converter(autoApply = true)
+    public static class TargetTypeConverter implements jakarta.persistence.AttributeConverter<TargetType, String> {
+        @Override public String convertToDatabaseColumn(TargetType value) { return value == null ? null : value.getValue(); }
+        @Override public TargetType convertToEntityAttribute(String value) { return value == null ? null : TargetType.fromValue(value); }
+    }
 }

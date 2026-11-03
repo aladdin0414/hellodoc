@@ -5,6 +5,7 @@ interface LifecycleDoc {
     id: number
     name: string
     content: string
+    version: number
     type: string
     paperBgColor?: string
     paperBgImage?: string
@@ -14,6 +15,7 @@ interface UseDocumentEditorLifecycleOptions {
     kbId: Ref<number>
     currentDoc: Ref<LifecycleDoc | null>
     hasUnsavedChanges: Ref<boolean>
+    versionConflict: Ref<boolean>
     saveDraftToLocal: (doc?: LifecycleDoc | null) => void
     flushSaveAndDraft: () => void
     closeCollab: () => void
@@ -48,9 +50,11 @@ export const useDocumentEditorLifecycle = (options: UseDocumentEditorLifecycleOp
             options.saveDraftToLocal(options.currentDoc.value)
 
             try {
+                if (options.versionConflict.value) { options.closeCollab(); return }
                 const snapshot = {
                     name: options.currentDoc.value.name,
                     content: options.currentDoc.value.content,
+                    expectedVersion: options.currentDoc.value.version,
                     type: options.currentDoc.value.type,
                     paperBgColor: options.currentDoc.value.paperBgColor,
                     paperBgImage: options.currentDoc.value.paperBgImage

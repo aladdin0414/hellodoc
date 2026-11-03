@@ -25,4 +25,9 @@ public enum DocRole {
         }
         return VIEWER;
     }
+    @jakarta.persistence.Converter(autoApply = true)
+    public static class DocRoleConverter implements jakarta.persistence.AttributeConverter<DocRole, String> {
+        @Override public String convertToDatabaseColumn(DocRole value) { return value == null ? null : value.getValue(); }
+        @Override public DocRole convertToEntityAttribute(String value) { return value == null ? null : DocRole.fromValue(value); }
+    }
 }

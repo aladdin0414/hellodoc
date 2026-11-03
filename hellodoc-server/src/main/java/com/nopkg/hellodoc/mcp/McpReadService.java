@@ -3,6 +3,7 @@ package com.nopkg.hellodoc.mcp;
 import com.nopkg.hellodoc.enums.DocRole;
 import com.nopkg.hellodoc.enums.DocType;
 import com.nopkg.hellodoc.entities.KbDocument;
+import com.nopkg.hellodoc.repositories.KbDocumentRepository;
 import com.nopkg.hellodoc.services.DocumentService;
 import com.nopkg.hellodoc.services.PermissionChecker;
 import com.nopkg.hellodoc.services.SearchService;
@@ -14,12 +15,15 @@ import java.util.Map;
 
 @Service
 public class McpReadService {
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
     private final SearchService search;
     private final DocumentService documents;
     private final PermissionChecker permissions;
+    private final KbDocumentRepository documentRepository;
 
-    public McpReadService(SearchService search, DocumentService documents, PermissionChecker permissions) {
-        this.search = search; this.documents = documents; this.permissions = permissions;
+    public McpReadService(SearchService search, DocumentService documents, PermissionChecker permissions, KbDocumentRepository documentRepository) {
+        this.search = search; this.documents = documents; this.permissions = permissions; this.documentRepository = documentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -36,14 +40,18 @@ public class McpReadService {
         }).toList();
     }
 
-    @Transactional(readOnly = true)
-    public Map<String, Object> read(long user, long documentId, int offset) {
+    @Transactional
+    public Map<String, Object> read(long user, long documentId, int offset, Integer expectedVersion) {
         if (documentId < 1 || offset < 0) throw new IllegalArgumentException();
         try {
+            var doc = documentRepository.findByIdForUpdate(documentId).orElseThrow();
+            entityManager.refresh(doc, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
             permissions.checkDocRole(user, documentId, DocRole.VIEWER);
-            var doc = documents.getById(documentId);
             if (doc.getDeletedAt() != null || doc.getKb() == null || Boolean.TRUE.equals(doc.getIsEncrypted())) throw new IllegalStateException();
             if (doc.getType() == DocType.FOLDER) return readFolder(user, doc, offset);
+            int version = doc.getCurrentVersion() == null ? 0 : doc.getCurrentVersion();
+            if (offset > 0 && expectedVersion == null) throw new IllegalArgumentException("expectedVersion required");
+            if (expectedVersion != null && expectedVersion != version) throw new McpVersionConflictException();
             String body = documents.getContent(documentId);
             if (body == null) body = "";
             int count = body.codePointCount(0, body.length());
@@ -57,9 +65,12 @@ public class McpReadService {
             result.put("knowledgeBaseId", doc.getKb().getId()); result.put("knowledgeBaseTitle", doc.getKb().getTitle());
             result.put("status", doc.getStatus() == null ? null : doc.getStatus().getValue());
             result.put("path", "/kb/" + doc.getKb().getId() + "/" + documentId);
+            result.put("version", version); result.put("updatedAt", doc.getUpdatedAt());
             result.put("content", body.substring(begin, end)); result.put("hasMore", endOffset < count);
             result.put("nextOffset", endOffset < count ? endOffset : null);
             return result;
+        } catch (IllegalArgumentException | McpVersionConflictException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalStateException("Document unavailable");
         }

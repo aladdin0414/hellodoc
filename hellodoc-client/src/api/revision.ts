@@ -9,5 +9,5 @@ export const getRevisionDetail = (docId: number, version: number) =>
 export const getRevisionContent = (docId: number, version: number) =>
     request.get(`/api/docs/${docId}/revisions/${version}/content`)
 
-export const restoreRevision = (docId: number, version: number) =>
-    request.post(`/api/docs/${docId}/revisions/${version}/restore`)
+export const restoreRevision = (docId: number, version: number, expectedVersion: number) =>
+    request.post(`/api/docs/${docId}/revisions/${version}/restore`, null, { params: { expectedVersion } })

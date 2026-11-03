@@ -49,6 +49,7 @@ class McpEndpointTest {
         assertTrue(listResult.body().contains("list_items"), listResult.body());
         assertTrue(listResult.body().contains("create_item"), listResult.body());
         assertTrue(listResult.body().contains("create_document"), listResult.body());
+        assertTrue(listResult.body().contains("整篇内容放入代码块"), listResult.body());
         assertTrue(listResult.body().contains("search_documents"), listResult.body());
         assertTrue(listResult.body().contains("read_document"), listResult.body());
         var kb = new com.nopkg.hellodoc.entities.KbKnowledgeBase(); kb.setTitle("mcp integration"); kb.setOwnerId(user.getId());
@@ -77,6 +78,20 @@ class McpEndpointTest {
         var readReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(read)).build();
         var bodyResult = client.send(readReq, HttpResponse.BodyHandlers.ofString());
         assertTrue(bodyResult.body().contains("独特关键词部署说明"), bodyResult.body());
+        String update = "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/call\",\"params\":{\"name\":\"update_document\",\"arguments\":{\"documentId\":" + doc.getId() + ",\"expectedVersion\":" + doc.getCurrentVersion() + ",\"mode\":\"append\",\"markdown\":\"追加内容\",\"requestId\":\"http-update-once\"}}}";
+        var updateReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(update)).build();
+        var updateResult = client.send(updateReq, HttpResponse.BodyHandlers.ofString());
+        assertTrue(updateResult.body().contains("\"isError\":false"), updateResult.body());
+        var retryResult = client.send(updateReq, HttpResponse.BodyHandlers.ofString());
+        assertTrue(retryResult.body().contains("\"isError\":false"), retryResult.body());
+        assertEquals("独特关键词部署说明追加内容", documents.getContent(doc.getId()));
+
+        String staleRead = "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"read_document\",\"arguments\":{\"documentId\":" + doc.getId() + ",\"offset\":1,\"expectedVersion\":99999}}}";
+        var staleReadReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(staleRead)).build();
+        var staleReadResult = client.send(staleReadReq, HttpResponse.BodyHandlers.ofString());
+        assertTrue(staleReadResult.body().contains("VERSION_CONFLICT"), staleReadResult.body());
+        assertFalse(staleReadResult.body().contains("关键词部署说明"), staleReadResult.body());
+
         var folderDto = new com.nopkg.hellodoc.web.dto.kb.DocCreateDTO(); folderDto.setName("MCP测试文件夹");
         folderDto.setType(com.nopkg.hellodoc.enums.DocType.FOLDER);
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(

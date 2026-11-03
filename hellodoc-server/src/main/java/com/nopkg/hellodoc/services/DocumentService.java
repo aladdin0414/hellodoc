@@ -33,7 +33,6 @@ public interface DocumentService {
     void reorder(Long userId, Long parentId, List<Long> orderedIds);
 
     // Content
-    void updateContent(Long userId, Long docId, String content);
 
     String getContent(Long docId);
 
@@ -43,7 +42,7 @@ public interface DocumentService {
     List<com.nopkg.hellodoc.entities.KbDocumentRevision> listRevisions(Long userId, Long kbId, Long docId);
 
     com.nopkg.hellodoc.entities.KbDocumentRevision createRevision(Long userId, Long kbId, Long docId, String content,
-            String message);
+            String message, Integer expectedVersion);
 
     KbDocument duplicate(Long userId, Long kbId, Long docId);
 

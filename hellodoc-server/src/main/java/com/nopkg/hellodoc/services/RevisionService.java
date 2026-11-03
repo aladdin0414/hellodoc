@@ -21,7 +21,7 @@ public interface RevisionService {
 
     String getRevisionContent(Long docId, Integer version);
 
-    void restoreRevision(Long docId, Integer version, Long userId);
+    void restoreRevision(Long docId, Integer version, Long userId, Integer expectedVersion);
 
     String compareRevisions(Long docId, Integer v1, Integer v2);
 

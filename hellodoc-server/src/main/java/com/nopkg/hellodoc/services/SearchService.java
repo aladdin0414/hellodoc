@@ -44,6 +44,15 @@ public class SearchService {
     @Async
     @Transactional
     public void updateIndex(Long docId) {
+        updateIndexInternal(docId);
+    }
+
+    @Transactional
+    public void updateIndexSynchronously(Long docId) {
+        updateIndexInternal(docId);
+    }
+
+    private void updateIndexInternal(Long docId) {
         if (docId == null) {
             return;
         }
@@ -59,23 +68,26 @@ public class SearchService {
         }
 
         String title = normalize(doc.getName());
-        String content = normalize(contentRepository.findById(docId).map(KbDocumentContent::getContent).orElse(""));
+        String content = Boolean.TRUE.equals(doc.getIsEncrypted()) ? "" : normalize(contentRepository.findById(docId).map(KbDocumentContent::getContent).orElse(""));
         OffsetDateTime now = OffsetDateTime.now();
 
         if (isPostgres()) {
             entityManager.createNativeQuery(
-                    "INSERT INTO kb_doc_search (doc_id, kb_id, title_tsv, content_tsv, updated_at) " +
-                            "VALUES (:docId, :kbId, to_tsvector('simple', :title), to_tsvector('simple', :content), :updatedAt) "
+                    "INSERT INTO kb_doc_search (doc_id, kb_id, title_tsv, content_tsv, content_plain, source_updated_at, updated_at) " +
+                            "VALUES (:docId, :kbId, to_tsvector('simple', :title), to_tsvector('simple', :content), :content, :sourceUpdatedAt, :updatedAt) "
                             +
                             "ON CONFLICT (doc_id) DO UPDATE SET " +
                             "kb_id = EXCLUDED.kb_id, " +
                             "title_tsv = EXCLUDED.title_tsv, " +
                             "content_tsv = EXCLUDED.content_tsv, " +
+                            "content_plain = EXCLUDED.content_plain, " +
+                            "source_updated_at = EXCLUDED.source_updated_at, " +
                             "updated_at = EXCLUDED.updated_at")
                     .setParameter("docId", docId)
                     .setParameter("kbId", doc.getKb().getId())
                     .setParameter("title", title)
                     .setParameter("content", content)
+                    .setParameter("sourceUpdatedAt", doc.getUpdatedAt() == null ? OffsetDateTime.parse("1970-01-01T00:00:00Z") : doc.getUpdatedAt())
                     .setParameter("updatedAt", now)
                     .executeUpdate();
             return;
@@ -180,7 +192,7 @@ public class SearchService {
         return buildResultsFromDocs(docs, q, safeLimit, null);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public List<SearchResultVO> searchAll(Long userId, String query, int limit) {
         String q = normalize(query);
         int safeLimit = normalizeLimit(limit);
@@ -189,32 +201,7 @@ public class SearchService {
         }
 
         if (isPostgres()) {
-            List<KbDocument> accessible = documentRepository.findAll().stream()
-                    .filter(d -> d.getDeletedAt() == null && !Boolean.TRUE.equals(d.getIsEncrypted()))
-                    .filter(d -> permissionChecker.hasDocRole(userId, d.getId(), com.nopkg.hellodoc.enums.DocRole.VIEWER))
-                    .toList();
-            Map<Long, KbDocument> allowed = accessible.stream().collect(Collectors.toMap(KbDocument::getId, d -> d));
-            java.util.LinkedHashMap<Long, SearchResultVO> merged = new java.util.LinkedHashMap<>();
-            String tsQuery = buildTsQuery(q);
-            if (StringUtils.hasText(tsQuery)) {
-                List<Object[]> rows = entityManager.createNativeQuery(
-                        "SELECT doc_id, ts_rank(title_tsv, to_tsquery('simple', :tsq)) + ts_rank(content_tsv, to_tsquery('simple', :tsq)) * 0.5 AS rank " +
-                        "FROM kb_doc_search WHERE (title_tsv @@ to_tsquery('simple', :tsq) OR content_tsv @@ to_tsquery('simple', :tsq)) ORDER BY rank DESC")
-                        .setParameter("tsq", tsQuery).getResultList();
-                for (Object[] row : rows) {
-                    Long id = toLong(row[0]);
-                    KbDocument doc = allowed.get(id);
-                    if (doc != null) merged.putIfAbsent(id, toResult(doc, q, toDouble(row[1])));
-                    if (merged.size() == safeLimit) break;
-                }
-            }
-            if (merged.size() < safeLimit) {
-                for (SearchResultVO result : buildResultsFromDocs(accessible, q, accessible.size(), null)) {
-                    merged.putIfAbsent(result.getDocId(), result);
-                    if (merged.size() == safeLimit) break;
-                }
-            }
-            return new ArrayList<>(merged.values());
+            return searchAllPostgres(userId, q, safeLimit);
         }
 
         List<KbDocument> docs = documentRepository.findAll().stream()
@@ -222,6 +209,62 @@ public class SearchService {
                 .filter(d -> permissionChecker.hasDocRole(userId, d.getId(), com.nopkg.hellodoc.enums.DocRole.VIEWER))
                 .toList();
         return buildResultsFromDocs(docs, q, safeLimit, null);
+    }
+
+    private List<SearchResultVO> searchAllPostgres(Long userId, String query, int limit) {
+        String pattern = "%" + query.toLowerCase(Locale.ROOT)
+                .replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+        String tsQuery = buildTsQuery(query);
+        boolean hasTs = StringUtils.hasText(tsQuery);
+        String fresh = "(s.source_updated_at IS NOT NULL AND s.content_plain IS NOT NULL AND "
+                + "(d.updated_at IS NULL OR s.source_updated_at >= d.updated_at))";
+        String body = "(CASE WHEN " + fresh + " THEN s.content_plain "
+                + "WHEN c.content IS NULL THEN '' ELSE convert_from(lo_get(c.content), 'UTF8') END)";
+        String titleMatch = "(lower(d.name) LIKE :pattern ESCAPE '!')";
+        String bodyMatch = "((" + fresh + " AND lower(s.content_plain) LIKE :pattern ESCAPE '!') OR "
+                + "(NOT " + fresh + " AND lower(" + body + ") LIKE :pattern ESCAPE '!'))";
+        String titleTs = "(CASE WHEN " + fresh + " THEN coalesce(s.title_tsv, ''::tsvector) "
+                + "ELSE to_tsvector('simple', coalesce(d.name, '')) END)";
+        String bodyTs = "(CASE WHEN " + fresh + " THEN coalesce(s.content_tsv, ''::tsvector) "
+                + "ELSE to_tsvector('simple', " + body + ") END)";
+        String fullText = hasTs ? "(" + titleTs + " @@ to_tsquery('simple', :tsq) OR "
+                + bodyTs + " @@ to_tsquery('simple', :tsq))" : "false";
+        String rank = "(CASE WHEN " + titleMatch + " THEN 100.0 ELSE 0 END + CASE WHEN "
+                + bodyMatch + " THEN 10.0 ELSE 0 END";
+        if (hasTs) rank += " + 2.0 * ts_rank(" + titleTs + ", to_tsquery('simple', :tsq))"
+                + " + ts_rank(" + bodyTs + ", to_tsquery('simple', :tsq))";
+        rank += ")";
+        String eligible = "d.deleted_at IS NULL AND coalesce(d.is_encrypted, false) = false";
+        String indexedFullText = hasTs ? "(s.title_tsv @@ to_tsquery('simple', :tsq) OR s.content_tsv @@ to_tsquery('simple', :tsq))" : "false";
+        String joins = " LEFT JOIN kb_doc_search s ON s.doc_id = d.id LEFT JOIN kb_document_content c ON c.doc_id = d.id ";
+        String sql = "WITH candidate_ids AS ("
+                + "SELECT d.id FROM kb_document d WHERE " + eligible + " AND " + titleMatch
+                + " UNION SELECT d.id FROM kb_doc_search s JOIN kb_document d ON d.id = s.doc_id WHERE " + eligible
+                + " AND " + fresh + " AND (lower(s.content_plain) LIKE :pattern ESCAPE '!' OR " + indexedFullText + ")"
+                + " UNION SELECT d.id FROM kb_document d " + joins + "WHERE " + eligible + " AND NOT " + fresh
+                + " AND (" + bodyMatch + " OR " + fullText + ")"
+                + ") SELECT d.id, " + rank + " AS rank FROM candidate_ids candidate JOIN kb_document d ON d.id = candidate.id "
+                + joins + " ORDER BY rank DESC, d.id ASC";
+        int batchSize = Math.min(512, Math.max(64, limit * 4));
+        int offset = 0;
+        List<SearchResultVO> results = new ArrayList<>();
+        while (results.size() < limit) {
+            var statement = entityManager.createNativeQuery(sql).setParameter("pattern", pattern);
+            if (hasTs) statement.setParameter("tsq", tsQuery);
+            @SuppressWarnings("unchecked")
+            List<Object[]> rows = statement.setFirstResult(offset).setMaxResults(batchSize).getResultList();
+            if (rows.isEmpty()) break;
+            for (Object[] row : rows) {
+                Long id = toLong(row[0]);
+                if (id == null || !permissionChecker.hasDocRole(userId, id, com.nopkg.hellodoc.enums.DocRole.VIEWER)) continue;
+                documentRepository.findById(id).filter(doc -> doc.getDeletedAt() == null && !Boolean.TRUE.equals(doc.getIsEncrypted()))
+                        .ifPresent(doc -> results.add(toResult(doc, query, toDouble(row[1]))));
+                if (results.size() == limit) break;
+            }
+            if (rows.size() < batchSize || offset > Integer.MAX_VALUE - rows.size()) break;
+            offset += rows.size();
+        }
+        return results;
     }
 
     public String highlightContent(String content, String query) {

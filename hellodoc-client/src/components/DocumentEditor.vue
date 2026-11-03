@@ -60,6 +60,7 @@ interface DocListItem {
 }
 
 interface DocDetail extends DocListItem {
+    version: number
     content: string
 }
 
@@ -322,6 +323,8 @@ const {
     originalDocContent,
     originalDocName,
     hasUnsavedChanges,
+    versionConflict,
+    discardConflictingDraftAndReload,
     lastSavedAt,
     lastSaveReason,
     saveDraftToLocal,
@@ -424,6 +427,10 @@ watch(
 const handleMove = async (doc: DocListItem, direction: 'up' | 'down') => {
     showContextMenu.value = false
     await treeHandleMove(doc, direction)
+}
+
+const handleDiscardConflict = () => {
+    if (window.confirm(t('error.confirmDiscardDraft'))) void discardConflictingDraftAndReload()
 }
 
 const handleSave = () => {
@@ -874,6 +881,7 @@ useDocumentEditorLifecycle({
     kbId: computed(() => props.kbId),
     currentDoc: currentDoc as any,
     hasUnsavedChanges,
+    versionConflict,
     saveDraftToLocal: (doc) => saveDraftToLocal(doc as any),
     flushSaveAndDraft,
     closeCollab,
@@ -976,6 +984,10 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
                 </div>
             </template>
             <template v-else-if="currentDoc != null">
+                <div v-if="versionConflict" role="alert" class="px-4 py-2 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                    <span>{{ t('error.versionConflict') }}</span>
+                    <button class="ml-3 underline font-semibold" @click="handleDiscardConflict">{{ t('error.discardDraft') }}</button>
+                </div>
                 <DocumentEditorHeader v-if="!isVisualPreviewMode" :current-doc="currentDoc" :kb-id="kbId" :is-mobile="isMobile"
                     :is-sidebar-visible="isSidebarVisible" :has-unsaved-changes="hasUnsavedChanges"
                     :saving="saving" :is-read-only-by-collab="isReadOnlyByCollab"

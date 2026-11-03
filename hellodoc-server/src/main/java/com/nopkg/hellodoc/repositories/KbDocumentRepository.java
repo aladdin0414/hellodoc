@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface KbDocumentRepository extends JpaRepository<KbDocument, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select d from KbDocument d where d.id = :id and d.deletedAt is null")
+    Optional<KbDocument> findByIdForUpdate(@Param("id") Long id);
+
     List<KbDocument> findByKbIdAndDeletedAtIsNull(Long kbId);
 
     List<KbDocument> findByKbIdAndParentIdAndDeletedAtIsNull(Long kbId, Long parentId);

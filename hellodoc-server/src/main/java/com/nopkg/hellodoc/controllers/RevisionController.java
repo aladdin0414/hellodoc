@@ -86,9 +86,10 @@ public class RevisionController {
     @PostMapping("/{version}/restore")
     @Operation(summary = "Restore revision")
     @RequireDocRole(com.nopkg.hellodoc.enums.DocRole.EDITOR)
-    public ApiResponse<Void> restoreRevision(@PathVariable Long docId, @PathVariable Integer version) {
+    public ApiResponse<Void> restoreRevision(@PathVariable Long docId, @PathVariable Integer version,
+            @RequestParam(required = false) Integer expectedVersion) {
         Long userId = currentUserId();
-        revisionService.restoreRevision(docId, version, userId);
+        revisionService.restoreRevision(docId, version, userId, expectedVersion);
         return ApiResponse.success(null);
     }
 

@@ -30,7 +30,6 @@ public class KbDocPermission {
     private KbDocument doc;
 
     @NotNull
-    @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false, length = 16)
     private TargetType targetType;
 
@@ -42,7 +41,6 @@ public class KbDocPermission {
     private String linkToken;
 
     @NotNull
-    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 16)
     private DocRole role;
 

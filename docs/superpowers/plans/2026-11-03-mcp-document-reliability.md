@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - Update all editable knowledge bases; existing creation tools remain restricted to the configured KB.
+- Existing web and third-party body writes require expectedVersion; missing values must be rejected with VERSION_REQUIRED and upgrade guidance; metadata-only updates remain compatible. Desktop and mobile editors must send versions and preserve unsaved drafts on conflict.
 - A document row lock must be held before reading its prior body/version and through commit in every existing-body write path; revisions, body, version and operation record commit or roll back together.
 - `replace` accepts empty content; `append` concatenates exact input and rejects empty content. Both enforce 2 MiB UTF-8 input and final content limit.
 - Only unencrypted, undeleted FILE documents are writable. Nonexistent and inaccessible documents have indistinguishable responses.
@@ -31,6 +32,8 @@
 - MCP guide and targeted Java/Node tests: contracts, concurrency, permissions and integration.
 
 ## Workstream A: Versioned reads and transactional updates
+
+**Compatibility decision:** The user explicitly chose to reject legacy body writes that omit a version. Update desktop and mobile editors and revision-restore requests before enforcing the new API contract in a release; keep metadata-only requests compatible. Test stale drafts and conflict handling.
 
 ### Task 1: Establish a shared row-lock boundary
 
@@ -88,3 +91,9 @@
 - [ ] Add MCP endpoint tests for create response compatibility and version; Node tests assert `update_document` is exposed, receives no configured KB ID, generates URLs, and old tools cannot override configured KB. Test Markdown instructions contain the expectation to avoid enclosing the whole document in a code fence.
 - [ ] Populate create result version/updatedAt from the committed document; preserve original request ID semantics. Extend tool descriptions and the guide with examples, data-source limitations, file conversion caveats, read-after-write verification and conflict/retry behavior. Do not claim automatic completeness detection.
 - [ ] Run `cd hellodoc-server && ./gradlew test`, `cd hellodoc-mcp-bridge && npm test`, plus PostgreSQL HTTP/stdio and concurrency tests. Verify clean diff and report benchmark environment and missing prerequisites; commit the passing work.
+
+## Measured search baseline
+
+On 2026-11-03, PostgreSQL 16.15 in an isolated local Docker container, each run used a separate freshly initialized database and the same `SearchBenchmarkPostgresTest` fixture: one accessible KB, 300 empty-body nonmatching documents and one title match, one warm-up and one measured query. Hibernate statistics recorded 907 prepared statements and 201 ms before the search change, versus 6 statements and 6 ms after. The after fixture had no prebuilt `pg_trgm` index or populated plaintext cache, so this comparison primarily measures candidate-first permission filtering. This single title-match microbenchmark does not predict production latency, large bodies, concurrent load, backfill cost, or index effectiveness. Integration tests separately verify Chinese body matches, stale index fallback, access checks and stable ranking.
+
+For the same 301-row fixture, after creating the optional title trigram index and running `ANALYZE`, PostgreSQL's simple title-substring `EXPLAIN` still selected `Seq Scan` (estimated cost `0.00..10.52`); the table is too small to conclude whether the index helps at production scale. The measured 6 ms / 6 statements therefore must not be presented as proof of index usage.

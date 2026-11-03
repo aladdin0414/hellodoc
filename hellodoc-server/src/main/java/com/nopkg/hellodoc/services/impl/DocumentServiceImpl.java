@@ -48,6 +48,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DocumentServiceImpl implements DocumentService {
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     private final KbDocumentRepository documentRepository;
     private final KbDocumentContentRepository contentRepository;
     private final KbService kbService;
@@ -136,13 +139,22 @@ public class DocumentServiceImpl implements DocumentService {
         if (docId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId is required");
         }
-        permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.EDITOR);
         KbKnowledgeBase kb = kbService.getKnowledgeBase(java.util.Objects.requireNonNull(kbId));
 
-        KbDocument doc = documentRepository.findByIdAndDeletedAtIsNull(docId)
+        KbDocument doc = documentRepository.findByIdForUpdate(docId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
+        entityManager.refresh(doc, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.EDITOR);
         if (!doc.getKb().getId().equals(kb.getId())) {
             throw new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "Document not found in kb");
+        }
+
+        if (dto.getContent() != null && dto.getExpectedVersion() == null) {
+            throw new BusinessException(ApiResponse.Code.VERSION_REQUIRED, "VERSION_REQUIRED：客户端版本过旧，请升级后重试");
+        }
+        if (dto.getContent() != null
+                && !dto.getExpectedVersion().equals(doc.getCurrentVersion() == null ? 0 : doc.getCurrentVersion())) {
+            throw new BusinessException(ApiResponse.Code.VERSION_CONFLICT, "VERSION_CONFLICT");
         }
 
         if (StringUtils.hasText(dto.getName())) {
@@ -426,9 +438,7 @@ public class DocumentServiceImpl implements DocumentService {
         }
     }
 
-    @Override
-    @Transactional
-    public void updateContent(Long userId, Long docId, String content) {
+    private void updateContent(Long userId, Long docId, String content) {
         int updated = contentRepository.updateContent(docId, content, OffsetDateTime.now());
         if (updated == 0) {
             KbDocumentContent c = new KbDocumentContent();
@@ -486,13 +496,17 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     @Transactional
     @Auditable(targetType = AuditTargetType.DOCUMENT, action = AuditAction.UPDATE, targetIdExpression = "#docId")
-    public KbDocumentRevision createRevision(Long userId, Long kbId, Long docId, String content, String message) {
+    public KbDocumentRevision createRevision(Long userId, Long kbId, Long docId, String content, String message, Integer expectedVersion) {
         if (docId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId is required");
         }
+        KbDocument doc = documentRepository.findByIdForUpdate(docId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
+        entityManager.refresh(doc, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
         permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.EDITOR);
-
-        KbDocument doc = getById(docId);
+        if (expectedVersion == null) throw new BusinessException(ApiResponse.Code.VERSION_REQUIRED);
+        if (!expectedVersion.equals(doc.getCurrentVersion() == null ? 0 : doc.getCurrentVersion()))
+            throw new BusinessException(ApiResponse.Code.VERSION_CONFLICT);
         if (!doc.getKb().getId().equals(kbId)) {
             throw new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "Document not found in kb");
         }
@@ -652,8 +666,10 @@ public class DocumentServiceImpl implements DocumentService {
             if (StringUtils.hasText(content)) {
                 updateContent(userId, saved.getId(), content);
                 // 增加修订记录
-                revisionService.createRevision(saved.getId(), content, com.nopkg.hellodoc.enums.RevisionType.MANUAL,
+                var initialRevision = revisionService.createRevision(saved.getId(), content, com.nopkg.hellodoc.enums.RevisionType.MANUAL,
                         com.nopkg.hellodoc.utils.MessageUtils.get("doc.copy_from_kb", "Copy from Knowledge Base: ") + "【" + sourceKbTitle + "】", userId);
+                saved.setCurrentVersion(initialRevision.getVersion());
+                saved = documentRepository.save(saved);
             }
         } else {
             // 如果是文件夹，递归拷贝子节点

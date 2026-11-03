@@ -51,7 +51,7 @@ public class DocumentController {
         }
 
         record UpdateDocRequest(String name, String type, Long parentId, Integer orderNum, String status,
-                        String content, Boolean isOpen, Boolean isCover, String password, String paperBgColor,
+                        String content, Integer expectedVersion, Boolean isOpen, Boolean isCover, String password, String paperBgColor,
                         String paperBgImage, Map<String, Object> extraMeta) {
         }
 
@@ -62,7 +62,7 @@ public class DocumentController {
                         String message) {
         }
 
-        record CreateRevisionRequest(String content, String message) {
+        record CreateRevisionRequest(String content, String message, Integer expectedVersion) {
         }
 
         @GetMapping("/api/kb/{kbId}/documents/{docId}")
@@ -135,6 +135,7 @@ public class DocumentController {
                 if (request.status() != null)
                         dto.setStatus(com.nopkg.hellodoc.enums.DocStatus.fromValue(request.status()));
                 dto.setContent(request.content());
+                dto.setExpectedVersion(request.expectedVersion());
                 dto.setIsOpen(request.isOpen());
                 dto.setIsCover(request.isCover());
                 dto.setPassword(request.password());
@@ -215,7 +216,7 @@ public class DocumentController {
         public ApiResponse<KbRevision> createRevision(@PathVariable Long kbId, @PathVariable Long docId,
                         @RequestBody CreateRevisionRequest request) {
                 KbDocumentRevision revision = documentService.createRevision(currentUserId(), kbId, docId,
-                                request.content(), request.message());
+                                request.content(), request.message(), request.expectedVersion());
                 SysUser author = kbService.loadUsersByIds(Set.of(currentUserId())).get(currentUserId());
                 KbRevision response = new KbRevision(revision.getId(), revision.getVersion(), revision.getContent(),
                                 author != null ? author.getNickname() : "",

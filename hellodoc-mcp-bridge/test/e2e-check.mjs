@@ -26,6 +26,14 @@ try {
   if (read.isError) throw new Error('Read failed: ' + JSON.stringify(read.content));
   const page = JSON.parse(read.content[0].text);
   if (page.content !== '# 桥接' || !page.url) throw new Error('Read content or URL mismatch');
+  const updateArgs = { documentId: doc.documentId, expectedVersion: page.version, mode: 'append', markdown: '\n更新', requestId: 'bridge-update' };
+  const updated = await client.callTool({name:'update_document', arguments:updateArgs});
+  if (updated.isError) throw new Error('Update failed: ' + JSON.stringify(updated.content));
+  const updatedData = JSON.parse(updated.content[0].text);
+  if (!updatedData.url || updatedData.version !== page.version + 1) throw new Error('Update result mismatch');
+  const retry = await client.callTool({name:'update_document', arguments:updateArgs});
+  if (retry.isError || JSON.parse(retry.content[0].text).version !== updatedData.version) throw new Error('Update retry mismatch');
+
   process.stdout.write(JSON.stringify({ itemId, documentId: doc.documentId, url: doc.url }));
 } catch (error) {
   process.stderr.write(error.message + '\n' + errors);

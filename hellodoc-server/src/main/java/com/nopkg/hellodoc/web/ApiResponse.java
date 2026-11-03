@@ -77,6 +77,8 @@ public class ApiResponse<T> {
         UPLOAD_IMAGE_ONLY(1011, "Images only"),
         UPLOAD_AVATAR_TOO_LARGE(1012, "Avatar image size exceeds 2MB limit"),
         UPLOAD_AVATAR_FAILED(1013, "Failed to upload avatar"),
+        VERSION_CONFLICT(1014, "Document changed; reload before saving"),
+        VERSION_REQUIRED(1015, "Client upgrade required: document version is missing"),
         UNAUTHORIZED(401, "Unauthorized or session expired"),
         NO_PERMISSION(403, "No permission"),
         SYSTEM_ERROR(9999, "System error");

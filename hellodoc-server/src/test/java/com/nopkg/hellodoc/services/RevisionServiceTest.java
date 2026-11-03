@@ -37,6 +37,8 @@ public class RevisionServiceTest {
     @Mock
     private KbDocumentRevisionRepository revisionRepository;
     @Mock
+    private jakarta.persistence.EntityManager entityManager;
+    @Mock
     private KbDocumentRepository documentRepository;
     @Mock
     private KbDocumentContentRepository contentRepository;
@@ -51,6 +53,7 @@ public class RevisionServiceTest {
     // but keeping setUp for other inits if needed
     @BeforeEach
     public void setup() {
+        org.springframework.test.util.ReflectionTestUtils.setField(revisionService, "entityManager", entityManager);
     }
 
     @Test
@@ -62,7 +65,7 @@ public class RevisionServiceTest {
         KbDocument doc = new KbDocument();
         doc.setId(docId);
 
-        when(documentRepository.findById(docId)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdForUpdate(docId)).thenReturn(Optional.of(doc));
         when(revisionRepository.findTopByDocIdOrderByVersionDesc(docId)).thenReturn(Optional.empty());
         when(revisionRepository.save(any(KbDocumentRevision.class))).thenAnswer(i -> {
             KbDocumentRevision r = i.getArgument(0);
@@ -93,7 +96,7 @@ public class RevisionServiceTest {
         rev1.setVersion(1);
         rev1.setContent(contentV1);
 
-        when(documentRepository.findById(docId)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdForUpdate(docId)).thenReturn(Optional.of(doc));
         when(revisionRepository.findTopByDocIdOrderByVersionDesc(docId)).thenReturn(Optional.of(rev1));
         when(revisionRepository.save(any(KbDocumentRevision.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -116,7 +119,7 @@ public class RevisionServiceTest {
         KbDocument doc = new KbDocument();
         doc.setId(docId);
 
-        when(documentRepository.findById(docId)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdForUpdate(docId)).thenReturn(Optional.of(doc));
         when(revisionRepository.findTopByDocIdOrderByVersionDesc(docId)).thenReturn(Optional.empty());
         when(revisionRepository.save(any(KbDocumentRevision.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -142,6 +145,7 @@ public class RevisionServiceTest {
         lastRev.setContent(content);
 
         when(documentRepository.findById(docId)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdForUpdate(docId)).thenReturn(Optional.of(doc));
         when(revisionRepository.findTopByDocIdOrderByVersionDesc(docId)).thenReturn(Optional.of(lastRev));
         // Note: createMilestone calls createRevision internally, which calls
         // findTopByDocId again.
@@ -178,13 +182,14 @@ public class RevisionServiceTest {
 
         when(revisionRepository.findByDocIdAndVersion(docId, targetVersion)).thenReturn(Optional.of(targetRev));
         when(documentRepository.findById(docId)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdForUpdate(docId)).thenReturn(Optional.of(doc));
         when(revisionRepository.findTopByDocIdOrderByVersionDesc(docId)).thenReturn(Optional.of(currentRev));
         when(revisionRepository.save(any(KbDocumentRevision.class))).thenAnswer(i -> i.getArgument(0));
         when(contentRepository.findById(docId)).thenReturn(Optional.empty());
         when(contentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(documentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        revisionService.restoreRevision(docId, targetVersion, userId);
+        revisionService.restoreRevision(docId, targetVersion, userId, 0);
 
         verify(revisionRepository).save(argThat(rev -> rev.getRevisionType() == RevisionType.RESTORE &&
                 rev.getContent().equals(restoredContent) &&

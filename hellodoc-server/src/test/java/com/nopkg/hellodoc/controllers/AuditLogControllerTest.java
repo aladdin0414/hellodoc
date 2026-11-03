@@ -145,6 +145,7 @@ public class AuditLogControllerTest {
         ObjectNode updateDocRequest = objectMapper.createObjectNode();
         updateDocRequest.put("name", name);
         updateDocRequest.put("content", content);
+        updateDocRequest.put("expectedVersion", 1);
 
         mockMvc.perform(put("/api/kb/{kbId}/documents/{docId}", kbId, docId)
                 .header("Authorization", authHeader)

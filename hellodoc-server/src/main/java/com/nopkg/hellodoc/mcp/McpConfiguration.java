@@ -33,7 +33,7 @@ public class McpConfiguration {
 
     @Bean(destroyMethod = "close")
     McpSyncServer mcpServer(HttpServletStreamableServerTransportProvider transport, AiItemService items,
-                            McpIdentity identity, ObjectMapper mapper, McpWriteService writes, McpReadService reads) {
+                            McpIdentity identity, ObjectMapper mapper, McpWriteService writes, McpReadService reads, McpUpdateService updates) {
         var listSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "offset", Map.of("type", "integer", "minimum", 0),
@@ -60,7 +60,7 @@ public class McpConfiguration {
                 .description("没有合适事项时新建根目录事项；先查询候选。requestId 在超时重试时必须保持不变。")
                 .inputSchema(itemSchema).build();
         var documentTool = McpSchema.Tool.builder().name("create_document")
-                .description("将 Markdown 保存到事项；多个候选无法区分时先询问用户。超时重试时 requestId 必须保持不变。")
+                .description("将可阅读的 Markdown 保存到事项：使用标题、列表和表格，只给实际代码使用代码块；不要把整篇内容放入代码块。PDF 等文件由 Agent 转换，未识别的图片、扫描页或不确定的表格应明确说明；保存后可读取核对。多个候选无法区分时先询问用户；超时重试时 requestId 必须保持不变。")
                 .inputSchema(documentSchema).build();
         var operationSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
@@ -75,16 +75,45 @@ public class McpConfiguration {
                 "limit", Map.of("type", "integer", "minimum", 1, "maximum", 100)), List.of("query"), false, null, null);
         var readSchema = new McpSchema.JsonSchema("object", Map.of(
                 "documentId", Map.of("type", "integer", "minimum", 1),
-                "offset", Map.of("type", "integer", "minimum", 0)), List.of("documentId"), false, null, null);
+                "offset", Map.of("type", "integer", "minimum", 0),
+                "expectedVersion", Map.of("type", "integer", "minimum", 0)), List.of("documentId"), false, null, null);
         var searchTool = McpSchema.Tool.builder().name("search_documents")
                 .description("跨所有有权访问的知识库搜索文档和文件夹（包含草稿），结果 type 标识类型。从问题提取关键词，必要时换词重试；读取相关内容后引用来源。")
                 .inputSchema(searchSchema).build();
         var readTool = McpSchema.Tool.builder().name("read_document")
-                .description("读取有权访问的文档正文或列出文件夹子项。文档 offset 为 Unicode 字符偏移，文件夹 offset 为可访问子项偏移；hasMore 为 true 时用 nextOffset 继续读取，并引用来源。")
+                .description("读取有权访问的文档正文或列出文件夹子项。文档返回 version；续读正文须同时提交第一页的 expectedVersion，文档变更时从头读取。文档 offset 为 Unicode 字符偏移，文件夹 offset 为可访问子项偏移；hasMore 为 true 时用 nextOffset 继续读取，并引用来源。")
                 .inputSchema(readSchema).build();
+        var updateSchema = new McpSchema.JsonSchema("object", Map.of(
+                "documentId", Map.of("type", "integer", "minimum", 1),
+                "expectedVersion", Map.of("type", "integer", "minimum", 0),
+                "mode", Map.of("type", "string", "enum", List.of("replace", "append")),
+                "markdown", Map.of("type", "string"),
+                "requestId", Map.of("type", "string", "minLength", 1, "maxLength", 128)),
+                List.of("documentId", "expectedVersion", "mode", "markdown", "requestId"), false, null, null);
+        var updateTool = McpSchema.Tool.builder().name("update_document")
+                .description("跨所有有编辑权限的知识库更新普通未加密文档；先读取正文和版本，使用 replace 替换或 append 原样追加。VERSION_CONFLICT 时重新读取，不得自动覆盖；REQUEST_ID_CONFLICT 时使用新请求 ID；超时重试使用原 requestId。Markdown 要使用标题、列表和表格，不要把整篇内容放进代码块。")
+                .inputSchema(updateSchema).build();
         return McpServer.sync(transport)
                 .serverInfo("hellodoc", "1.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder().tools(false).build())
+                .toolCall(updateTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        long id = integerArg(args.get("documentId"), 1, Long.MAX_VALUE);
+                        int version = (int) integerArg(args.get("expectedVersion"), 0, Integer.MAX_VALUE);
+                        if (!(args.get("mode") instanceof String mode) || !(args.get("markdown") instanceof String markdown)
+                                || !(args.get("requestId") instanceof String requestId)) throw new IllegalArgumentException();
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        var result = identity.run(auth, user -> updates.update(user, id, version, mode, markdown, requestId));
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(result)).build();
+                    } catch (McpUpdateException e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent(e.getMessage()).build();
+                    } catch (IllegalArgumentException e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("INVALID_ARGUMENT").build();
+                    } catch (Exception e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("UPDATE_FAILED").build();
+                    }
+                })
                 .toolCall(searchTool, (exchange, request) -> {
                     try {
                         var args = request.arguments();
@@ -105,8 +134,11 @@ public class McpConfiguration {
                         long id = integerArg(args.get("documentId"), 1, Long.MAX_VALUE);
                         int offset = (int) integerArg(args.getOrDefault("offset", 0), 0, Integer.MAX_VALUE);
                         var auth = (Authentication) exchange.transportContext().get("authentication");
-                        var output = identity.run(auth, user -> reads.read(user, id, offset));
+                        Integer expected = args.containsKey("expectedVersion") ? (int) integerArg(args.get("expectedVersion"), 0, Integer.MAX_VALUE) : null;
+                        var output = identity.run(auth, user -> reads.read(user, id, offset, expected));
                         return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(output)).build();
+                    } catch (McpVersionConflictException e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("VERSION_CONFLICT：文档已更改，请从头读取。 ").build();
                     } catch (IllegalArgumentException e) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("读取参数无效。").build();
                     } catch (Exception e) {
@@ -170,8 +202,15 @@ public class McpConfiguration {
                         String name = (String) args.get("name");
                         String markdown = (String) args.get("markdown");
                         String requestId = (String) args.get("requestId");
-                        long id = identity.run(auth, user -> writes.createDocument(user, kb, item, name, markdown, requestId));
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(Map.of("documentId", id, "itemId", item, "name", name, "path", "/kb/" + kb + "/" + id))).build();
+                        var output = identity.run(auth, user -> {
+                            long id = writes.createDocument(user, kb, item, name, markdown, requestId);
+                            var read = reads.read(user, id, 0, null);
+                            var data = new java.util.LinkedHashMap<String, Object>();
+                            data.put("documentId", id); data.put("itemId", item); data.put("name", name);
+                            data.put("path", "/kb/" + kb + "/" + id); data.put("version", read.get("version"));
+                            data.put("updatedAt", read.get("updatedAt")); return data;
+                        });
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(output)).build();
                     } catch (Exception error) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("文档未确认保存成功。请检查事项和权限；重试时使用相同 requestId。").build();
                     }

@@ -151,6 +151,7 @@ public class DocRelationControllerTest {
     private void updateDocContent(String authHeader, long kbId, long docId, String content) throws Exception {
         ObjectNode update = objectMapper.createObjectNode();
         update.put("content", content);
+        update.put("expectedVersion", 0);
         mockMvc.perform(put("/api/kb/{kbId}/documents/{docId}", kbId, docId)
                         .header("Authorization", authHeader)
                         .contentType(MediaType.APPLICATION_JSON)

@@ -79,6 +79,11 @@
           />
         </div>
 
+      <div v-if="versionConflict" role="alert" class="p-3 rounded-lg bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+        <span>{{ t('error.versionConflict') }}</span>
+        <button class="ml-2 underline font-semibold" @click="discardConflictingDraft">{{ t('error.discardDraft') }}</button>
+      </div>
+
       <!-- 编辑模式 -->
       <div v-if="isEditing" class="flex-1 flex flex-col space-y-2">
         <!-- 移动端 Markdown 辅助快捷工具条：包含撤销/重做与图片上传 -->
@@ -183,6 +188,17 @@ const showSavedIndicator = ref(false)
 
 const docTitle = ref('')
 const docContent = ref('')
+const docVersion = ref<number | null>(null)
+const versionConflict = ref(false)
+const mobileDraftKey = `hellodoc:mobile-editor-draft:${kbId}:${docId}`
+
+const saveMobileDraft = () => {
+  try {
+    const existing = JSON.parse(localStorage.getItem(mobileDraftKey) || 'null')
+    const version = versionConflict.value ? existing?.version : docVersion.value
+    localStorage.setItem(mobileDraftKey, JSON.stringify({ title: docTitle.value, content: docContent.value, version }))
+  } catch (error) { console.error('Cannot preserve mobile draft:', error) }
+}
 const editorRef = ref<HTMLTextAreaElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
@@ -262,11 +278,12 @@ const AUTO_SAVE_DELAY_MS = 1200
 const markDirty = () => {
   if (isReadOnly.value) return
   isDirty.value = true
+  saveMobileDraft()
   scheduleAutoSave()
 }
 
 const scheduleAutoSave = () => {
-  if (isReadOnly.value) return
+  if (isReadOnly.value || versionConflict.value) return
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
   autoSaveTimer = setTimeout(() => {
     if (isDirty.value) {
@@ -288,6 +305,22 @@ const fetchDocDetail = async () => {
     if (res) {
       docTitle.value = res.title || res.name || ''
       docContent.value = res.content || ''
+      docVersion.value = typeof res.version === 'number' ? res.version : null
+      try {
+        const rawDraft = localStorage.getItem(mobileDraftKey)
+        if (rawDraft) {
+          const draft = JSON.parse(rawDraft)
+          if (draft.title !== docTitle.value || draft.content !== docContent.value) {
+            docTitle.value = draft.title ?? docTitle.value
+            docContent.value = draft.content ?? docContent.value
+            isDirty.value = true
+            versionConflict.value = draft.version !== docVersion.value
+            message.warning(t(versionConflict.value ? 'error.versionConflict' : 'editor.localDraftRestored'))
+          } else {
+            localStorage.removeItem(mobileDraftKey)
+          }
+        }
+      } catch (error) { console.error('Cannot read mobile draft:', error) }
     }
   } catch (err) {
     docTitle.value = ''
@@ -461,32 +494,63 @@ const handleImageFileChange = async (event: Event) => {
 }
 
 const handleSave = async (options?: { silent?: boolean }) => {
-  if (isReadOnly.value) return
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer)
-    autoSaveTimer = null
+  if (isReadOnly.value || saving.value) return
+  if (versionConflict.value || docVersion.value === null) {
+    saveMobileDraft()
+    if (!options?.silent) message.error(t('error.versionConflict'))
+    return
   }
-
-  if (!options?.silent) {
-    saving.value = true
-  }
-
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null }
+  const snapshot = { title: docTitle.value, content: docContent.value, version: docVersion.value }
+  saveMobileDraft()
+  saving.value = true
   try {
-    await updateDocument(kbId, docId, {
-      title: docTitle.value,
-      name: docTitle.value,
-      content: docContent.value
+    const saved: any = await updateDocument(kbId, docId, {
+      name: snapshot.title, content: snapshot.content, expectedVersion: snapshot.version
     })
-    isDirty.value = false
-    showSavedFeedback()
+    if (typeof saved?.version !== 'number') throw new Error('Server returned no document version')
+    docVersion.value = saved.version
+    if (docTitle.value === snapshot.title && docContent.value === snapshot.content) {
+      isDirty.value = false
+      localStorage.removeItem(mobileDraftKey)
+      showSavedFeedback()
+    } else {
+      isDirty.value = true
+      saveMobileDraft()
+      scheduleAutoSave()
+    }
   } catch (err) {
     isDirty.value = true
     showSavedIndicator.value = false
-    if (!options?.silent) {
-      message.error(t('common.saveFailed'))
+    if ((err as { code?: number })?.code === 1014 || (err as { code?: number })?.code === 1015) {
+      versionConflict.value = true
+      message.warning(t('error.versionConflict'))
+    } else if (!options?.silent) message.error(t('common.saveFailed'))
+  } finally { saving.value = false }
+}
+
+const discardConflictingDraft = async () => {
+  if (!versionConflict.value || !window.confirm(t('error.confirmDiscardDraft'))) return
+  const previous = { title: docTitle.value, content: docContent.value }
+  try {
+    const fresh: any = await getAuthDocumentDetail(kbId, docId)
+    if (typeof fresh?.version !== 'number') throw new Error('Server returned no document version')
+    if (docTitle.value !== previous.title || docContent.value !== previous.content) {
+      saveMobileDraft()
+      message.warning(t('error.versionConflict'))
+      return
     }
-  } finally {
-    saving.value = false
+    localStorage.removeItem(mobileDraftKey)
+    docTitle.value = fresh.title || fresh.name || ''
+    docContent.value = fresh.content || ''
+    docVersion.value = fresh.version
+    versionConflict.value = false
+    isDirty.value = false
+    historyStack.value = [docContent.value]
+    historyIndex.value = 0
+  } catch (error) {
+    console.error('Reload failed:', error)
+    message.error(t('editor.syncFailed'))
   }
 }
 

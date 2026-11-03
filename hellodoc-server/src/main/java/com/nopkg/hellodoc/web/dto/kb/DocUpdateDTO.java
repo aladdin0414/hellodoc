@@ -13,6 +13,7 @@ public class DocUpdateDTO {
     private Integer orderNum;
     private DocStatus status;
     private String content;
+    private Integer expectedVersion;
     private Boolean isOpen;
     private Boolean isCover;
     private String slug;

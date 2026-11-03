@@ -101,6 +101,7 @@ public class DocumentControllerTest {
                 ObjectNode updateDocRequest = objectMapper.createObjectNode();
                 updateDocRequest.put("name", "Updated Document");
                 updateDocRequest.put("content", "Updated content");
+                updateDocRequest.put("expectedVersion", objectMapper.readTree(docResponse).path("data").path("version").asInt());
 
                 mockMvc.perform(put("/api/kb/{kbId}/documents/{docId}", kbId, docId)
                                 .header("Authorization", authHeader)
@@ -113,6 +114,7 @@ public class DocumentControllerTest {
                 ObjectNode createRevRequest = objectMapper.createObjectNode();
                 createRevRequest.put("content", "Revision content");
                 createRevRequest.put("message", "First revision");
+                createRevRequest.put("expectedVersion", objectMapper.readTree(docResponse).path("data").path("version").asInt() + 1);
 
                 mockMvc.perform(post("/api/kb/{kbId}/documents/{docId}/revisions", kbId, docId)
                                 .header("Authorization", authHeader)

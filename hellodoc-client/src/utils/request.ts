@@ -27,6 +27,8 @@ const ERROR_I18N_MAP: Record<string, string> = {
     '1011': 'error.uploadImageOnly',
     '1012': 'error.uploadAvatarTooLarge',
     '1013': 'error.uploadAvatarFailed',
+    '1014': 'error.versionConflict',
+    '1015': 'error.versionRequired',
     '9999': 'error.systemError'
 }
 
@@ -107,7 +109,7 @@ request.interceptors.response.use(
                 }
             }
 
-            return Promise.reject(new Error(msg))
+            return Promise.reject(Object.assign(new Error(msg), { code: res.code }))
         } else {
             return res.data
         }

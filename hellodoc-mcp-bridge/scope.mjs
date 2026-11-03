@@ -8,7 +8,7 @@ export function scopeArguments(args, knowledgeBaseId) {
 }
 
 const scopedTools = new Set(['list_items', 'create_item', 'create_document', 'get_operation']);
-export const exposedTools = new Set([...scopedTools, 'search_documents', 'read_document']);
+export const exposedTools = new Set([...scopedTools, 'search_documents', 'read_document', 'update_document']);
 export function prepareToolArguments(name, args, knowledgeBaseId) {
   return scopedTools.has(name) ? scopeArguments(args, knowledgeBaseId) : args;
 }

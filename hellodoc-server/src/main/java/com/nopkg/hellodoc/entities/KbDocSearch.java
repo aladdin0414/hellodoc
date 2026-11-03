@@ -38,6 +38,12 @@ public class KbDocSearch {
     @Column(name = "content_tsv", columnDefinition = "tsvector")
     private Object contentTsv;
 
+    @Column(name = "content_plain", columnDefinition = "text")
+    private String contentPlain;
+
+    @Column(name = "source_updated_at")
+    private OffsetDateTime sourceUpdatedAt;
+
     @ColumnDefault("now()")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;

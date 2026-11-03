@@ -572,6 +572,7 @@ public class HelloDocE2ETest {
 
         ObjectNode updateDoc = objectMapper.createObjectNode();
         updateDoc.put("content", "参考[[文档B]]以及![[文档B]] HelloDocSearch");
+        updateDoc.put("expectedVersion", objectMapper.readTree(docAResp1).path("data").path("version").asInt());
         perform(put("/api/kb/{kbId}/documents/{docId}", kbId, docA)
                 .header("Authorization", adminAuthHeader)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -582,6 +583,7 @@ public class HelloDocE2ETest {
         ObjectNode createRev = objectMapper.createObjectNode();
         createRev.put("content", "rev1 content");
         createRev.put("message", "m1");
+        createRev.put("expectedVersion", 2);
         perform(post("/api/kb/{kbId}/documents/{docId}/revisions", kbId, docA)
                 .header("Authorization", adminAuthHeader)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -593,6 +595,7 @@ public class HelloDocE2ETest {
         ObjectNode createRev2 = objectMapper.createObjectNode();
         createRev2.put("content", "rev2 content");
         createRev2.put("message", "m2");
+        createRev2.put("expectedVersion", 3);
         perform(post("/api/kb/{kbId}/documents/{docId}/revisions", kbId, docA)
                 .header("Authorization", adminAuthHeader)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -601,7 +604,7 @@ public class HelloDocE2ETest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.version").value(4));
 
-        perform(post("/api/docs/{docId}/revisions/{version}/restore", docA, 3)
+        perform(post("/api/docs/{docId}/revisions/{version}/restore?expectedVersion=4", docA, 3)
                 .header("Authorization", adminAuthHeader))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));

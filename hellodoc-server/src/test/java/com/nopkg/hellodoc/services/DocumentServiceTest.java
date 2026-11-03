@@ -36,6 +36,8 @@ import static org.mockito.Mockito.*;
 public class DocumentServiceTest {
 
     @Mock
+    private jakarta.persistence.EntityManager entityManager;
+    @Mock
     private KbDocumentRepository documentRepository;
     @Mock
     private KbDocumentContentRepository contentRepository;
