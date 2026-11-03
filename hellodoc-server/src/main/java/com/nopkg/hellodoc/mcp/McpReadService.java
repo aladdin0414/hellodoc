@@ -76,11 +76,23 @@ public class McpReadService {
         }
     }
 
-    private Map<String, Object> readFolder(long user, KbDocument folder, int offset) {
-        long kbId = folder.getKb().getId();
+    @Transactional
+    public Map<String, Object> listFolderChildren(long user, long kbId, Long parentId, int offset) {
+        if (kbId < 1 || offset < 0 || (parentId != null && parentId < 1)) throw new IllegalArgumentException();
+        if (parentId == null) {
+            permissions.checkKbRole(user, kbId, com.nopkg.hellodoc.enums.KbRole.VIEWER);
+            return folderChildren(user, kbId, null, offset);
+        }
+        var result = read(user, parentId, offset, null);
+        if (!"folder".equals(result.get("type")) || !Long.valueOf(kbId).equals(result.get("knowledgeBaseId")))
+            throw new IllegalStateException("Folder unavailable");
+        return result;
+    }
+
+    private Map<String, Object> folderChildren(long user, long kbId, Long parentId, int offset) {
         var children = documents.getTree(kbId).stream()
-                .filter(child -> child.getDeletedAt() == null && child.getParent() != null
-                        && folder.getId().equals(child.getParent().getId()))
+                .filter(child -> child.getDeletedAt() == null && (parentId == null ? child.getParent() == null
+                        : child.getParent() != null && parentId.equals(child.getParent().getId())))
                 .filter(child -> !Boolean.TRUE.equals(child.getIsEncrypted()))
                 .filter(child -> permissions.hasDocRole(user, child.getId(), DocRole.VIEWER))
                 .sorted(java.util.Comparator.comparing(KbDocument::getOrderNum,
@@ -98,13 +110,20 @@ public class McpReadService {
             return item;
         }).toList();
         Map<String, Object> result = new LinkedHashMap<>();
+        result.put("knowledgeBaseId", kbId); result.put("parentId", parentId); result.put("children", page);
+        result.put("hasMore", to < children.size()); result.put("nextOffset", to < children.size() ? to : null);
+        return result;
+    }
+
+    private Map<String, Object> readFolder(long user, KbDocument folder, int offset) {
+        long kbId = folder.getKb().getId();
+        Map<String, Object> result = folderChildren(user, kbId, folder.getId(), offset);
         result.put("documentId", folder.getId()); result.put("title", folder.getName());
         result.put("type", "folder"); result.put("knowledgeBaseId", kbId);
         result.put("knowledgeBaseTitle", folder.getKb().getTitle());
         result.put("status", folder.getStatus() == null ? null : folder.getStatus().getValue());
         result.put("path", "/kb/" + kbId + "/" + folder.getId());
-        result.put("message", "这是文件夹，没有正文。"); result.put("children", page);
-        result.put("hasMore", to < children.size()); result.put("nextOffset", to < children.size() ? to : null);
+        result.put("message", "这是文件夹，没有正文。");
         return result;
     }
 }

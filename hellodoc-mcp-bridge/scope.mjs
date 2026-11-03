@@ -1,4 +1,8 @@
 export function scopeTool(tool) {
+  if (tool.name === 'create_document' || tool.name === 'list_folder_children' || tool.name === 'get_operation') {
+    return { ...tool, inputSchema: { ...tool.inputSchema,
+      required: (tool.inputSchema.required ?? []).filter(name => name !== 'knowledgeBaseId') } };
+  }
   const { knowledgeBaseId, ...properties } = tool.inputSchema.properties ?? {};
   return { ...tool, inputSchema: { ...tool.inputSchema, properties,
     required: (tool.inputSchema.required ?? []).filter(name => name !== 'knowledgeBaseId') } };
@@ -8,8 +12,11 @@ export function scopeArguments(args, knowledgeBaseId) {
 }
 
 const scopedTools = new Set(['list_items', 'create_item', 'create_document', 'get_operation']);
-export const exposedTools = new Set([...scopedTools, 'search_documents', 'read_document', 'update_document']);
+export const exposedTools = new Set([...scopedTools, 'search_documents', 'read_document', 'update_document', 'list_folder_children', 'list_knowledge_bases']);
 export function prepareToolArguments(name, args, knowledgeBaseId) {
+  if (name === 'create_document' || name === 'list_folder_children' || name === 'get_operation') {
+    return { ...args, knowledgeBaseId: args.knowledgeBaseId ?? knowledgeBaseId };
+  }
   return scopedTools.has(name) ? scopeArguments(args, knowledgeBaseId) : args;
 }
 export function addSourceUrls(result, base) {

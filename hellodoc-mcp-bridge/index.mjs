@@ -7,6 +7,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { HelloDocAuth } from './auth.mjs';
+import { RecoveringClient } from './reconnect.mjs';
 import { authenticatedFetch } from './transport.mjs';
 import { scopeTool, exposedTools, prepareToolArguments, addSourceUrls } from './scope.mjs';
 
@@ -31,30 +32,29 @@ async function main() {
     } catch { throw new Error('HelloDoc password not found in macOS Keychain.'); }
   };
   const auth = new HelloDocAuth(base.href.replace(/\/$/, ''), username, passwordProvider);
-  const remote = new Client({ name: 'hellodoc-local-bridge', version: '0.1.0' });
-  const transport = new StreamableHTTPClientTransport(new URL('api/mcp', base.href.endsWith('/') ? base : new URL(base.href + '/')), {
-    fetch: authenticatedFetch(auth),
+  const remote = new RecoveringClient(async () => {
+    const client = new Client({ name: 'hellodoc-local-bridge', version: '0.1.0' });
+    const transport = new StreamableHTTPClientTransport(new URL('api/mcp', base.href.endsWith('/') ? base : new URL(base.href + '/')), {
+      fetch: authenticatedFetch(auth),
+    });
+    try { await client.connect(transport); } catch (error) { await client.close().catch(() => {}); throw error; }
+    return { client, transport };
   });
-  await remote.connect(transport);
+  await remote.connect();
   const server = new Server({ name: 'hellodoc', version: '0.1.0' }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    const result = await remote.listTools();
+    const result = await remote.call('listTools');
     return { tools: result.tools.filter(tool => allowed.has(tool.name)).map(scopeTool) };
   });
   server.setRequestHandler(CallToolRequestSchema, async request => {
     if (!allowed.has(request.params.name)) throw new Error('Unsupported HelloDoc tool.');
-    const result = await remote.callTool({ name: request.params.name, arguments: prepareToolArguments(request.params.name, request.params.arguments ?? {}, kb) });
-    if (['create_document', 'search_documents', 'read_document', 'update_document'].includes(request.params.name)) {
+    const result = await remote.call('callTool', { name: request.params.name, arguments: prepareToolArguments(request.params.name, request.params.arguments ?? {}, kb) });
+    if (['create_document', 'search_documents', 'read_document', 'update_document', 'list_folder_children'].includes(request.params.name)) {
       addSourceUrls(result, base);
     }
     return result;
   });
-  server.onclose = () => {
-    void (async () => {
-      try { await transport.terminateSession(); } catch { /* Connection may already be gone. */ }
-      finally { await remote.close(); }
-    })();
-  };
+  server.onclose = () => { void remote.close(); };
   process.stdin.once('end', () => { void server.close(); });
   await server.connect(new StdioServerTransport());
 }

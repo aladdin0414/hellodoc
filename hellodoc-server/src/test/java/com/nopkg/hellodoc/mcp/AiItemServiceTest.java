@@ -116,6 +116,24 @@ class AiItemServiceTest {
         verify(documents, never()).create(any(), any(), any());
     }
 
+    @Test
+    void createsUnderOrdinaryNestedFolderAndKnowledgeBaseRoot() {
+        DocumentService documents = mock(DocumentService.class);
+        PermissionChecker permissions = mock(PermissionChecker.class);
+        KbKnowledgeBase kb = new KbKnowledgeBase(); kb.setId(7L);
+        KbDocument nested = folder(10L, kb, Map.of()); nested.setParent(folder(20L, kb, Map.of()));
+        when(documents.getById(10L)).thenReturn(nested);
+        when(documents.create(eq(9L), eq(7L), any())).thenAnswer(invocation -> { var doc = new KbDocument(); doc.setId(99L); return doc; });
+        var service = new AiItemService(documents, permissions);
+        service.createDocumentInFolder(9L, 7L, 10L, "nested", "text", Map.of());
+        service.createDocumentInFolder(9L, 7L, null, "root", "text", Map.of());
+        var dto = ArgumentCaptor.forClass(DocCreateDTO.class);
+        verify(documents, times(2)).create(eq(9L), eq(7L), dto.capture());
+        assertEquals(10L, dto.getAllValues().get(0).getParentId());
+        assertNull(dto.getAllValues().get(1).getParentId());
+        verify(permissions).checkDocRole(9L, 10L, DocRole.EDITOR);
+    }
+
     private static KbDocument folder(long id, KbKnowledgeBase kb, Map<String, Object> meta) {
         KbDocument doc = new KbDocument(); doc.setId(id); doc.setName("事项" + id);
         doc.setKb(kb); doc.setType(DocType.FOLDER); doc.setExtraMeta(meta); return doc;

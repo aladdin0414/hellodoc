@@ -86,6 +86,26 @@ public class AiItemService {
         permissions.checkDocRole(userId, itemId, DocRole.EDITOR);
     }
 
+    void validateWritableFolder(long userId, long kbId, Long parentId) {
+        permissions.checkKbRole(userId, kbId, KbRole.EDITOR);
+        if (parentId == null) return;
+        KbDocument folder = documents.getById(parentId);
+        if (folder.getKb() == null || !Objects.equals(folder.getKb().getId(), kbId)
+                || folder.getType() != DocType.FOLDER || folder.getDeletedAt() != null
+                || Boolean.TRUE.equals(folder.getIsEncrypted())) {
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Folder is unavailable");
+        }
+        permissions.checkDocRole(userId, parentId, DocRole.EDITOR);
+    }
+
+    KbDocument createDocumentInFolder(long userId, long kbId, Long parentId, String name, String content, Map<String, Object> requestMeta) {
+        validateWritableFolder(userId, kbId, parentId);
+        DocCreateDTO dto = new DocCreateDTO();
+        dto.setName(requireTitle(name)); dto.setType(DocType.FILE); dto.setParentId(parentId);
+        dto.setContent(Objects.requireNonNull(content, "content")); dto.setExtraMeta(requestMeta);
+        return documents.create(userId, kbId, dto);
+    }
+
     private static String requireTitle(String name) {
         if (name == null || name.isBlank() || name.trim().length() > 255) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Name must contain 1 to 255 characters");

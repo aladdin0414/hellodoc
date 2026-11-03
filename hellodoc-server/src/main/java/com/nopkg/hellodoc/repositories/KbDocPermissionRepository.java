@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface KbDocPermissionRepository extends JpaRepository<KbDocPermission, Long> {
+    List<KbDocPermission> findByTargetTypeAndTargetId(TargetType targetType, Long targetId);
     List<KbDocPermission> findByDocId(Long docId);
 
     Optional<KbDocPermission> findByDocIdAndTargetTypeAndTargetId(Long docId, TargetType targetType, Long targetId);

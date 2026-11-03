@@ -21,6 +21,21 @@ class McpReadServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(service, "entityManager", mock(jakarta.persistence.EntityManager.class));
     }
 
+    @Test void rootListingFiltersBeforePagination() {
+        var kb = new KbKnowledgeBase(); kb.setId(9L);
+        java.util.List<KbDocument> docsList = new java.util.ArrayList<>();
+        for (long i = 1; i <= 52; i++) {
+            var doc = new KbDocument(); doc.setId(i); doc.setKb(kb); doc.setName("Doc " + i); doc.setType(com.nopkg.hellodoc.enums.DocType.FILE); doc.setOrderNum((int)i);
+            docsList.add(doc); when(permissions.hasDocRole(7L, i, DocRole.VIEWER)).thenReturn(i != 1);
+        }
+        when(docs.getTree(9L)).thenReturn(docsList);
+        var page = service.listFolderChildren(7, 9, null, 0);
+        var children = (java.util.List<?>) page.get("children");
+        assertEquals(50, children.size()); assertEquals(2L, ((java.util.Map<?, ?>)children.get(0)).get("documentId"));
+        assertEquals(true, page.get("hasMore"));
+        verify(permissions).checkKbRole(7L, 9L, com.nopkg.hellodoc.enums.KbRole.VIEWER);
+    }
+
     @Test void readsUnicodePagesAndChecksPermissionEachTime() {
         var kb = new KbKnowledgeBase(); kb.setId(9L); kb.setTitle("项目");
         var doc = new KbDocument(); doc.setId(4L); doc.setKb(kb); doc.setName("草稿"); doc.setStatus(DocStatus.DRAFT);

@@ -19,7 +19,11 @@ test('global search and read do not receive configured KB and return source URLs
   assert.deepEqual(prepareToolArguments('update_document', { documentId: 4, expectedVersion: 1 }, 7), { documentId: 4, expectedVersion: 1 });
   assert.deepEqual(prepareToolArguments('search_documents', { query: '检索' }, 7), { query: '检索' });
   assert.deepEqual(prepareToolArguments('read_document', { documentId: 4 }, 7), { documentId: 4 });
-  assert.deepEqual(prepareToolArguments('create_document', { knowledgeBaseId: 900 }, 7), { knowledgeBaseId: 7 });
+  assert.deepEqual(prepareToolArguments('create_document', { knowledgeBaseId: 900 }, 7), { knowledgeBaseId: 900 });
+  assert.deepEqual(prepareToolArguments('create_document', { name: 'doc' }, 7), { name: 'doc', knowledgeBaseId: 7 });
+  assert.deepEqual(prepareToolArguments('list_folder_children', { knowledgeBaseId: 9 }, 7), { knowledgeBaseId: 9 });
+  assert.deepEqual(prepareToolArguments('get_operation', { knowledgeBaseId: 9 }, 7), { knowledgeBaseId: 9 });
+  assert.ok(exposedTools.has('list_folder_children'));
   const result = { content: [{ type: 'text', text: JSON.stringify({ results: [{ path: '/kb/9/4' }] }) }] };
   addSourceUrls(result, new URL('https://example.test/'));
   assert.equal(JSON.parse(result.content[0].text).results[0].url, 'https://example.test/kb/9/4');

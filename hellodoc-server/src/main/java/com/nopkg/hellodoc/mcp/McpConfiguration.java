@@ -33,7 +33,8 @@ public class McpConfiguration {
 
     @Bean(destroyMethod = "close")
     McpSyncServer mcpServer(HttpServletStreamableServerTransportProvider transport, AiItemService items,
-                            McpIdentity identity, ObjectMapper mapper, McpWriteService writes, McpReadService reads, McpUpdateService updates) {
+                            McpIdentity identity, ObjectMapper mapper, McpWriteService writes, McpReadService reads, McpUpdateService updates,
+                            McpKnowledgeBaseService knowledgeBases) {
         var listSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "offset", Map.of("type", "integer", "minimum", 0),
@@ -52,15 +53,16 @@ public class McpConfiguration {
         var documentSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "itemId", Map.of("type", "integer", "minimum", 1),
+                "parentId", Map.of("type", "integer", "minimum", 1),
                 "name", Map.of("type", "string", "minLength", 1, "maxLength", 255),
                 "markdown", Map.of("type", "string"),
                 "requestId", Map.of("type", "string", "minLength", 1, "maxLength", 128)),
-                List.of("knowledgeBaseId", "itemId", "name", "markdown", "requestId"), false, null, null);
+                List.of("knowledgeBaseId", "name", "markdown", "requestId"), false, null, null);
         var itemTool = McpSchema.Tool.builder().name("create_item")
                 .description("没有合适事项时新建根目录事项；先查询候选。requestId 在超时重试时必须保持不变。")
                 .inputSchema(itemSchema).build();
         var documentTool = McpSchema.Tool.builder().name("create_document")
-                .description("将可阅读的 Markdown 保存到事项：使用标题、列表和表格，只给实际代码使用代码块；不要把整篇内容放入代码块。PDF 等文件由 Agent 转换，未识别的图片、扫描页或不确定的表格应明确说明；保存后可读取核对。多个候选无法区分时先询问用户；超时重试时 requestId 必须保持不变。")
+                .description("将 Markdown 保存到有编辑权限的知识库：parentId 指定普通文件夹，省略时保存到根目录；旧版 itemId 仍支持事项。不要同时提供 parentId 和 itemId。使用标题、列表和表格，不要将整篇内容放入代码块；PDF 未识别内容须说明。超时重试必须使用相同 requestId。")
                 .inputSchema(documentSchema).build();
         var operationSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
@@ -83,6 +85,19 @@ public class McpConfiguration {
         var readTool = McpSchema.Tool.builder().name("read_document")
                 .description("读取有权访问的文档正文或列出文件夹子项。文档返回 version；续读正文须同时提交第一页的 expectedVersion，文档变更时从头读取。文档 offset 为 Unicode 字符偏移，文件夹 offset 为可访问子项偏移；hasMore 为 true 时用 nextOffset 继续读取，并引用来源。")
                 .inputSchema(readSchema).build();
+        var folderSchema = new McpSchema.JsonSchema("object", Map.of(
+                "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
+                "parentId", Map.of("type", "integer", "minimum", 1),
+                "offset", Map.of("type", "integer", "minimum", 0)), List.of("knowledgeBaseId"), false, null, null);
+        var folderTool = McpSchema.Tool.builder().name("list_folder_children")
+                .description("分页浏览知识库目录；省略 parentId 浏览根目录，否则列出指定文件夹内有权查看的子项。使用 nextOffset 继续查询。")
+                .inputSchema(folderSchema).build();
+        var kbSchema = new McpSchema.JsonSchema("object", Map.of(
+                "offset", Map.of("type", "integer", "minimum", 0),
+                "limit", Map.of("type", "integer", "minimum", 1, "maximum", 100)), List.of(), false, null, null);
+        var kbTool = McpSchema.Tool.builder().name("list_knowledge_bases")
+                .description("分页列出账号可访问的知识库；canBrowseRoot 为 false 表示仅有部分文档权限，请通过搜索查找共享文档。")
+                .inputSchema(kbSchema).build();
         var updateSchema = new McpSchema.JsonSchema("object", Map.of(
                 "documentId", Map.of("type", "integer", "minimum", 1),
                 "expectedVersion", Map.of("type", "integer", "minimum", 0),
@@ -96,6 +111,31 @@ public class McpConfiguration {
         return McpServer.sync(transport)
                 .serverInfo("hellodoc", "1.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder().tools(false).build())
+                .toolCall(kbTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        int offset = args.containsKey("offset") ? (int) integerArg(args.get("offset"), 0, Integer.MAX_VALUE) : 0;
+                        int limit = args.containsKey("limit") ? (int) integerArg(args.get("limit"), 1, 100) : 50;
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        var result = identity.run(auth, user -> knowledgeBases.list(user, offset, limit));
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(result)).build();
+                    } catch (Exception error) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("无法列出知识库，请检查权限与参数。").build();
+                    }
+                })
+                .toolCall(folderTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        long kb = integerArg(args.get("knowledgeBaseId"), 1, Long.MAX_VALUE);
+                        Long parent = args.containsKey("parentId") ? integerArg(args.get("parentId"), 1, Long.MAX_VALUE) : null;
+                        int offset = args.containsKey("offset") ? (int) integerArg(args.get("offset"), 0, Integer.MAX_VALUE) : 0;
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        var result = identity.run(auth, user -> reads.listFolderChildren(user, kb, parent, offset));
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(result)).build();
+                    } catch (Exception error) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("目录不可访问，请检查知识库、目录和权限。").build();
+                    }
+                })
                 .toolCall(updateTool, (exchange, request) -> {
                     try {
                         var args = request.arguments();
@@ -198,21 +238,24 @@ public class McpConfiguration {
                         var args = request.arguments();
                         var auth = (Authentication) exchange.transportContext().get("authentication");
                         long kb = ((Number) args.get("knowledgeBaseId")).longValue();
-                        long item = ((Number) args.get("itemId")).longValue();
+                        if (args.containsKey("itemId") && args.containsKey("parentId")) throw new IllegalArgumentException();
+                        Long item = args.containsKey("itemId") ? integerArg(args.get("itemId"), 1, Long.MAX_VALUE) : null;
+                        Long parent = args.containsKey("parentId") ? integerArg(args.get("parentId"), 1, Long.MAX_VALUE) : null;
                         String name = (String) args.get("name");
                         String markdown = (String) args.get("markdown");
                         String requestId = (String) args.get("requestId");
                         var output = identity.run(auth, user -> {
-                            long id = writes.createDocument(user, kb, item, name, markdown, requestId);
+                            long id = item != null ? writes.createDocument(user, kb, item, name, markdown, requestId)
+                                    : writes.createDocumentInFolder(user, kb, parent, name, markdown, requestId);
                             var read = reads.read(user, id, 0, null);
                             var data = new java.util.LinkedHashMap<String, Object>();
-                            data.put("documentId", id); data.put("itemId", item); data.put("name", name);
+                            data.put("documentId", id); if (item != null) data.put("itemId", item); data.put("parentId", item != null ? item : parent); data.put("name", name);
                             data.put("path", "/kb/" + kb + "/" + id); data.put("version", read.get("version"));
                             data.put("updatedAt", read.get("updatedAt")); return data;
                         });
                         return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(output)).build();
                     } catch (Exception error) {
-                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("文档未确认保存成功。请检查事项和权限；重试时使用相同 requestId。").build();
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("文档未确认保存成功。请检查目录和权限；重试时使用相同 requestId。").build();
                     }
                 })
                 .build();

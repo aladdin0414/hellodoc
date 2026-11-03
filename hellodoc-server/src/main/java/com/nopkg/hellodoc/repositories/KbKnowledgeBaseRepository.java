@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.List;
 
 public interface KbKnowledgeBaseRepository extends JpaRepository<KbKnowledgeBase, Long> {
+    List<KbKnowledgeBase> findByAllowAnonymousTrueAndDeletedAtIsNull();
     List<KbKnowledgeBase> findByOwnerIdAndDeletedAtIsNull(Long ownerId);
 
     List<KbKnowledgeBase> findByVisibilityAndDeletedAtIsNull(Visibility visibility);
