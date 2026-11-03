@@ -23,6 +23,7 @@ class McpEndpointTest {
     @Autowired UserRepository users;
     @Autowired UserAuthRepository identities;
     @Autowired com.nopkg.hellodoc.repositories.KbKnowledgeBaseRepository knowledgeBases;
+    @Autowired com.nopkg.hellodoc.services.DocumentService documents;
 
     @Test
     void endpointRequiresLoginAndNegotiatesMcp() throws Exception {
@@ -48,6 +49,8 @@ class McpEndpointTest {
         assertTrue(listResult.body().contains("list_items"), listResult.body());
         assertTrue(listResult.body().contains("create_item"), listResult.body());
         assertTrue(listResult.body().contains("create_document"), listResult.body());
+        assertTrue(listResult.body().contains("search_documents"), listResult.body());
+        assertTrue(listResult.body().contains("read_document"), listResult.body());
         var kb = new com.nopkg.hellodoc.entities.KbKnowledgeBase(); kb.setTitle("mcp integration"); kb.setOwnerId(user.getId());
         kb = knowledgeBases.save(kb);
         String call = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"list_items\",\"arguments\":{\"knowledgeBaseId\":" + kb.getId() + "}}}";
@@ -56,5 +59,23 @@ class McpEndpointTest {
         assertEquals(200, callResult.statusCode(), callResult.body());
         assertFalse(callResult.body().contains("无法列出事项"), callResult.body());
         assertTrue(callResult.body().contains("[]"), callResult.body());
+        var otherKb = new com.nopkg.hellodoc.entities.KbKnowledgeBase(); otherKb.setTitle("second kb"); otherKb.setOwnerId(user.getId());
+        otherKb = knowledgeBases.save(otherKb);
+        var dto = new com.nopkg.hellodoc.web.dto.kb.DocCreateDTO(); dto.setName("部署指南");
+        dto.setType(com.nopkg.hellodoc.enums.DocType.FILE); dto.setContent("独特关键词部署说明");
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(username, "unused"));
+        var doc = documents.create(user.getId(), otherKb.getId(), dto);
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        String search = "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"search_documents\",\"arguments\":{\"query\":\"独特关键词\"}}}";
+        var searchReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(search)).build();
+        var found = client.send(searchReq, HttpResponse.BodyHandlers.ofString());
+        assertTrue(found.body().contains("部署指南"), found.body());
+        assertTrue(found.body().contains("draft"), found.body());
+        String read = "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"read_document\",\"arguments\":{\"documentId\":" + doc.getId() + "}}}";
+        var readReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(read)).build();
+        var bodyResult = client.send(readReq, HttpResponse.BodyHandlers.ofString());
+        assertTrue(bodyResult.body().contains("独特关键词部署说明"), bodyResult.body());
+
     }
 }

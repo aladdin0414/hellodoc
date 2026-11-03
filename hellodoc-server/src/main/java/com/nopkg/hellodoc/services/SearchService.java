@@ -10,7 +10,6 @@ import com.nopkg.hellodoc.web.dto.search.SearchResultVO;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -29,7 +28,6 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchService {
@@ -191,27 +189,36 @@ public class SearchService {
         }
 
         if (isPostgres()) {
-            int fetch = Math.min(safeLimit * 8, 200);
-            List<Object[]> rows = entityManager.createNativeQuery(
-                    "SELECT doc_id, ts_rank(title_tsv, to_tsquery('simple', :tsq)) + ts_rank(content_tsv, to_tsquery('simple', :tsq)) * 0.5 AS rank "
-                            +
-                            "FROM kb_doc_search " +
-                            "WHERE (title_tsv @@ to_tsquery('simple', :tsq) OR content_tsv @@ to_tsquery('simple', :tsq)) "
-                            +
-                            "ORDER BY rank DESC LIMIT :limit")
-                    .setParameter("tsq", buildTsQuery(q))
-                    .setParameter("limit", fetch)
-                    .getResultList();
-            List<SearchResultVO> results = buildResultsFromRankRows(rows, q).stream()
-                    .filter(r -> r.getDocId() != null && permissionChecker.hasDocRole(userId, r.getDocId(),
-                            com.nopkg.hellodoc.enums.DocRole.VIEWER))
-                    .limit(safeLimit)
+            List<KbDocument> accessible = documentRepository.findAll().stream()
+                    .filter(d -> d.getDeletedAt() == null && !Boolean.TRUE.equals(d.getIsEncrypted()))
+                    .filter(d -> permissionChecker.hasDocRole(userId, d.getId(), com.nopkg.hellodoc.enums.DocRole.VIEWER))
                     .toList();
-            return results;
+            Map<Long, KbDocument> allowed = accessible.stream().collect(Collectors.toMap(KbDocument::getId, d -> d));
+            java.util.LinkedHashMap<Long, SearchResultVO> merged = new java.util.LinkedHashMap<>();
+            String tsQuery = buildTsQuery(q);
+            if (StringUtils.hasText(tsQuery)) {
+                List<Object[]> rows = entityManager.createNativeQuery(
+                        "SELECT doc_id, ts_rank(title_tsv, to_tsquery('simple', :tsq)) + ts_rank(content_tsv, to_tsquery('simple', :tsq)) * 0.5 AS rank " +
+                        "FROM kb_doc_search WHERE (title_tsv @@ to_tsquery('simple', :tsq) OR content_tsv @@ to_tsquery('simple', :tsq)) ORDER BY rank DESC")
+                        .setParameter("tsq", tsQuery).getResultList();
+                for (Object[] row : rows) {
+                    Long id = toLong(row[0]);
+                    KbDocument doc = allowed.get(id);
+                    if (doc != null) merged.putIfAbsent(id, toResult(doc, q, toDouble(row[1])));
+                    if (merged.size() == safeLimit) break;
+                }
+            }
+            if (merged.size() < safeLimit) {
+                for (SearchResultVO result : buildResultsFromDocs(accessible, q, accessible.size(), null)) {
+                    merged.putIfAbsent(result.getDocId(), result);
+                    if (merged.size() == safeLimit) break;
+                }
+            }
+            return new ArrayList<>(merged.values());
         }
 
         List<KbDocument> docs = documentRepository.findAll().stream()
-                .filter(d -> d.getDeletedAt() == null)
+                .filter(d -> d.getDeletedAt() == null && !Boolean.TRUE.equals(d.getIsEncrypted()))
                 .filter(d -> permissionChecker.hasDocRole(userId, d.getId(), com.nopkg.hellodoc.enums.DocRole.VIEWER))
                 .toList();
         return buildResultsFromDocs(docs, q, safeLimit, null);
@@ -300,17 +307,13 @@ public class SearchService {
         SearchResultVO vo = new SearchResultVO();
         vo.setDocId(doc.getId());
         vo.setDocName(doc.getName());
+        vo.setStatus(doc.getStatus() == null ? null : doc.getStatus().getValue());
         vo.setKbId(doc.getKb() != null ? doc.getKb().getId() : null);
         vo.setKbTitle(doc.getKb() != null ? doc.getKb().getTitle() : "");
         vo.setScore(score != null ? score : 0.0);
 
         String content = normalize(
                 contentRepository.findById(doc.getId()).map(KbDocumentContent::getContent).orElse(""));
-
-        // Debug Log
-        if (log.isDebugEnabled()) {
-            log.debug("DEBUG SEARCH: docId={} query={} contentLen={}", doc.getId(), query, content.length());
-        }
 
         String snippet = buildSnippet(content, query, 100);
         // 确保 snippet 始终有值,如果为空则使用文档开头
@@ -367,11 +370,7 @@ public class SearchService {
 
         // 如果还是找不到,返回文档开头
         if (idx < 0) {
-            String ret = truncate(src, maxLen);
-            if (log.isDebugEnabled()) {
-                log.debug("DEBUG SEARCH: Snippet Fallback to Start. idx={} snippet={}", idx, ret);
-            }
-            return ret;
+            return truncate(src, maxLen);
         }
 
         // 提取关键词周围的上下文

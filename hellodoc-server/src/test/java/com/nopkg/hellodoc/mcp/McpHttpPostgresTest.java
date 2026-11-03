@@ -61,6 +61,19 @@ class McpHttpPostgresTest {
         assertTrue(doc > 0);
         assertEquals("/kb/" + kb + "/" + doc, mapper.readTree(saved.path("content").get(0).path("text").asText()).path("path").asText());
         assertEquals("# 总结", documents.getContent(doc));
+        long kb2 = jdbc.queryForObject("INSERT INTO kb_knowledge_base (title, owner_id) VALUES ('second kb', ?) RETURNING id", Long.class, user);
+        JsonNode secondItemResult = call(token, session, "create_item", Map.of("knowledgeBaseId", kb2, "name", "跨库事项", "requestId", "cross-item"));
+        long secondItem = mapper.readTree(secondItemResult.path("content").get(0).path("text").asText()).path("itemId").asLong();
+        JsonNode secondDocResult = call(token, session, "create_document", Map.of("knowledgeBaseId", kb2, "itemId", secondItem, "name", "跨库文档", "markdown", "这是中文知识库检索操作说明", "requestId", "cross-doc"));
+        long secondDoc = mapper.readTree(secondDocResult.path("content").get(0).path("text").asText()).path("documentId").asLong();
+        JsonNode searched = call(token, session, "search_documents", Map.of("query", "知识库检索"));
+        JsonNode searchData = mapper.readTree(searched.path("content").get(0).path("text").asText());
+        assertTrue(searchData.path("results").toString().contains("跨库文档"), searchData.toString());
+        JsonNode read = call(token, session, "read_document", Map.of("documentId", secondDoc));
+        JsonNode readData = mapper.readTree(read.path("content").get(0).path("text").asText());
+        assertEquals("这是中文知识库检索操作说明", readData.path("content").asText());
+        assertEquals("draft", readData.path("status").asText());
+
         JsonNode lookup = call(token, session, "get_operation", Map.of("knowledgeBaseId", kb, "operation", "document", "requestId", "http-doc"));
         assertFalse(lookup.path("isError").asBoolean(), lookup.toString());
         assertEquals(doc, mapper.readTree(lookup.path("content").get(0).path("text").asText()).path("id").asLong());
@@ -69,6 +82,11 @@ class McpHttpPostgresTest {
         String outsiderName = "http-outsider-" + outsider;
         jdbc.update("INSERT INTO sys_user_auth (user_id, identity_type, identifier, credential) VALUES (?, 'PASSWORD', ?, 'unused')", outsider, outsiderName);
         String outsiderToken = tokens.generateToken(User.withUsername(outsiderName).password("unused").authorities("ROLE_USER").build());
+        JsonNode deniedRead = call(outsiderToken, session, "read_document", Map.of("documentId", secondDoc));
+        assertTrue(deniedRead.path("isError").asBoolean(), deniedRead.toString());
+        JsonNode outsiderSearch = call(outsiderToken, session, "search_documents", Map.of("query", "知识库检索"));
+        assertFalse(outsiderSearch.toString().contains("跨库文档"), outsiderSearch.toString());
+
         JsonNode denied = call(outsiderToken, session, "create_document", Map.of("knowledgeBaseId", kb, "itemId", item, "name", "越权", "markdown", "内容", "requestId", "other"));
         assertTrue(denied.path("isError").asBoolean(), denied.toString());
         assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM kb_document WHERE kb_id = ?", Integer.class, kb));

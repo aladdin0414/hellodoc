@@ -33,7 +33,7 @@ public class McpConfiguration {
 
     @Bean(destroyMethod = "close")
     McpSyncServer mcpServer(HttpServletStreamableServerTransportProvider transport, AiItemService items,
-                            McpIdentity identity, ObjectMapper mapper, McpWriteService writes) {
+                            McpIdentity identity, ObjectMapper mapper, McpWriteService writes, McpReadService reads) {
         var listSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "offset", Map.of("type", "integer", "minimum", 0),
@@ -70,9 +70,49 @@ public class McpConfiguration {
         var operationTool = McpSchema.Tool.builder().name("get_operation")
                 .description("根据原 requestId 查询创建结果；未找到时只使用原 requestId 重试。")
                 .inputSchema(operationSchema).build();
+        var searchSchema = new McpSchema.JsonSchema("object", Map.of(
+                "query", Map.of("type", "string", "minLength", 1),
+                "limit", Map.of("type", "integer", "minimum", 1, "maximum", 100)), List.of("query"), false, null, null);
+        var readSchema = new McpSchema.JsonSchema("object", Map.of(
+                "documentId", Map.of("type", "integer", "minimum", 1),
+                "offset", Map.of("type", "integer", "minimum", 0)), List.of("documentId"), false, null, null);
+        var searchTool = McpSchema.Tool.builder().name("search_documents")
+                .description("跨所有有权访问的知识库搜索文档（包含草稿）。从问题提取关键词，必要时换词重试；读取相关正文后引用来源。")
+                .inputSchema(searchSchema).build();
+        var readTool = McpSchema.Tool.builder().name("read_document")
+                .description("读取有权访问的文档正文；hasMore 为 true 时用 nextOffset 继续读取，并在回答中引用来源。")
+                .inputSchema(readSchema).build();
         return McpServer.sync(transport)
                 .serverInfo("hellodoc", "1.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder().tools(false).build())
+                .toolCall(searchTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        if (!(args.get("query") instanceof String query) || query.isBlank()) throw new IllegalArgumentException();
+                        int limit = (int) integerArg(args.getOrDefault("limit", 20), 1, 100);
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        var output = identity.run(auth, user -> reads.search(user, query, limit));
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(Map.of("results", output))).build();
+                    } catch (IllegalArgumentException e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("搜索参数无效。").build();
+                    } catch (Exception e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("无法搜索文档，请检查登录状态。").build();
+                    }
+                })
+                .toolCall(readTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        long id = integerArg(args.get("documentId"), 1, Long.MAX_VALUE);
+                        int offset = (int) integerArg(args.getOrDefault("offset", 0), 0, Integer.MAX_VALUE);
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        var output = identity.run(auth, user -> reads.read(user, id, offset));
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(output)).build();
+                    } catch (IllegalArgumentException e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("读取参数无效。").build();
+                    } catch (Exception e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("文档不存在或不可访问。").build();
+                    }
+                })
                 .toolCall(listTool, (exchange, request) -> {
                     try {
                         var auth = (Authentication) exchange.transportContext().get("authentication");
@@ -137,6 +177,15 @@ public class McpConfiguration {
                     }
                 })
                 .build();
+    }
+
+    private static long integerArg(Object value, long min, long max) {
+        if (!(value instanceof Number number)) throw new IllegalArgumentException();
+        try {
+            long parsed = new java.math.BigDecimal(number.toString()).longValueExact();
+            if (parsed < min || parsed > max) throw new IllegalArgumentException();
+            return parsed;
+        } catch (NumberFormatException | ArithmeticException e) { throw new IllegalArgumentException(); }
     }
 
     @Bean

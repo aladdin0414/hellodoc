@@ -8,10 +8,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { HelloDocAuth } from './auth.mjs';
 import { authenticatedFetch } from './transport.mjs';
-import { scopeArguments, scopeTool } from './scope.mjs';
+import { scopeTool, exposedTools, prepareToolArguments, addSourceUrls } from './scope.mjs';
 
 const execute = promisify(execFile);
-const allowed = new Set(['list_items', 'create_item', 'create_document', 'get_operation']);
+const allowed = exposedTools;
 
 async function main() {
   const base = new URL(process.env.HELLODOC_BASE_URL ?? '');
@@ -43,18 +43,9 @@ async function main() {
   });
   server.setRequestHandler(CallToolRequestSchema, async request => {
     if (!allowed.has(request.params.name)) throw new Error('Unsupported HelloDoc tool.');
-    const result = await remote.callTool({ name: request.params.name, arguments: scopeArguments(request.params.arguments ?? {}, kb) });
-    if (!result.isError && request.params.name === 'create_document') {
-      for (const content of result.content ?? []) {
-        if (content.type !== 'text') continue;
-        try {
-          const data = JSON.parse(content.text);
-          if (typeof data.path === 'string' && data.path.startsWith('/kb/')) {
-            data.url = new URL(data.path, base).href;
-            content.text = JSON.stringify(data);
-          }
-        } catch { /* Preserve non-JSON server messages. */ }
-      }
+    const result = await remote.callTool({ name: request.params.name, arguments: prepareToolArguments(request.params.name, request.params.arguments ?? {}, kb) });
+    if (['create_document', 'search_documents', 'read_document'].includes(request.params.name)) {
+      addSourceUrls(result, base);
     }
     return result;
   });
