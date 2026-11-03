@@ -17,6 +17,15 @@ try {
   if (result.isError) throw new Error('Document creation failed: ' + JSON.stringify(result.content));
   const doc = JSON.parse(result.content[0].text);
   if (!doc.documentId || !doc.url) throw new Error('Missing document ID or URL');
+  if (!tools.find(t => t.name === 'search_documents') || !tools.find(t => t.name === 'read_document')) throw new Error('Missing read tools');
+  const search = await client.callTool({name:'search_documents', arguments:{query:'桥接总结'}});
+  if (search.isError) throw new Error('Search failed: ' + JSON.stringify(search.content));
+  const found = JSON.parse(search.content[0].text).results.find(entry => entry.documentId === doc.documentId);
+  if (!found?.url) throw new Error('Search missing document or URL');
+  const read = await client.callTool({name:'read_document', arguments:{documentId:doc.documentId}});
+  if (read.isError) throw new Error('Read failed: ' + JSON.stringify(read.content));
+  const page = JSON.parse(read.content[0].text);
+  if (page.content !== '# 桥接' || !page.url) throw new Error('Read content or URL mismatch');
   process.stdout.write(JSON.stringify({ itemId, documentId: doc.documentId, url: doc.url }));
 } catch (error) {
   process.stderr.write(error.message + '\n' + errors);
