@@ -77,10 +77,10 @@ public class McpConfiguration {
                 "documentId", Map.of("type", "integer", "minimum", 1),
                 "offset", Map.of("type", "integer", "minimum", 0)), List.of("documentId"), false, null, null);
         var searchTool = McpSchema.Tool.builder().name("search_documents")
-                .description("跨所有有权访问的知识库搜索文档（包含草稿）。从问题提取关键词，必要时换词重试；读取相关正文后引用来源。")
+                .description("跨所有有权访问的知识库搜索文档和文件夹（包含草稿），结果 type 标识类型。从问题提取关键词，必要时换词重试；读取相关内容后引用来源。")
                 .inputSchema(searchSchema).build();
         var readTool = McpSchema.Tool.builder().name("read_document")
-                .description("读取有权访问的文档正文；hasMore 为 true 时用 nextOffset 继续读取，并在回答中引用来源。")
+                .description("读取有权访问的文档正文或列出文件夹子项。文档 offset 为 Unicode 字符偏移，文件夹 offset 为可访问子项偏移；hasMore 为 true 时用 nextOffset 继续读取，并引用来源。")
                 .inputSchema(readSchema).build();
         return McpServer.sync(transport)
                 .serverInfo("hellodoc", "1.0.0")

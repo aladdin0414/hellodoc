@@ -307,6 +307,7 @@ public class SearchService {
         SearchResultVO vo = new SearchResultVO();
         vo.setDocId(doc.getId());
         vo.setDocName(doc.getName());
+        vo.setDocType(doc.getType() == null ? null : doc.getType().getValue());
         vo.setStatus(doc.getStatus() == null ? null : doc.getStatus().getValue());
         vo.setKbId(doc.getKb() != null ? doc.getKb().getId() : null);
         vo.setKbTitle(doc.getKb() != null ? doc.getKb().getTitle() : "");

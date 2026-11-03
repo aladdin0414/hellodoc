@@ -21,6 +21,9 @@ test('global search and read do not receive configured KB and return source URLs
   const result = { content: [{ type: 'text', text: JSON.stringify({ results: [{ path: '/kb/9/4' }] }) }] };
   addSourceUrls(result, new URL('https://example.test/'));
   assert.equal(JSON.parse(result.content[0].text).results[0].url, 'https://example.test/kb/9/4');
+  const folder = { content: [{ type: 'text', text: JSON.stringify({ children: [{ path: '/kb/9/5' }] }) }] };
+  addSourceUrls(folder, new URL('https://example.test/'));
+  assert.equal(JSON.parse(folder.content[0].text).children[0].url, 'https://example.test/kb/9/5');
   const error = { isError: true, content: [{ type: 'text', text: '{"path":"/kb/9/4"}' }] };
   addSourceUrls(error, new URL('https://example.test/'));
   assert.equal(JSON.parse(error.content[0].text).url, undefined);

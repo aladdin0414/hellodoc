@@ -6,6 +6,7 @@ import lombok.Data;
 public class SearchResultVO {
     private Long docId;
     private String docName;
+    private String docType;
     private String status;
     private Long kbId;
     private String kbTitle;

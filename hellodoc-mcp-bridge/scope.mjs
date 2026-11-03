@@ -25,6 +25,7 @@ export function addSourceUrls(result, base) {
       };
       add(data);
       if (Array.isArray(data.results)) data.results.forEach(add);
+      if (Array.isArray(data.children)) data.children.forEach(add);
       content.text = JSON.stringify(data);
     } catch { /* Preserve non-JSON messages. */ }
   }

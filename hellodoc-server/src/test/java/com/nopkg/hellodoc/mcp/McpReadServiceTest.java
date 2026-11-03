@@ -45,4 +45,29 @@ class McpReadServiceTest {
         when(docs.getById(4L)).thenThrow(new IllegalStateException("not found"));
         assertEquals("Document unavailable", assertThrows(IllegalStateException.class, () -> service.read(7, 4, 0)).getMessage());
     }
+
+    @Test void folderReturnsOnlyAccessibleChildrenWithPagination() {
+        var kb = new KbKnowledgeBase(); kb.setId(9L); kb.setTitle("项目");
+        var folder = new KbDocument(); folder.setId(4L); folder.setKb(kb); folder.setName("账号"); folder.setType(com.nopkg.hellodoc.enums.DocType.FOLDER);
+        java.util.List<KbDocument> children = new java.util.ArrayList<>();
+        for (long i = 10; i < 63; i++) {
+            var child = new KbDocument(); child.setId(i); child.setName("文档" + i); child.setKb(kb);
+            child.setType(com.nopkg.hellodoc.enums.DocType.FILE); child.setParent(folder); child.setOrderNum((int)i);
+            children.add(child);
+            when(permissions.hasDocRole(7L, i, DocRole.VIEWER)).thenReturn(i != 10);
+        }
+        when(docs.getById(4L)).thenReturn(folder); when(docs.getTree(9L)).thenReturn(children);
+        var first = service.read(7, 4, 0);
+        assertEquals("folder", first.get("type"));
+        assertEquals("这是文件夹，没有正文。", first.get("message"));
+        var items = (java.util.List<?>) first.get("children");
+        assertEquals(50, items.size());
+        assertEquals(11L, ((java.util.Map<?, ?>) items.get(0)).get("documentId"));
+        assertEquals("/kb/9/11", ((java.util.Map<?, ?>) items.get(0)).get("path"));
+        assertEquals(true, first.get("hasMore")); assertEquals(50, first.get("nextOffset"));
+        var second = service.read(7, 4, 50);
+        assertEquals(2, ((java.util.List<?>) second.get("children")).size());
+        assertEquals(false, second.get("hasMore")); assertNull(second.get("nextOffset"));
+        verify(docs, never()).getContent(4L);
+    }
 }
