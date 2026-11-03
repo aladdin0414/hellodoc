@@ -66,6 +66,7 @@ public class McpReadService {
             result.put("status", doc.getStatus() == null ? null : doc.getStatus().getValue());
             result.put("path", "/kb/" + doc.getKb().getId() + "/" + documentId);
             result.put("version", version); result.put("updatedAt", doc.getUpdatedAt());
+            result.put("currentParentId", doc.getParent() == null ? 0L : doc.getParent().getId());
             result.put("content", body.substring(begin, end)); result.put("hasMore", endOffset < count);
             result.put("nextOffset", endOffset < count ? endOffset : null);
             return result;

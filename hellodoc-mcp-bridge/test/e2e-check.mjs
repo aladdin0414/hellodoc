@@ -11,7 +11,8 @@ try {
   const {tools} = await client.listTools();
   if (!tools.find(t => t.name === 'create_item') || tools.find(t => t.name === 'create_item').inputSchema.properties?.knowledgeBaseId ||
       !tools.find(t => t.name === 'create_document').inputSchema.properties?.knowledgeBaseId ||
-      !tools.find(t => t.name === 'list_folder_children') || !tools.find(t => t.name === 'list_knowledge_bases')) throw new Error('Unexpected scoped tools');
+      !tools.find(t => t.name === 'list_folder_children') || !tools.find(t => t.name === 'list_knowledge_bases') ||
+      !tools.find(t => t.name === 'move_document')) throw new Error('Unexpected scoped tools');
   const item = await client.callTool({name:'create_item', arguments: {name:'桥接事项', description:'桥接验证', requestId:'bridge-item'}});
   if (item.isError) throw new Error('Item creation failed: ' + JSON.stringify(item.content));
   const itemId = JSON.parse(item.content[0].text).itemId;

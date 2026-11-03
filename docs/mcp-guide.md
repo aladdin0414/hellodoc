@@ -53,6 +53,14 @@ codex mcp add hellodoc \
 
 `create_document` 接受可选 `knowledgeBaseId` 和 `parentId`；不提供 `parentId` 时创建在根目录。目标知识库及文件夹须有编辑权限。旧版 `itemId` 调用仍可使用，但不能和 `parentId` 同时传入。`requestId` 应在结果不确定时原样重试，禁止对其他网络错误无条件重放写操作。
 
+保存前应先查找已有知识库和相关目录；用户指定目录或找到明确匹配时使用对应的 `parentId`。多个目录可能匹配时应询问用户。只有用户指定根目录或没有合适目录时，才使用根目录。
+
+## 移动文档
+
+`move_document` 可在同一知识库内移动普通文档：先调用 `read_document` 取得 `currentParentId`，再指定目标 `parentId`，以读取值作为 `expectedParentId` 提交。两个字段的 `0` 都表示知识库根目录。工具会检查源文档和目标文件夹的权限，不支持跨知识库或移动文件夹。
+
+如果文档已移动到目标目录，相同请求可安全重试；如果它被移动到其他位置，则返回 `LOCATION_CONFLICT`，需要重新读取并确认目标，不应直接覆盖其他人的移动。
+
 ## 修改已有文档
 
 `read_document` 返回 `version` 和 `updatedAt`。长文档第一页返回的 `version` 要作为后续分页请求的 `expectedVersion`；若返回 `VERSION_CONFLICT`，说明文档在读取时发生变化，应从第一页重新读取，不能拼接不同版本的正文。

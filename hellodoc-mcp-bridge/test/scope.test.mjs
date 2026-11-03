@@ -16,6 +16,8 @@ test('global search and read do not receive configured KB and return source URLs
   assert.ok(exposedTools.has('search_documents'));
   assert.ok(exposedTools.has('read_document'));
   assert.ok(exposedTools.has('update_document'));
+  assert.ok(exposedTools.has('move_document'));
+  assert.deepEqual(prepareToolArguments('move_document', { documentId: 4, expectedParentId: 0, parentId: 5 }, 7), { documentId: 4, expectedParentId: 0, parentId: 5 });
   assert.deepEqual(prepareToolArguments('update_document', { documentId: 4, expectedVersion: 1 }, 7), { documentId: 4, expectedVersion: 1 });
   assert.deepEqual(prepareToolArguments('search_documents', { query: '检索' }, 7), { query: '检索' });
   assert.deepEqual(prepareToolArguments('read_document', { documentId: 4 }, 7), { documentId: 4 });

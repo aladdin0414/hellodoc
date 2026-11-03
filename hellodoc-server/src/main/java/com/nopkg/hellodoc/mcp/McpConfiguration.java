@@ -34,7 +34,7 @@ public class McpConfiguration {
     @Bean(destroyMethod = "close")
     McpSyncServer mcpServer(HttpServletStreamableServerTransportProvider transport, AiItemService items,
                             McpIdentity identity, ObjectMapper mapper, McpWriteService writes, McpReadService reads, McpUpdateService updates,
-                            McpKnowledgeBaseService knowledgeBases) {
+                            McpKnowledgeBaseService knowledgeBases, McpMoveService moves) {
         var listSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "offset", Map.of("type", "integer", "minimum", 0),
@@ -62,7 +62,7 @@ public class McpConfiguration {
                 .description("没有合适事项时新建根目录事项；先查询候选。requestId 在超时重试时必须保持不变。")
                 .inputSchema(itemSchema).build();
         var documentTool = McpSchema.Tool.builder().name("create_document")
-                .description("将 Markdown 保存到有编辑权限的知识库：parentId 指定普通文件夹，省略时保存到根目录；旧版 itemId 仍支持事项。不要同时提供 parentId 和 itemId。使用标题、列表和表格，不要将整篇内容放入代码块；PDF 未识别内容须说明。超时重试必须使用相同 requestId。")
+                .description("保存 Markdown 前先用 list_knowledge_bases、search_documents 和 list_folder_children 查找相关目录；用户指定位置或相关目录明确时使用该目录的 parentId，不要默认保存到根目录。多个候选无法区分时询问用户；仅用户指定根目录或没有合适目录时省略 parentId。可指定有编辑权限的 knowledgeBaseId；旧版 itemId 仍支持事项，不要同时提供 itemId 和 parentId。不要将整篇内容放入代码块；PDF 未识别内容须说明。超时重试必须使用相同 requestId。")
                 .inputSchema(documentSchema).build();
         var operationSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
@@ -83,7 +83,7 @@ public class McpConfiguration {
                 .description("跨所有有权访问的知识库搜索文档和文件夹（包含草稿），结果 type 标识类型。从问题提取关键词，必要时换词重试；读取相关内容后引用来源。")
                 .inputSchema(searchSchema).build();
         var readTool = McpSchema.Tool.builder().name("read_document")
-                .description("读取有权访问的文档正文或列出文件夹子项。文档返回 version；续读正文须同时提交第一页的 expectedVersion，文档变更时从头读取。文档 offset 为 Unicode 字符偏移，文件夹 offset 为可访问子项偏移；hasMore 为 true 时用 nextOffset 继续读取，并引用来源。")
+                .description("读取有权访问的文档正文或列出文件夹子项。文档返回 version 和 currentParentId（0 表示根目录）；续读正文须同时提交第一页的 expectedVersion，文档变更时从头读取。文档 offset 为 Unicode 字符偏移，文件夹 offset 为可访问子项偏移；hasMore 为 true 时用 nextOffset 继续读取，并引用来源。")
                 .inputSchema(readSchema).build();
         var folderSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
@@ -108,9 +108,34 @@ public class McpConfiguration {
         var updateTool = McpSchema.Tool.builder().name("update_document")
                 .description("跨所有有编辑权限的知识库更新普通未加密文档；先读取正文和版本，使用 replace 替换或 append 原样追加。VERSION_CONFLICT 时重新读取，不得自动覆盖；REQUEST_ID_CONFLICT 时使用新请求 ID；超时重试使用原 requestId。Markdown 要使用标题、列表和表格，不要把整篇内容放进代码块。")
                 .inputSchema(updateSchema).build();
+        var moveSchema = new McpSchema.JsonSchema("object", Map.of(
+                "documentId", Map.of("type", "integer", "minimum", 1),
+                "expectedParentId", Map.of("type", "integer", "minimum", 0),
+                "parentId", Map.of("type", "integer", "minimum", 0)),
+                List.of("documentId", "expectedParentId", "parentId"), false, null, null);
+        var moveTool = McpSchema.Tool.builder().name("move_document")
+                .description("在同一知识库内移动有编辑权限的普通文档；先读取 currentParentId 并用作 expectedParentId，再通过目录浏览确定目标 parentId；0 表示根目录。若位置已改变返回 LOCATION_CONFLICT，应重新读取并确认；重复相同移动可安全重试。不支持移动文件夹或跨知识库移动。")
+                .inputSchema(moveSchema).build();
         return McpServer.sync(transport)
                 .serverInfo("hellodoc", "1.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder().tools(false).build())
+                .toolCall(moveTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        long doc = integerArg(args.get("documentId"), 1, Long.MAX_VALUE);
+                        long expected = integerArg(args.get("expectedParentId"), 0, Long.MAX_VALUE);
+                        long parent = integerArg(args.get("parentId"), 0, Long.MAX_VALUE);
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        var result = identity.run(auth, user -> moves.move(user, doc, expected, parent));
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(result)).build();
+                    } catch (McpMoveException e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent(e.getMessage()).build();
+                    } catch (IllegalArgumentException e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("INVALID_ARGUMENT").build();
+                    } catch (Exception e) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("MOVE_FAILED").build();
+                    }
+                })
                 .toolCall(kbTool, (exchange, request) -> {
                     try {
                         var args = request.arguments();

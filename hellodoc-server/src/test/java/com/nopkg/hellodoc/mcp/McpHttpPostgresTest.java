@@ -85,6 +85,27 @@ class McpHttpPostgresTest {
         assertTrue(nestedPage.toString().contains("普通文档"), nestedPage.toString());
         JsonNode rootPage = call(token, session, "list_folder_children", Map.of("knowledgeBaseId", kb2));
         assertTrue(rootPage.toString().contains("根文档"), rootPage.toString());
+        long rootDocId = mapper.readTree(rootDoc.path("content").get(0).path("text").asText()).path("documentId").asLong();
+        JsonNode beforeMove = call(token, session, "read_document", Map.of("documentId", rootDocId));
+        assertEquals(0, mapper.readTree(beforeMove.path("content").get(0).path("text").asText()).path("currentParentId").asLong());
+        var moveArgs = Map.<String,Object>of("documentId", rootDocId, "expectedParentId", 0, "parentId", nested);
+        assertFalse(call(token, session, "move_document", moveArgs).path("isError").asBoolean());
+        assertFalse(call(token, session, "move_document", moveArgs).path("isError").asBoolean());
+        JsonNode moveConflict = call(token, session, "move_document", Map.of("documentId", rootDocId, "expectedParentId", 0, "parentId", folder));
+        assertTrue(moveConflict.path("isError").asBoolean());
+        assertTrue(moveConflict.toString().contains("LOCATION_CONFLICT"));
+        assertEquals("root", documents.getContent(rootDocId));
+        var movePool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var start = new java.util.concurrent.CountDownLatch(1);
+            var left = movePool.submit(() -> { start.await(); return call(token, session, "move_document", Map.of("documentId", rootDocId, "expectedParentId", nested, "parentId", folder)); });
+            var right = movePool.submit(() -> { start.await(); return call(token, session, "move_document", Map.of("documentId", rootDocId, "expectedParentId", nested, "parentId", 0)); });
+            start.countDown();
+            var a = left.get(20, java.util.concurrent.TimeUnit.SECONDS);
+            var b = right.get(20, java.util.concurrent.TimeUnit.SECONDS);
+            assertNotEquals(a.path("isError").asBoolean(), b.path("isError").asBoolean(), a + " " + b);
+            assertTrue((a.path("isError").asBoolean() ? a : b).toString().contains("LOCATION_CONFLICT"));
+        } finally { movePool.shutdownNow(); }
         JsonNode kbList = call(token, session, "list_knowledge_bases", Map.of());
         assertTrue(kbList.toString().contains("second kb"), kbList.toString());
         assertTrue(call(token, session, "create_document", Map.of("knowledgeBaseId", kb, "parentId", nested, "name", "跨库错误", "markdown", "x", "requestId", "wrong-kb")).path("isError").asBoolean());
@@ -133,6 +154,7 @@ class McpHttpPostgresTest {
         String outsiderName = "http-outsider-" + outsider;
         jdbc.update("INSERT INTO sys_user_auth (user_id, identity_type, identifier, credential) VALUES (?, 'PASSWORD', ?, 'unused')", outsider, outsiderName);
         String outsiderToken = tokens.generateToken(User.withUsername(outsiderName).password("unused").authorities("ROLE_USER").build());
+        assertTrue(call(outsiderToken, session, "move_document", Map.of("documentId", rootDocId, "expectedParentId", nested, "parentId", 0)).path("isError").asBoolean());
         assertTrue(call(outsiderToken, session, "list_folder_children", Map.of("knowledgeBaseId", kb2)).path("isError").asBoolean());
         assertTrue(call(outsiderToken, session, "create_document", Map.of("knowledgeBaseId", kb2, "parentId", nested, "name", "拒绝", "markdown", "x", "requestId", "denied-folder")).path("isError").asBoolean());
         JsonNode deniedUpdate = call(outsiderToken, session, "update_document", Map.of("documentId", secondDoc, "expectedVersion", 0, "mode", "replace", "markdown", "no", "requestId", "unauthorized"));

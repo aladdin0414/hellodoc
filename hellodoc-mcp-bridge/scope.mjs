@@ -12,7 +12,7 @@ export function scopeArguments(args, knowledgeBaseId) {
 }
 
 const scopedTools = new Set(['list_items', 'create_item', 'create_document', 'get_operation']);
-export const exposedTools = new Set([...scopedTools, 'search_documents', 'read_document', 'update_document', 'list_folder_children', 'list_knowledge_bases']);
+export const exposedTools = new Set([...scopedTools, 'search_documents', 'read_document', 'update_document', 'move_document', 'list_folder_children', 'list_knowledge_bases']);
 export function prepareToolArguments(name, args, knowledgeBaseId) {
   if (name === 'create_document' || name === 'list_folder_children' || name === 'get_operation') {
     return { ...args, knowledgeBaseId: args.knowledgeBaseId ?? knowledgeBaseId };
