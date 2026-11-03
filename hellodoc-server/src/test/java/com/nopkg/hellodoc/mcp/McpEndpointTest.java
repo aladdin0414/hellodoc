@@ -71,11 +71,27 @@ class McpEndpointTest {
         var searchReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(search)).build();
         var found = client.send(searchReq, HttpResponse.BodyHandlers.ofString());
         assertTrue(found.body().contains("部署指南"), found.body());
+        assertTrue(found.body().contains("\\\"type\\\":\\\"file\\\""), found.body());
         assertTrue(found.body().contains("draft"), found.body());
         String read = "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"read_document\",\"arguments\":{\"documentId\":" + doc.getId() + "}}}";
         var readReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(read)).build();
         var bodyResult = client.send(readReq, HttpResponse.BodyHandlers.ofString());
         assertTrue(bodyResult.body().contains("独特关键词部署说明"), bodyResult.body());
+        var folderDto = new com.nopkg.hellodoc.web.dto.kb.DocCreateDTO(); folderDto.setName("MCP测试文件夹");
+        folderDto.setType(com.nopkg.hellodoc.enums.DocType.FOLDER);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(username, "unused"));
+        var folder = documents.create(user.getId(), otherKb.getId(), folderDto);
+        var childDto = new com.nopkg.hellodoc.web.dto.kb.DocCreateDTO(); childDto.setName("文件夹内文档");
+        childDto.setType(com.nopkg.hellodoc.enums.DocType.FILE); childDto.setParentId(folder.getId()); childDto.setContent("正文");
+        documents.create(user.getId(), otherKb.getId(), childDto);
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        String folderCall = "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"read_document\",\"arguments\":{\"documentId\":" + folder.getId() + "}}}";
+        var folderReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(folderCall)).build();
+        var folderResult = client.send(folderReq, HttpResponse.BodyHandlers.ofString());
+        assertTrue(folderResult.body().contains("这是文件夹，没有正文"), folderResult.body());
+        assertTrue(folderResult.body().contains("文件夹内文档"), folderResult.body());
+
 
     }
 }
