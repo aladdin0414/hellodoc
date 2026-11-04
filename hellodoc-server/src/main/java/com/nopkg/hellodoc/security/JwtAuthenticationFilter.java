@@ -19,10 +19,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
+    private final com.nopkg.hellodoc.mcp.McpAccessTokenService mcpAccessTokens;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService, com.nopkg.hellodoc.mcp.McpAccessTokenService mcpAccessTokens) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userDetailsService = userDetailsService;
+        this.mcpAccessTokens = mcpAccessTokens;
     }
 
     @Override
@@ -32,6 +34,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = getTokenFromRequest(request);
 
+        if (StringUtils.hasText(token) && token.startsWith("hdmcp_")) {
+            if (!"/api/mcp".equals(request.getServletPath())) {
+                sendOAuthError(response, "invalid_token", "Invalid token", false); return;
+            }
+            var username = mcpAccessTokens.authenticate(token);
+            if (username.isEmpty()) { sendOAuthError(response, "invalid_token", "Invalid token", false); return; }
+            try {
+                var details = userDetailsService.loadUserByUsername(username.get());
+                if (!details.isEnabled()) { sendOAuthError(response, "invalid_token", "Invalid token", false); return; }
+                var authentication = new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (org.springframework.security.core.userdetails.UsernameNotFoundException e) {
+                sendOAuthError(response, "invalid_token", "Invalid token", false); return;
+            }
+            filterChain.doFilter(request, response); return;
+        }
         if (StringUtils.hasText(token)) {
 
             String username;

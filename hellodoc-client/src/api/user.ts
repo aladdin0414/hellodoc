@@ -14,3 +14,9 @@ export const createUser = (data: any) => request.post('/api/users', data)
 export const updateUser = (id: number, data: any) => request.put(`/api/users/${id}`, data)
 export const deleteUser = (id: number) => request.delete(`/api/users/${id}`)
 export const initPassword = (id: number) => request.put(`/api/users/${id}/init-pwd`)
+
+export interface McpTokenInfo { id: string; name: string; createdAt: string }
+export interface IssuedMcpToken { id: string; name: string; token: string }
+export const listMcpTokens = (): Promise<McpTokenInfo[]> => request.get('/api/mcp-tokens')
+export const createMcpToken = (name: string): Promise<IssuedMcpToken> => request.post('/api/mcp-tokens', { name })
+export const revokeMcpToken = (id: string) => request.delete(`/api/mcp-tokens/${encodeURIComponent(id)}`)

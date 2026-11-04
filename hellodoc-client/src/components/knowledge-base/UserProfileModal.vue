@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { updateProfile, uploadAvatar } from '../../api/user'
+import { updateProfile, uploadAvatar, listMcpTokens, createMcpToken, revokeMcpToken, type McpTokenInfo } from '../../api/user'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '../shared/BaseDialog.vue'
 
@@ -16,6 +16,21 @@ const emit = defineEmits<{
 const show = defineModel<boolean>('show', { required: true })
 const { t } = useI18n()
 
+const mcpTokens = ref<McpTokenInfo[]>([])
+const mcpName = ref('')
+const newMcpToken = ref('')
+const mcpBusy = ref(false)
+const loadMcpTokens = async () => { try { mcpTokens.value = await listMcpTokens() } catch { /* request layer reports errors */ } }
+const createToken = async () => {
+    if (!mcpName.value.trim() || mcpBusy.value) return
+    mcpBusy.value = true
+    try { const result = await createMcpToken(mcpName.value.trim()); newMcpToken.value = result.token; mcpName.value = ''; await loadMcpTokens() }
+    catch { /* request layer reports errors */ } finally { mcpBusy.value = false }
+}
+const revokeToken = async (id: string) => {
+    if (!window.confirm(t('userProfile.mcpConfirm'))) return
+    try { await revokeMcpToken(id); await loadMcpTokens() } catch { /* request layer reports errors */ }
+}
 const uploading = ref(false)
 const profileForm = ref({
     nickname: '',
@@ -26,7 +41,9 @@ const profileForm = ref({
 })
 
 watch(show, (val) => {
+    newMcpToken.value = ''
     if (!val) return
+    void loadMcpTokens()
     profileForm.value = {
         nickname: props.nickname,
         realName: localStorage.getItem('realName') || '',
@@ -87,7 +104,7 @@ const handleUpdateProfile = async () => {
 
 <template>
     <BaseDialog :show="show" max-width-class="max-w-lg" @close="show = false">
-        <div class="bg-white dark:bg-gray-800 px-6 py-6">
+        <div class="bg-white dark:bg-gray-800 px-6 py-6 max-h-[75vh] overflow-y-auto">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('userProfile.title') }}</h3>
                         <button @click="show = false"
@@ -129,6 +146,25 @@ const handleUpdateProfile = async () => {
                             <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('userProfile.uploadHint') }}</p>
                         </div>
 
+                        <section class="border-t border-gray-200 dark:border-gray-700 pt-5 space-y-3">
+                            <h4 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('userProfile.mcpTitle') }}</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('userProfile.mcpHint') }}</p>
+                            <div class="flex gap-2">
+                                <input v-model="mcpName" maxlength="100" :placeholder="t('userProfile.mcpName')" :aria-label="t('userProfile.mcpName')" class="min-w-0 flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-transparent text-gray-900 dark:text-gray-100" />
+                                <button :disabled="!mcpName.trim() || mcpBusy" @click="createToken" class="px-3 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50">{{ t('userProfile.mcpCreate') }}</button>
+                            </div>
+                            <div v-if="newMcpToken" class="text-sm text-gray-700 dark:text-gray-200 space-y-1">
+                                <p>{{ t('userProfile.mcpOnce') }}</p>
+                                <input readonly :value="newMcpToken" @focus="($event.target as HTMLInputElement).select()" class="w-full px-2 py-1 border rounded bg-transparent" />
+                            </div>
+                            <p v-if="!mcpTokens.length" class="text-sm text-gray-500">{{ t('userProfile.mcpEmpty') }}</p>
+                            <ul v-else class="space-y-2">
+                                <li v-for="token in mcpTokens" :key="token.id" class="flex items-center justify-between gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                    <span class="truncate">{{ token.name }}</span>
+                                    <button @click="revokeToken(token.id)" class="text-red-600 hover:underline">{{ t('userProfile.mcpRevoke') }}</button>
+                                </li>
+                            </ul>
+                        </section>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ t('userProfile.nicknameLabel') }}</label>

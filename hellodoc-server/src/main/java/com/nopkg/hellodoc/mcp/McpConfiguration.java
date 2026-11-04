@@ -34,14 +34,14 @@ public class McpConfiguration {
     @Bean(destroyMethod = "close")
     McpSyncServer mcpServer(HttpServletStreamableServerTransportProvider transport, AiItemService items,
                             McpIdentity identity, ObjectMapper mapper, McpWriteService writes, McpReadService reads, McpUpdateService updates,
-                            McpKnowledgeBaseService knowledgeBases, McpMoveService moves) {
+                            McpKnowledgeBaseService knowledgeBases, McpMoveService moves, McpSourceLinks sourceLinks) {
         var listSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "offset", Map.of("type", "integer", "minimum", 0),
                 "limit", Map.of("type", "integer", "minimum", 1, "maximum", 100)),
                 List.of("knowledgeBaseId"), false, null, null);
         var listTool = McpSchema.Tool.builder().name("list_items")
-                .description("分页列出可访问的事项；请继续查询 nextOffset 直到没有更多结果，再判断匹配。多个候选无法区分时请询问用户。")
+                .description("先通过 list_knowledge_bases 选择知识库，再分页列出该知识库的事项；请继续查询 nextOffset 直到没有更多结果，再判断匹配。多个候选无法区分时请询问用户。")
                 .inputSchema(listSchema).build();
         var itemSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
@@ -59,7 +59,7 @@ public class McpConfiguration {
                 "requestId", Map.of("type", "string", "minLength", 1, "maxLength", 128)),
                 List.of("knowledgeBaseId", "name", "markdown", "requestId"), false, null, null);
         var itemTool = McpSchema.Tool.builder().name("create_item")
-                .description("没有合适事项时新建根目录事项；先查询候选。requestId 在超时重试时必须保持不变。")
+                .description("先通过 list_knowledge_bases 选择知识库，查询候选后没有合适事项时在该知识库根目录新建事项。requestId 在超时重试时必须保持不变。")
                 .inputSchema(itemSchema).build();
         var documentTool = McpSchema.Tool.builder().name("create_document")
                 .description("保存 Markdown 前先用 list_knowledge_bases、search_documents 和 list_folder_children 查找相关目录；用户指定位置或相关目录明确时使用该目录的 parentId，不要默认保存到根目录。多个候选无法区分时询问用户；仅用户指定根目录或没有合适目录时省略 parentId。可指定有编辑权限的 knowledgeBaseId；旧版 itemId 仍支持事项，不要同时提供 itemId 和 parentId。不要将整篇内容放入代码块；PDF 未识别内容须说明。超时重试必须使用相同 requestId。")
@@ -127,7 +127,7 @@ public class McpConfiguration {
                         long parent = integerArg(args.get("parentId"), 0, Long.MAX_VALUE);
                         var auth = (Authentication) exchange.transportContext().get("authentication");
                         var result = identity.run(auth, user -> moves.move(user, doc, expected, parent));
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(result)).build();
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(result))).build();
                     } catch (McpMoveException e) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent(e.getMessage()).build();
                     } catch (IllegalArgumentException e) {
@@ -143,7 +143,7 @@ public class McpConfiguration {
                         int limit = args.containsKey("limit") ? (int) integerArg(args.get("limit"), 1, 100) : 50;
                         var auth = (Authentication) exchange.transportContext().get("authentication");
                         var result = identity.run(auth, user -> knowledgeBases.list(user, offset, limit));
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(result)).build();
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(result))).build();
                     } catch (Exception error) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("无法列出知识库，请检查权限与参数。").build();
                     }
@@ -156,7 +156,7 @@ public class McpConfiguration {
                         int offset = args.containsKey("offset") ? (int) integerArg(args.get("offset"), 0, Integer.MAX_VALUE) : 0;
                         var auth = (Authentication) exchange.transportContext().get("authentication");
                         var result = identity.run(auth, user -> reads.listFolderChildren(user, kb, parent, offset));
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(result)).build();
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(result))).build();
                     } catch (Exception error) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("目录不可访问，请检查知识库、目录和权限。").build();
                     }
@@ -170,7 +170,7 @@ public class McpConfiguration {
                                 || !(args.get("requestId") instanceof String requestId)) throw new IllegalArgumentException();
                         var auth = (Authentication) exchange.transportContext().get("authentication");
                         var result = identity.run(auth, user -> updates.update(user, id, version, mode, markdown, requestId));
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(result)).build();
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(result))).build();
                     } catch (McpUpdateException e) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent(e.getMessage()).build();
                     } catch (IllegalArgumentException e) {
@@ -186,7 +186,7 @@ public class McpConfiguration {
                         int limit = (int) integerArg(args.getOrDefault("limit", 20), 1, 100);
                         var auth = (Authentication) exchange.transportContext().get("authentication");
                         var output = identity.run(auth, user -> reads.search(user, query, limit));
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(Map.of("results", output))).build();
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(Map.of("results", output)))).build();
                     } catch (IllegalArgumentException e) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("搜索参数无效。").build();
                     } catch (Exception e) {
@@ -201,7 +201,7 @@ public class McpConfiguration {
                         var auth = (Authentication) exchange.transportContext().get("authentication");
                         Integer expected = args.containsKey("expectedVersion") ? (int) integerArg(args.get("expectedVersion"), 0, Integer.MAX_VALUE) : null;
                         var output = identity.run(auth, user -> reads.read(user, id, offset, expected));
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(output)).build();
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(output))).build();
                     } catch (McpVersionConflictException e) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("VERSION_CONFLICT：文档已更改，请从头读取。 ").build();
                     } catch (IllegalArgumentException e) {
@@ -253,7 +253,7 @@ public class McpConfiguration {
                         String requestId = (String) args.get("requestId");
                         var result = identity.run(auth, user -> writes.findOperation(user, kb, operation, requestId));
                         var output = result.isPresent() ? Map.of("found", true, "id", result.getAsLong()) : Map.of("found", false);
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(output)).build();
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(output))).build();
                     } catch (Exception error) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("无法查询操作结果，请检查权限与请求参数。").build();
                     }
@@ -278,7 +278,7 @@ public class McpConfiguration {
                             data.put("path", "/kb/" + kb + "/" + id); data.put("version", read.get("version"));
                             data.put("updatedAt", read.get("updatedAt")); return data;
                         });
-                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(output)).build();
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(output))).build();
                     } catch (Exception error) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("文档未确认保存成功。请检查目录和权限；重试时使用相同 requestId。").build();
                     }

@@ -28,6 +28,15 @@ export default {
         cancel: 'Cancel'
     },
     userProfile: {
+        mcpTitle: 'MCP access tokens',
+        mcpHint: 'Connect AI clients using your document permissions. Keep tokens private.',
+        mcpName: 'Client name',
+        mcpCreate: 'Create token',
+        mcpOnce: 'Copy this token now; it cannot be shown again.',
+        mcpRevoke: 'Revoke',
+        mcpConfirm: 'This client will lose access. Revoke its token?',
+        mcpEmpty: 'No tokens created yet',
+
         title: 'Edit Profile',
         uploadHint: 'Click avatar to upload a new image',
         nicknameLabel: 'Nickname',

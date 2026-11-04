@@ -109,4 +109,50 @@ class McpEndpointTest {
 
 
     }
+    @Autowired McpAccessTokenService accessTokens;
+    @Test void dedicatedTokenOnlyWorksForMcpAndCanBeRevoked() throws Exception {
+        var user = new SysUser(); user.setNickname("mcp token http"); user.setStatus((short) 0); user = users.save(user);
+        String username = "mcp-http-token-" + user.getId();
+        var auth = new SysUserAuth(); auth.setUser(user); auth.setIdentityType("PASSWORD"); auth.setIdentifier(username); auth.setCredential("unused"); identities.save(auth);
+        var token = accessTokens.create(user.getId(), username, "HTTP test");
+        var client = HttpClient.newHttpClient();
+        String base = "http://127.0.0.1:" + port;
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"1\"}}}";
+        var request = HttpRequest.newBuilder(URI.create(base + "/api/mcp")).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token.token()).POST(HttpRequest.BodyPublishers.ofString(body)).build();
+        var initialized = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, initialized.statusCode());
+        String session = initialized.headers().firstValue("Mcp-Session-Id").orElseThrow();
+        String call = "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"list_knowledge_bases\",\"arguments\":{}}}";
+        var discover = HttpRequest.newBuilder(URI.create(base + "/api/mcp")).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token.token()).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(call)).build();
+        var discovery = client.send(discover, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, discovery.statusCode());
+        assertTrue(discovery.body().contains("knowledgeBases"), discovery.body());
+        var other = HttpRequest.newBuilder(URI.create(base + "/api/mcp-tokens")).header("Authorization", "Bearer " + token.token()).GET().build();
+        assertEquals(401, client.send(other, HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertTrue(accessTokens.revoke(user.getId(), token.id()));
+        assertEquals(401, client.send(request, HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertEquals(401, client.send(discover, HttpResponse.BodyHandlers.ofString()).statusCode());
+    }
+
+    @Test void signedInUserCanCreateListAndRevokeToken() throws Exception {
+        var user = new SysUser(); user.setNickname("token management"); user.setStatus((short) 0); user = users.save(user);
+        String username = "mcp-manage-" + user.getId();
+        var auth = new SysUserAuth(); auth.setUser(user); auth.setIdentityType("PASSWORD"); auth.setIdentifier(username); auth.setCredential("unused"); identities.save(auth);
+        String jwt = tokens.generateToken(User.withUsername(username).password("unused").authorities("ROLE_USER").build());
+        var client = HttpClient.newHttpClient();
+        String base = "http://127.0.0.1:" + port + "/api/mcp-tokens";
+        var create = HttpRequest.newBuilder(URI.create(base)).header("Authorization", "Bearer " + jwt).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString("{\"name\":\"Codex\"}")).build();
+        var issued = client.send(create, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, issued.statusCode(), issued.body());
+        assertTrue(issued.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        var json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(issued.body()).get("data");
+        String id = json.get("id").asText(), secret = json.get("token").asText();
+        var list = HttpRequest.newBuilder(URI.create(base)).header("Authorization", "Bearer " + jwt).GET().build();
+        String listed = client.send(list, HttpResponse.BodyHandlers.ofString()).body();
+        assertTrue(listed.contains(id)); assertFalse(listed.contains(secret));
+        var revoke = HttpRequest.newBuilder(URI.create(base + "/" + id)).header("Authorization", "Bearer " + jwt).DELETE().build();
+        assertEquals(200, client.send(revoke, HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertTrue(accessTokens.authenticate(secret).isEmpty());
+    }
+
 }

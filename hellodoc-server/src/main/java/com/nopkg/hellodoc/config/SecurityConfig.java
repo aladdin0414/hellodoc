@@ -43,6 +43,7 @@ public class SecurityConfig {
      * JWT 工具：负责令牌校验、解析与认证信息构建。
      */
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.nopkg.hellodoc.mcp.McpAccessTokenService mcpAccessTokens;
     /**
      * 语言拦截器：在认证前后处理请求语言上下文（如 i18n 场景）。
      */
@@ -174,7 +175,7 @@ public class SecurityConfig {
      */
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService);
+        return new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService, mcpAccessTokens);
     }
 
     /**

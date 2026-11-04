@@ -28,6 +28,15 @@ export default {
         cancel: '取消'
     },
     userProfile: {
+        mcpTitle: 'MCP 访问令牌',
+        mcpHint: '用于连接 AI 客户端。令牌拥有你的文档访问权限，请妥善保管。',
+        mcpName: '客户端名称',
+        mcpCreate: '创建令牌',
+        mcpOnce: '请立即复制令牌；关闭后无法再次查看。',
+        mcpRevoke: '撤销',
+        mcpConfirm: '撤销后该客户端将无法连接。确定撤销吗？',
+        mcpEmpty: '尚未创建令牌',
+
         title: '个人资料修改',
         uploadHint: '点击头像即可上传新图片',
         nicknameLabel: '昵称',

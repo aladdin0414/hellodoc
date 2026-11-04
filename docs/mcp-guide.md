@@ -1,45 +1,25 @@
 # HelloDoc MCP 接入
 
-HelloDoc MCP 可将 AI 生成的 Markdown 保存到有编辑权限的知识库根目录或文件夹，也可按事项组织文档。事项对应知识库根目录中由 MCP 创建的文件夹；查询时返回事项名称、简介和别名。AI 应先查询已有事项：匹配明确时复用，没有合适事项时新建，多个候选无法区分时询问用户。
+HelloDoc 提供远程 Streamable HTTP MCP 接口。支持该协议及 Bearer 令牌的客户端可以直接连接，不需要安装 Node.js 或本地桥接程序，也无需预先配置知识库 ID。AI 可列出账号有权访问的知识库，再选择合适的知识库和目录；有多个可能的目标时应询问用户。
 
-## 前提
+## 准备访问令牌
 
-- 服务端已安装包含本功能的 HelloDoc 版本。现有数据库表结构无需迁移，文件夹和文档仍写入现有数据库。
-- 准备一个有编辑权限的知识库，记录其数字 ID。事项工具默认限定此知识库；文档创建、浏览、搜索和读取支持账号有权访问的其他知识库。服务端始终检查登录账号的实际权限。
-- 本机安装 Node.js 20 或更新版本，并能访问 HelloDoc 服务。多台电脑需分别配置桥接程序和相同的知识库 ID。
+1. 升级并启动包含本功能的 HelloDoc 服务端，数据库会执行 V4 迁移。
+2. 登录 HelloDoc，在个人资料的 **MCP 访问令牌**中填写客户端名称并创建令牌。
+3. 立即复制令牌：它只在创建时显示一次。服务端只保存令牌哈希；令牌可在同一界面撤销，撤销后立即失效。
+4. 在支持 Streamable HTTP 的客户端中配置地址 `https://你的服务地址/api/mcp`，并以 `Authorization: Bearer <令牌>` 认证。令牌继承创建者的文档权限，只能用于 MCP 接口；不要提交到仓库或分享给其他人。
 
-## 安装桥接程序
-
-在代码目录执行：
-
-```bash
-cd hellodoc-mcp-bridge
-npm ci
-```
-
-macOS 用户可以将 HelloDoc 账号密码保存到登录钥匙串。以下命令的 `-w` 会提示输入密码，密码不需要写在命令或配置文件中：
-
-```bash
-security add-generic-password -U -s hellodoc-mcp -a '你的用户名' -w
-```
-
-首次访问钥匙串时可能出现系统授权提示。更换密码后重新运行上述命令。其他平台可通过客户端支持的安全环境变量机制注入 `HELLODOC_PASSWORD`；不要将密码提交到仓库。桥接程序的访问令牌和刷新令牌仅保留在进程内，失效时使用已有账号重新登录。
+建议使用 HTTPS 保护令牌和文档内容。部署在反向代理后时，确保代理支持 MCP 的流式响应和会话请求。如果希望工具结果包含完整文档链接，在服务端配置 `HELLODOC_PUBLIC_URL`（例如 `https://docs.example.com`，仅填写协议和域名，可带端口）；未配置时结果提供相对路径。
 
 ## 配置 Codex
 
-把下面示例中的路径、知识库 ID 和用户名替换为自己的值；不要照抄尖括号。`node` 必须是 Node.js 20 或更新版本，脚本路径必须使用绝对路径。
+先通过安全方式把令牌放入启动 Codex 进程的环境变量 `HELLODOC_MCP_TOKEN`，然后运行：
 
 ```bash
-codex mcp add hellodoc \
-  --env HELLODOC_BASE_URL=http://192.168.1.114:8890 \
-  --env HELLODOC_KB_ID='<知识库数字 ID>' \
-  --env HELLODOC_USERNAME='<HelloDoc 用户名>' \
-  -- node '<桥接程序绝对路径>/index.mjs'
+codex mcp add hellodoc --url https://你的服务地址/api/mcp --bearer-token-env-var HELLODOC_MCP_TOKEN
 ```
 
-重启或重新打开客户端会话后，可以尝试：“把上面的讨论总结一下，保存到 HelloDoc。”AI 会查询事项，复用明确匹配的事项，或在没有合适事项时创建。保存结果包含文档 ID 和链接。不同模型的匹配判断可能不同，应检查返回的事项和链接。
-
-桥接配置中的知识库 ID 是创建文档和浏览目录的默认值，调用时可明确选择其他有权限的知识库；事项工具仍使用默认知识库。令牌失效后桥接会尝试刷新或重新登录；服务端明确报告 MCP 会话不存在时会重新连接并重试一次。
+每次启动 Codex 时，该环境变量都必须可用。不要将实际令牌写入命令历史或提交到仓库。重启客户端会话后，可以尝试：“查找相关知识库，把上面的讨论总结并保存到合适的目录。”客户端需支持远程 MCP；仅支持 stdio 的客户端仍可使用旧版本地桥接程序，见仓库中的 `hellodoc-mcp-bridge`。
 
 ## 检索知识库
 
@@ -49,9 +29,9 @@ codex mcp add hellodoc \
 
 ## 浏览目录和创建文档
 
-`list_knowledge_bases` 分页列出可访问的知识库。若 `canBrowseRoot` 为 false，表示只有部分文档共享权限，可通过搜索定位共享文档。`list_folder_children` 接受可选的 `knowledgeBaseId` 和 `parentId`，省略后分别使用默认知识库和根目录；返回结果包含可访问的直接子项和 `nextOffset`。
+`list_knowledge_bases` 分页列出可访问的知识库。若 `canBrowseRoot` 为 false，表示只有部分文档共享权限，可通过搜索定位共享文档。`list_folder_children` 接受从 `list_knowledge_bases` 获取的 `knowledgeBaseId` 和可选的 `parentId`；省略后者时浏览根目录。返回结果包含可访问的直接子项和 `nextOffset`。
 
-`create_document` 接受可选 `knowledgeBaseId` 和 `parentId`；不提供 `parentId` 时创建在根目录。目标知识库及文件夹须有编辑权限。旧版 `itemId` 调用仍可使用，但不能和 `parentId` 同时传入。`requestId` 应在结果不确定时原样重试，禁止对其他网络错误无条件重放写操作。
+`create_document` 需要目标 `knowledgeBaseId`，并接受可选 `parentId`；不提供 `parentId` 时创建在根目录。目标知识库及文件夹须有编辑权限。旧版 `itemId` 调用仍可使用，但不能和 `parentId` 同时传入。`requestId` 应在结果不确定时原样重试，禁止对其他网络错误无条件重放写操作。
 
 保存前应先查找已有知识库和相关目录；用户指定目录或找到明确匹配时使用对应的 `parentId`。多个目录可能匹配时应询问用户。只有用户指定根目录或没有合适目录时，才使用根目录。
 
@@ -79,4 +59,4 @@ codex mcp add hellodoc \
 
 普通 HTTP 不加密局域网链路；如果部署环境需要链路加密，可为服务配置 HTTPS。不要将密码、令牌或真实知识库内容写入示例和日志。
 
-Codex 的 stdio 协议路径已通过 SDK 客户端的隔离测试；尚未逐一实测 Codex 产品界面、Claude Desktop、Antigravity、WorkBuddy 和 Hermes，具体客户端配置可能不同。
+服务端远程 MCP 协议路径已通过 HTTP 测试；尚未逐一实测各客户端产品界面，具体配置和重连行为可能不同。
