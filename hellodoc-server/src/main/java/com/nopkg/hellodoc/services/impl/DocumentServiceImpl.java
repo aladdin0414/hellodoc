@@ -61,6 +61,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final KbDocRelationRepository docRelationRepository;
     private final PasswordEncoder passwordEncoder;
     private final AssetService assetService;
+    private final com.nopkg.hellodoc.mcp.DirectoryRevision directoryRevision;
 
     private static final Pattern MANAGED_MARKDOWN_IMAGE = Pattern.compile(
             "(!\\[[^\\]]*\\]\\()(/api/assets/(\\d+)/raw)(\\))");
@@ -72,6 +73,7 @@ public class DocumentServiceImpl implements DocumentService {
         if (kbId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "kbId is required");
         }
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(kbId);
         permissionChecker.checkKbRole(userId, java.util.Objects.requireNonNull(kbId),
                 com.nopkg.hellodoc.enums.KbRole.EDITOR);
         KbKnowledgeBase kb = kbService.getKnowledgeBase(kbId);
@@ -89,6 +91,11 @@ public class DocumentServiceImpl implements DocumentService {
         if (dto.getParentId() != null) {
             KbDocument parent = documentRepository.findByIdAndDeletedAtIsNull(dto.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Document", dto.getParentId()));
+            if (parent.getKb() == null || !java.util.Objects.equals(parent.getKb().getId(), kbId)
+                    || parent.getType() != DocType.FOLDER) {
+                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Parent must be a folder in this knowledge base");
+            }
+            permissionChecker.checkDocRole(userId, parent.getId(), com.nopkg.hellodoc.enums.DocRole.EDITOR);
             doc.setParent(parent);
         }
 
@@ -119,6 +126,7 @@ public class DocumentServiceImpl implements DocumentService {
         doc.setUpdatedAt(OffsetDateTime.now());
 
         KbDocument saved = documentRepository.save(doc);
+        directoryRevision.bump(lockedDirectory);
 
         if (StringUtils.hasText(dto.getContent())) {
             updateContent(userId, saved.getId(), dto.getContent());
@@ -139,11 +147,17 @@ public class DocumentServiceImpl implements DocumentService {
         if (docId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId is required");
         }
+        boolean mayAffectTree = dto.getParentId() != null || dto.getOrderNum() != null || dto.getType() != null || dto.getPassword() != null;
+        KbKnowledgeBase lockedDirectory = mayAffectTree ? directoryRevision.lock(java.util.Objects.requireNonNull(kbId)) : null;
         KbKnowledgeBase kb = kbService.getKnowledgeBase(java.util.Objects.requireNonNull(kbId));
 
         KbDocument doc = documentRepository.findByIdForUpdate(docId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
         entityManager.refresh(doc, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        Long previousParent = doc.getParent() == null ? null : doc.getParent().getId();
+        Integer previousOrder = doc.getOrderNum();
+        DocType previousType = doc.getType();
+        boolean previousEncrypted = Boolean.TRUE.equals(doc.getIsEncrypted());
         permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.EDITOR);
         if (!doc.getKb().getId().equals(kb.getId())) {
             throw new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "Document not found in kb");
@@ -193,6 +207,14 @@ public class DocumentServiceImpl implements DocumentService {
                 if (!parent.getKb().getId().equals(kb.getId())) {
                     throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "parentId not in kb");
                 }
+                if (parent.getType() != DocType.FOLDER || Boolean.TRUE.equals(parent.getIsEncrypted())) {
+                    throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "parentId must be an accessible folder");
+                }
+                permissionChecker.checkDocRole(userId, parent.getId(), com.nopkg.hellodoc.enums.DocRole.EDITOR);
+                for (KbDocument ancestor = parent; ancestor != null; ancestor = ancestor.getParent()) {
+                    if (java.util.Objects.equals(ancestor.getId(), docId))
+                        throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "parentId cannot be a descendant");
+                }
                 doc.setParent(parent);
             }
         }
@@ -235,6 +257,10 @@ public class DocumentServiceImpl implements DocumentService {
         }
 
         KbDocument saved = documentRepository.save(doc);
+        Long nextParent = doc.getParent() == null ? null : doc.getParent().getId();
+        if (mayAffectTree && (!java.util.Objects.equals(previousParent, nextParent)
+                || !java.util.Objects.equals(previousOrder, doc.getOrderNum()) || previousType != doc.getType()
+                || previousEncrypted != Boolean.TRUE.equals(doc.getIsEncrypted()))) directoryRevision.bump(lockedDirectory);
         searchService.updateIndex(saved.getId());
         return saved;
     }
@@ -246,6 +272,7 @@ public class DocumentServiceImpl implements DocumentService {
         if (docId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId is required");
         }
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(java.util.Objects.requireNonNull(kbId));
         permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.EDITOR);
         kbService.getKnowledgeBase(kbId);
 
@@ -275,6 +302,7 @@ public class DocumentServiceImpl implements DocumentService {
                 }
             }
         }
+        directoryRevision.bump(lockedDirectory);
     }
 
     @Override
@@ -284,6 +312,7 @@ public class DocumentServiceImpl implements DocumentService {
         if (kbId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "kbId is required");
         }
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(kbId);
         permissionChecker.checkKbRole(userId, kbId, com.nopkg.hellodoc.enums.KbRole.EDITOR);
 
         KbDocument doc = documentRepository.findById(docId)
@@ -316,6 +345,7 @@ public class DocumentServiceImpl implements DocumentService {
                 }
             }
         }
+        directoryRevision.bump(lockedDirectory);
     }
 
     @Override
@@ -334,6 +364,7 @@ public class DocumentServiceImpl implements DocumentService {
         if (docId == null || kbId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId and kbId are required");
         }
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(kbId);
         permissionChecker.checkKbRole(userId, kbId, com.nopkg.hellodoc.enums.KbRole.ADMIN);
 
         java.util.ArrayDeque<Long> stack = new java.util.ArrayDeque<>();
@@ -363,6 +394,7 @@ public class DocumentServiceImpl implements DocumentService {
                 contentRepository.deleteById(id);
                 documentRepository.deleteById(id);
             }
+            directoryRevision.bump(lockedDirectory);
         }
     }
 
@@ -372,6 +404,7 @@ public class DocumentServiceImpl implements DocumentService {
         if (kbId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "kbId is required");
         }
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(kbId);
         permissionChecker.checkKbRole(userId, kbId, com.nopkg.hellodoc.enums.KbRole.ADMIN);
 
         List<KbDocument> trashDocs = documentRepository.findAllTrashItems(kbId);
@@ -386,6 +419,7 @@ public class DocumentServiceImpl implements DocumentService {
             contentRepository.deleteById(id);
             documentRepository.deleteById(id);
         }
+        directoryRevision.bump(lockedDirectory);
     }
 
     @Override
@@ -411,11 +445,22 @@ public class DocumentServiceImpl implements DocumentService {
         if (docId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId is required");
         }
+        KbDocument initial = getById(docId);
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(initial.getKb().getId());
         permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.EDITOR);
         KbDocument doc = getById(docId);
 
         if (newParentId != null) {
             KbDocument newParent = getById(newParentId);
+            if (newParent.getKb() == null || !newParent.getKb().getId().equals(doc.getKb().getId())
+                    || newParent.getType() != DocType.FOLDER) {
+                throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Destination is not a folder in this knowledge base");
+            }
+            for (KbDocument ancestor = newParent; ancestor != null; ancestor = ancestor.getParent()) {
+                if (java.util.Objects.equals(ancestor.getId(), docId))
+                    throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Destination cannot be inside the moved document");
+            }
+            permissionChecker.checkDocRole(userId, newParentId, com.nopkg.hellodoc.enums.DocRole.EDITOR);
             doc.setParent(newParent);
         } else {
             doc.setParent(null);
@@ -423,19 +468,7 @@ public class DocumentServiceImpl implements DocumentService {
 
         doc.setUpdatedAt(OffsetDateTime.now());
         documentRepository.save(doc);
-    }
-
-    @Override
-    @Transactional
-    public void reorder(Long userId, Long parentId, List<Long> orderedIds) {
-        for (int i = 0; i < orderedIds.size(); i++) {
-            Long id = orderedIds.get(i);
-            KbDocument doc = documentRepository.findByIdAndDeletedAtIsNull(id).orElse(null);
-            if (doc != null) {
-                doc.setOrderNum(i);
-                documentRepository.save(doc);
-            }
-        }
+        directoryRevision.bump(lockedDirectory);
     }
 
     private void updateContent(Long userId, Long docId, String content) {
@@ -531,6 +564,7 @@ public class DocumentServiceImpl implements DocumentService {
         if (docId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId is required");
         }
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(java.util.Objects.requireNonNull(kbId));
         permissionChecker.checkDocRole(java.util.Objects.requireNonNull(userId), docId,
                 com.nopkg.hellodoc.enums.DocRole.EDITOR);
         KbKnowledgeBase kb = kbService.getKnowledgeBase(java.util.Objects.requireNonNull(kbId));
@@ -548,13 +582,15 @@ public class DocumentServiceImpl implements DocumentService {
             maxOrderNum = documentRepository.findMaxOrderNumByKbIdAndParentIsNull(kbId);
         }
 
-        return recursiveDuplicate(
+        KbDocument result = recursiveDuplicate(
                 userId,
                 original,
                 kb,
                 original.getParent(),
                 original.getName() + " (" + com.nopkg.hellodoc.utils.MessageUtils.get("doc.copy_suffix", "Copy") + ")",
                 maxOrderNum == null ? 0 : maxOrderNum + 1);
+        directoryRevision.bump(lockedDirectory);
+        return result;
     }
 
     private KbDocument recursiveDuplicate(Long userId, KbDocument source, KbKnowledgeBase kb, KbDocument targetParent,
@@ -610,6 +646,13 @@ public class DocumentServiceImpl implements DocumentService {
         if (sourceDocId == null || targetKbId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "sourceDocId and targetKbId are required");
         }
+        KbDocument initial = getById(sourceDocId);
+        long sourceKbId = initial.getKb().getId();
+        long first = Math.min(sourceKbId, targetKbId);
+        long second = Math.max(sourceKbId, targetKbId);
+        KbKnowledgeBase firstLocked = directoryRevision.lock(first);
+        KbKnowledgeBase secondLocked = first == second ? firstLocked : directoryRevision.lock(second);
+        KbKnowledgeBase targetLocked = targetKbId == first ? firstLocked : secondLocked;
         // 校验目标知识库编辑权限
         permissionChecker.checkKbRole(userId, targetKbId, com.nopkg.hellodoc.enums.KbRole.EDITOR);
         KbKnowledgeBase targetKb = kbService.getKnowledgeBase(targetKbId);
@@ -619,7 +662,9 @@ public class DocumentServiceImpl implements DocumentService {
         String sourceKbTitle = sourceDoc.getKb().getTitle();
 
         // 递归拷贝逻辑
-        return recursiveCopy(userId, sourceDoc, targetKb, null, sourceKbTitle, false);
+        KbDocument result = recursiveCopy(userId, sourceDoc, targetKb, null, sourceKbTitle, false);
+        directoryRevision.bump(targetLocked);
+        return result;
     }
 
     private KbDocument recursiveCopy(Long userId, KbDocument source, KbKnowledgeBase targetKb, KbDocument targetParent,

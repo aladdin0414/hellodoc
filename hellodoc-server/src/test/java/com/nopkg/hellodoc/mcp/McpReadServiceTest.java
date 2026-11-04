@@ -16,13 +16,15 @@ class McpReadServiceTest {
     final DocumentService docs = mock(DocumentService.class);
     final PermissionChecker permissions = mock(PermissionChecker.class);
     final com.nopkg.hellodoc.repositories.KbDocumentRepository documentRepository = mock(com.nopkg.hellodoc.repositories.KbDocumentRepository.class);
-    final McpReadService service = new McpReadService(search, docs, permissions, documentRepository);
+    final DirectoryRevision revisions = mock(DirectoryRevision.class);
+    final McpReadService service = new McpReadService(search, docs, permissions, documentRepository, revisions);
     @org.junit.jupiter.api.BeforeEach void injectEntityManager() {
         org.springframework.test.util.ReflectionTestUtils.setField(service, "entityManager", mock(jakarta.persistence.EntityManager.class));
     }
 
     @Test void rootListingFiltersBeforePagination() {
         var kb = new KbKnowledgeBase(); kb.setId(9L);
+        when(revisions.lock(9L)).thenReturn(kb);
         java.util.List<KbDocument> docsList = new java.util.ArrayList<>();
         for (long i = 1; i <= 52; i++) {
             var doc = new KbDocument(); doc.setId(i); doc.setKb(kb); doc.setName("Doc " + i); doc.setType(com.nopkg.hellodoc.enums.DocType.FILE); doc.setOrderNum((int)i);
@@ -34,6 +36,14 @@ class McpReadServiceTest {
         assertEquals(50, children.size()); assertEquals(2L, ((java.util.Map<?, ?>)children.get(0)).get("documentId"));
         assertEquals(true, page.get("hasMore"));
         verify(permissions).checkKbRole(7L, 9L, com.nopkg.hellodoc.enums.KbRole.VIEWER);
+    }
+
+    @Test void rejectsContinuationFromAnOldSnapshot() {
+        var kb = new KbKnowledgeBase(); kb.setId(9L); kb.setTreeRevision(3L);
+        when(revisions.lock(9L)).thenReturn(kb);
+        assertEquals("ORDER_CONFLICT", assertThrows(IllegalStateException.class,
+                () -> service.listFolderChildren(7, 9, null, 50, "2")).getMessage());
+        assertEquals("3", service.listFolderChildren(7, 9, null, 0, null).get("snapshot"));
     }
 
     @Test void readsUnicodePagesAndChecksPermissionEachTime() {

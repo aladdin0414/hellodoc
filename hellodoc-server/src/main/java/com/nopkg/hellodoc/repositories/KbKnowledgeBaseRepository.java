@@ -9,6 +9,9 @@ import java.util.Optional;
 import java.util.List;
 
 public interface KbKnowledgeBaseRepository extends JpaRepository<KbKnowledgeBase, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select k from KbKnowledgeBase k where k.id = :id and k.deletedAt is null")
+    Optional<KbKnowledgeBase> findByIdForTreeUpdate(@org.springframework.data.repository.query.Param("id") Long id);
     List<KbKnowledgeBase> findByAllowAnonymousTrueAndDeletedAtIsNull();
     List<KbKnowledgeBase> findByOwnerIdAndDeletedAtIsNull(Long ownerId);
 

@@ -39,6 +39,16 @@ public class DocumentController {
         private final DocumentService documentService;
         private final KbService kbService;
         private final RecentService recentService;
+        private final com.nopkg.hellodoc.mcp.McpReorderService reorderService;
+
+        record ReorderRequest(Long parentId, List<Long> expectedIds, List<Long> orderedIds) {}
+
+        @PostMapping("/api/kb/{kbId}/documents/reorder")
+        public ApiResponse<Map<String, Object>> reorderDocuments(@PathVariable Long kbId, @RequestBody ReorderRequest request) {
+                if (request.parentId() == null) throw new IllegalArgumentException("INVALID_ARGUMENT");
+                return ApiResponse.success(reorderService.reorderWithExpectedOrder(currentUserId(), kbId,
+                        request.parentId(), request.expectedIds(), request.orderedIds()));
+        }
 
         record KbDocItem(Long id, String name, String type, Long parentId, Integer orderNum, String status,
                         String content, String paperBgColor, String paperBgImage, Map<String, Object> extraMeta, Boolean isOpen, Boolean isCover, Boolean isEncrypted, Integer version,

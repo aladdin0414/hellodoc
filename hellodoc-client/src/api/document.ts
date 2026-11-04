@@ -4,6 +4,7 @@ export const getDocuments = (kbId: number) => request.get(`/api/kb/${kbId}/docum
 export const getDocumentDetail = (kbId: number, docId: number) => request.get(`/api/kb/${kbId}/documents/${docId}`)
 export const createDocument = (kbId: number, data: any) => request.post(`/api/kb/${kbId}/documents`, data)
 export const updateDocument = (kbId: number, docId: number, data: any) => request.put(`/api/kb/${kbId}/documents/${docId}`, data)
+export const reorderDocuments = (kbId: number, data: { parentId: number, expectedIds: number[], orderedIds: number[] }) => request.post(`/api/kb/${kbId}/documents/reorder`, data)
 export const deleteDocument = (kbId: number, docId: number) => request.delete(`/api/kb/${kbId}/documents/${docId}`)
 export const duplicateDocument = (kbId: number, docId: number) => request.post(`/api/kb/${kbId}/documents/${docId}/duplicate`, {}, { timeout: 30000 })
 export const copyDocumentToKb = (kbId: number, docId: number, targetKbId: number) => request.post(`/api/kb/${kbId}/documents/${docId}/copy-to/${targetKbId}`, {}, { timeout: 30000 })

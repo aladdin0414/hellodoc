@@ -1,5 +1,5 @@
 import { computed, ref, watch, type Ref } from 'vue'
-import { updateDocument } from '../../api/document'
+import { updateDocument, reorderDocuments } from '../../api/document'
 import { message } from '../../utils/message'
 import { buildOrderedDocuments, sortDocuments } from '../../utils/documentTree'
 import { i18n } from '../../i18n'
@@ -196,24 +196,14 @@ export const useDocumentTreeActions = (options: UseDocumentTreeActionsOptions) =
             newSiblings = [...beforeTargetNext, targetNext, ...selectedDocs, ...afterTargetNext]
         }
 
-        const updates: Promise<any>[] = []
-        newSiblings.forEach((item, i) => {
-            const newOrder = (i + 1) * ORDER_SPACING
-            if (item.orderNum !== newOrder) {
-                item.orderNum = newOrder
-                updates.push(updateDocument(options.kbId.value, item.id, { ...item, orderNum: newOrder }))
-            }
-        })
-
-        if (updates.length > 0) {
-            try {
-                await Promise.all(updates)
-                await options.fetchDocuments(true)
-            } catch (error) {
-                console.error('Reorder failed:', error)
-                message.error(i18n.global.t('editor.reorderSyncFailed'))
-                void options.fetchDocuments()
-            }
+        try {
+            await reorderDocuments(options.kbId.value, { parentId: doc.parentId ?? 0,
+                expectedIds: siblings.map(item => item.id), orderedIds: newSiblings.map(item => item.id) })
+            await options.fetchDocuments(true)
+        } catch (error) {
+            console.error('Reorder failed:', error)
+            message.error(i18n.global.t('editor.reorderSyncFailed'))
+            await options.fetchDocuments()
         }
     }
 
@@ -353,6 +343,21 @@ export const useDocumentTreeActions = (options: UseDocumentTreeActionsOptions) =
 
             const reordered = [...existingChildren, ...movingDocs]
 
+            if (movingDocs.every(doc => doc.parentId === resolvedTargetDoc.id)) {
+                const expected = options.documents.value.filter(doc => doc.parentId === resolvedTargetDoc.id).sort(sortDocuments)
+                try {
+                    await reorderDocuments(options.kbId.value, { parentId: resolvedTargetDoc.id,
+                        expectedIds: expected.map(doc => doc.id), orderedIds: reordered.map(doc => doc.id) })
+                    expandedFolders.value.add(resolvedTargetDoc.id)
+                    await options.fetchDocuments(true)
+                } catch (error) {
+                    console.error('Reorder failed:', error)
+                    message.error(i18n.global.t('editor.reorderSyncFailed'))
+                    await options.fetchDocuments()
+                }
+                return
+            }
+
             reordered.forEach((doc, index) => {
                 const desiredParentId = resolvedTargetDoc.id
                 const desiredOrderNum = (index + 1) * ORDER_SPACING
@@ -385,6 +390,20 @@ export const useDocumentTreeActions = (options: UseDocumentTreeActionsOptions) =
             const insertIndex = position === 'before' ? targetIndex : targetIndex + 1
             const reordered = [...siblings]
             reordered.splice(insertIndex, 0, ...movingDocs)
+
+            if (movingDocs.every(doc => doc.parentId === newParentId)) {
+                const expected = options.documents.value.filter(doc => doc.parentId === newParentId).sort(sortDocuments)
+                try {
+                    await reorderDocuments(options.kbId.value, { parentId: newParentId ?? 0,
+                        expectedIds: expected.map(doc => doc.id), orderedIds: reordered.map(doc => doc.id) })
+                    await options.fetchDocuments(true)
+                } catch (error) {
+                    console.error('Reorder failed:', error)
+                    message.error(i18n.global.t('editor.reorderSyncFailed'))
+                    await options.fetchDocuments()
+                }
+                return
+            }
 
             reordered.forEach((doc, index) => {
                 const desiredParentId = newParentId

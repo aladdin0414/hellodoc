@@ -24,6 +24,7 @@ class McpEndpointTest {
     @Autowired UserAuthRepository identities;
     @Autowired com.nopkg.hellodoc.repositories.KbKnowledgeBaseRepository knowledgeBases;
     @Autowired com.nopkg.hellodoc.services.DocumentService documents;
+    @Autowired McpReadService directoryReads;
 
     @Test
     void endpointRequiresLoginAndNegotiatesMcp() throws Exception {
@@ -52,8 +53,31 @@ class McpEndpointTest {
         assertTrue(listResult.body().contains("整篇内容放入代码块"), listResult.body());
         assertTrue(listResult.body().contains("search_documents"), listResult.body());
         assertTrue(listResult.body().contains("read_document"), listResult.body());
+        assertTrue(listResult.body().contains("reorder_folder_children"), listResult.body());
         var kb = new com.nopkg.hellodoc.entities.KbKnowledgeBase(); kb.setTitle("mcp integration"); kb.setOwnerId(user.getId());
         kb = knowledgeBases.save(kb);
+        String staleList = "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"tools/call\",\"params\":{\"name\":\"list_folder_children\",\"arguments\":{\"knowledgeBaseId\":" + kb.getId() + ",\"offset\":50,\"expectedSnapshot\":\"99999\"}}}";
+        var staleListReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(staleList)).build();
+        assertTrue(client.send(staleListReq, HttpResponse.BodyHandlers.ofString()).body().contains("ORDER_CONFLICT"));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(username, "unused"));
+        var a = new com.nopkg.hellodoc.web.dto.kb.DocCreateDTO(); a.setName("sort-a"); a.setType(com.nopkg.hellodoc.enums.DocType.FILE);
+        var b = new com.nopkg.hellodoc.web.dto.kb.DocCreateDTO(); b.setName("sort-b"); b.setType(com.nopkg.hellodoc.enums.DocType.FOLDER);
+        var first = documents.create(user.getId(), kb.getId(), a);
+        var second = documents.create(user.getId(), kb.getId(), b);
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        var snapshot = directoryReads.listFolderChildren(user.getId(), kb.getId(), null, 0).get("snapshot");
+        String reorder = "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"tools/call\",\"params\":{\"name\":\"reorder_folder_children\",\"arguments\":{\"knowledgeBaseId\":" + kb.getId() + ",\"parentId\":0,\"expectedSnapshot\":\"" + snapshot + "\",\"orderedIds\":[" + first.getId() + "," + second.getId() + "]}}}";
+        var reorderReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(reorder)).build();
+        var reorderResult = client.send(reorderReq, HttpResponse.BodyHandlers.ofString());
+        assertTrue(reorderResult.body().contains("\\\"changed\\\":true"), reorderResult.body());
+        var sorted = (java.util.List<?>) directoryReads.listFolderChildren(user.getId(), kb.getId(), null, 0).get("children");
+        assertEquals(first.getId(), ((java.util.Map<?, ?>) sorted.get(0)).get("documentId"));
+        String reorderWeb = "{\"parentId\":0,\"expectedIds\":[" + first.getId() + "," + second.getId() + "],\"orderedIds\":[" + second.getId() + "," + first.getId() + "]}";
+        var webReq = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/kb/" + kb.getId() + "/documents/reorder"))
+                .header("Content-Type", "application/json").header("Authorization", "Bearer " + token)
+                .POST(HttpRequest.BodyPublishers.ofString(reorderWeb)).build();
+        assertTrue(client.send(webReq, HttpResponse.BodyHandlers.ofString()).body().contains("\"code\":0"));
         String call = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"list_items\",\"arguments\":{\"knowledgeBaseId\":" + kb.getId() + "}}}";
         var callReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(call)).build();
         var callResult = client.send(callReq, HttpResponse.BodyHandlers.ofString());

@@ -34,7 +34,7 @@ public class McpConfiguration {
     @Bean(destroyMethod = "close")
     McpSyncServer mcpServer(HttpServletStreamableServerTransportProvider transport, AiItemService items,
                             McpIdentity identity, ObjectMapper mapper, McpWriteService writes, McpReadService reads, McpUpdateService updates,
-                            McpKnowledgeBaseService knowledgeBases, McpMoveService moves, McpSourceLinks sourceLinks) {
+                            McpKnowledgeBaseService knowledgeBases, McpMoveService moves, McpSourceLinks sourceLinks, McpReorderService reorders) {
         var listSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "offset", Map.of("type", "integer", "minimum", 0),
@@ -88,9 +88,10 @@ public class McpConfiguration {
         var folderSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "parentId", Map.of("type", "integer", "minimum", 1),
-                "offset", Map.of("type", "integer", "minimum", 0)), List.of("knowledgeBaseId"), false, null, null);
+                "offset", Map.of("type", "integer", "minimum", 0),
+                "expectedSnapshot", Map.of("type", "string", "minLength", 1, "maxLength", 64)), List.of("knowledgeBaseId"), false, null, null);
         var folderTool = McpSchema.Tool.builder().name("list_folder_children")
-                .description("分页浏览知识库目录；省略 parentId 浏览根目录，否则列出指定文件夹内有权查看的子项。使用 nextOffset 继续查询。")
+                .description("分页浏览知识库目录；省略 parentId 浏览根目录，否则列出指定文件夹内有权查看的子项。续页使用 nextOffset 和第一页的 snapshot 作为 expectedSnapshot；发生 ORDER_CONFLICT 时从头读取。")
                 .inputSchema(folderSchema).build();
         var kbSchema = new McpSchema.JsonSchema("object", Map.of(
                 "offset", Map.of("type", "integer", "minimum", 0),
@@ -116,9 +117,37 @@ public class McpConfiguration {
         var moveTool = McpSchema.Tool.builder().name("move_document")
                 .description("在同一知识库内移动有编辑权限的普通文档；先读取 currentParentId 并用作 expectedParentId，再通过目录浏览确定目标 parentId；0 表示根目录。若位置已改变返回 LOCATION_CONFLICT，应重新读取并确认；重复相同移动可安全重试。不支持移动文件夹或跨知识库移动。")
                 .inputSchema(moveSchema).build();
+        var reorderSchema = new McpSchema.JsonSchema("object", Map.of(
+                "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
+                "parentId", Map.of("type", "integer", "minimum", 0),
+                "expectedSnapshot", Map.of("type", "string", "minLength", 1, "maxLength", 64),
+                "orderedIds", Map.of("type", "array", "maxItems", 10000, "items", Map.of("type", "integer", "minimum", 1))),
+                List.of("knowledgeBaseId", "parentId", "expectedSnapshot", "orderedIds"), false, null, null);
+        var reorderTool = McpSchema.Tool.builder().name("reorder_folder_children")
+                .description("同一目录内排序文档和文件夹；根目录 parentId 为 0。先用 list_folder_children 读取全部页面并传递 snapshot，再提交完整且不重复的 orderedIds，最多 10000 项。ORDER_CONFLICT 时重新读取并按用户意图计算，不要覆盖并发修改。不可完整查看或编辑时拒绝排序。")
+                .inputSchema(reorderSchema).build();
         return McpServer.sync(transport)
                 .serverInfo("hellodoc", "1.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder().tools(false).build())
+                .toolCall(reorderTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        long kb = integerArg(args.get("knowledgeBaseId"), 1, Long.MAX_VALUE);
+                        long parent = integerArg(args.get("parentId"), 0, Long.MAX_VALUE);
+                        if (!(args.get("expectedSnapshot") instanceof String snapshot) || snapshot.isBlank() || snapshot.length() > 64
+                                || !(args.get("orderedIds") instanceof List<?> raw) || raw.size() > 10000) throw new IllegalArgumentException("INVALID_ARGUMENT");
+                        List<Long> ids = raw.stream().map(value -> integerArg(value, 1, Long.MAX_VALUE)).toList();
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        var output = identity.run(auth, user -> reorders.reorder(user, kb, parent, snapshot, ids));
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(output)).build();
+                    } catch (IllegalArgumentException | IllegalStateException error) {
+                        String code = error.getMessage();
+                        if (code == null || !List.of("ORDER_CONFLICT", "INVALID_ORDER", "DIRECTORY_UNAVAILABLE", "DIRECTORY_TOO_LARGE").contains(code)) code = "INVALID_ARGUMENT";
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent(code).build();
+                    } catch (Exception error) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("REORDER_FAILED").build();
+                    }
+                })
                 .toolCall(moveTool, (exchange, request) -> {
                     try {
                         var args = request.arguments();
@@ -154,9 +183,18 @@ public class McpConfiguration {
                         long kb = integerArg(args.get("knowledgeBaseId"), 1, Long.MAX_VALUE);
                         Long parent = args.containsKey("parentId") ? integerArg(args.get("parentId"), 1, Long.MAX_VALUE) : null;
                         int offset = args.containsKey("offset") ? (int) integerArg(args.get("offset"), 0, Integer.MAX_VALUE) : 0;
+                        String snapshot = null;
+                        if (args.containsKey("expectedSnapshot")) {
+                            if (!(args.get("expectedSnapshot") instanceof String value) || value.isBlank() || value.length() > 64) throw new IllegalArgumentException();
+                            snapshot = value;
+                        }
                         var auth = (Authentication) exchange.transportContext().get("authentication");
-                        var result = identity.run(auth, user -> reads.listFolderChildren(user, kb, parent, offset));
+                        String expected = snapshot;
+                        var result = identity.run(auth, user -> reads.listFolderChildren(user, kb, parent, offset, expected));
                         return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(result))).build();
+                    } catch (IllegalStateException error) {
+                        if ("ORDER_CONFLICT".equals(error.getMessage())) return McpSchema.CallToolResult.builder().isError(true).addTextContent("ORDER_CONFLICT").build();
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("目录不可访问，请检查知识库、目录和权限。").build();
                     } catch (Exception error) {
                         return McpSchema.CallToolResult.builder().isError(true).addTextContent("目录不可访问，请检查知识库、目录和权限。").build();
                     }

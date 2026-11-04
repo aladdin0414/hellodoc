@@ -21,6 +21,7 @@ public class KbMemberService {
 
     private final KbKbMemberRepository memberRepository;
     private final KbKnowledgeBaseRepository kbRepository;
+    private final com.nopkg.hellodoc.mcp.DirectoryRevision directoryRevision;
 
     public List<KbKbMember> listMembers(Long kbId) {
         return memberRepository.findByKbId(kbId);
@@ -31,6 +32,7 @@ public class KbMemberService {
         if (kbId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("kb.id_cannot_be_empty", "kbId cannot be empty"));
         }
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(kbId);
         KbKnowledgeBase kb = kbRepository.findById(kbId)
                 .orElseThrow(() -> new ResourceNotFoundException("KnowledgeBase", kbId));
 
@@ -55,11 +57,13 @@ public class KbMemberService {
 
         member.setInvitedBy(operatorId);
         member.setUpdatedAt(OffsetDateTime.now());
+        directoryRevision.bump(lockedDirectory);
         return memberRepository.save(member);
     }
 
     @Transactional
     public KbKbMember updateMemberRole(Long operatorId, Long kbId, Long targetUserId, KbRole role) {
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(kbId);
         KbKbMember member = memberRepository.findByKbIdAndUserId(kbId, targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("KbMember", targetUserId));
 
@@ -74,11 +78,13 @@ public class KbMemberService {
             member.setRole(role);
         }
         member.setUpdatedAt(OffsetDateTime.now());
+        directoryRevision.bump(lockedDirectory);
         return memberRepository.save(member);
     }
 
     @Transactional
     public void removeMember(Long operatorId, Long kbId, Long targetUserId) {
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(kbId);
         KbKbMember member = memberRepository.findByKbIdAndUserId(kbId, targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("KbMember", targetUserId));
 
@@ -93,6 +99,7 @@ public class KbMemberService {
         }
 
         memberRepository.delete(member);
+        directoryRevision.bump(lockedDirectory);
     }
 
     public KbRole getMemberRole(Long kbId, Long userId) {

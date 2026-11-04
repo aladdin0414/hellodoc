@@ -23,6 +23,13 @@ public class KbDocPermissionService {
 
     private final KbDocPermissionRepository permissionRepository;
     private final KbDocumentRepository documentRepository;
+    private final com.nopkg.hellodoc.mcp.DirectoryRevision directoryRevision;
+
+    private com.nopkg.hellodoc.entities.KbKnowledgeBase lockForDocument(Long docId) {
+        KbDocument doc = documentRepository.findById(docId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
+        return directoryRevision.lock(doc.getKb().getId());
+    }
 
     public List<KbDocPermission> listPermissions(Long docId) {
         return permissionRepository.findByDocId(docId);
@@ -31,6 +38,7 @@ public class KbDocPermissionService {
     @Transactional
     public KbDocPermission addPermission(Long docId, TargetType targetType, Long targetId, DocRole role,
             OffsetDateTime expiresAt) {
+        var lockedDirectory = lockForDocument(docId);
         KbDocument doc = documentRepository.findById(docId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
 
@@ -47,11 +55,13 @@ public class KbDocPermissionService {
 
         permission.setRole(role);
         permission.setExpiresAt(expiresAt);
+        directoryRevision.bump(lockedDirectory);
         return permissionRepository.save(permission);
     }
 
     @Transactional
     public KbDocPermission createShareLink(Long docId, DocRole role, OffsetDateTime expiresAt) {
+        var lockedDirectory = lockForDocument(docId);
         KbDocument doc = documentRepository.findById(docId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
 
@@ -62,18 +72,25 @@ public class KbDocPermissionService {
         permission.setRole(role);
         permission.setExpiresAt(expiresAt);
         permission.setCreatedAt(OffsetDateTime.now());
+        directoryRevision.bump(lockedDirectory);
         return permissionRepository.save(permission);
     }
 
     @Transactional
     public void removePermission(Long permissionId) {
+        var permission = permissionRepository.findById(permissionId).orElse(null);
+        if (permission == null) return;
+        var lockedDirectory = directoryRevision.lock(permission.getDoc().getKb().getId());
         permissionRepository.deleteById(permissionId);
+        directoryRevision.bump(lockedDirectory);
     }
 
     @Transactional
     public void removeDocPermissions(Long docId) {
+        var lockedDirectory = lockForDocument(docId);
         List<KbDocPermission> permissions = permissionRepository.findByDocId(docId);
         permissionRepository.deleteAll(permissions);
+        if (!permissions.isEmpty()) directoryRevision.bump(lockedDirectory);
     }
 
     public boolean hasPermission(Long docId, Long userId, DocRole requiredRole) {

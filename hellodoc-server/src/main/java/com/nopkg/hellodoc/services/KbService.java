@@ -41,6 +41,7 @@ public class KbService {
     private final KbKbUserPrefRepository prefRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final com.nopkg.hellodoc.mcp.DirectoryRevision directoryRevision;
 
     public Long requireUserId(String username) {
         return userService.getUserByUsername(username)
@@ -162,6 +163,7 @@ public class KbService {
     @Auditable(targetType = AuditTargetType.KB, action = AuditAction.UPDATE, targetIdExpression = "#kbId")
     public KbKnowledgeBase updateKnowledgeBase(Long userId, Long kbId,
             com.nopkg.hellodoc.web.dto.kb.KbUpdateDTO dto) {
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(Objects.requireNonNull(kbId));
         KbKnowledgeBase kb = getKnowledgeBase(Objects.requireNonNull(kbId));
         if (!canEditKb(userId, kb)) {
             throw new BusinessException(ApiResponse.Code.NO_PERMISSION);
@@ -182,6 +184,7 @@ public class KbService {
         if (dto.getVisibility() != null) {
             kb.setVisibility(dto.getVisibility());
         }
+        if (dto.getVisibility() != null || dto.getAllowAnonymous() != null) directoryRevision.bump(lockedDirectory);
         kb.setUpdatedAt(OffsetDateTime.now());
         return kbRepository.save(kb);
     }
@@ -189,11 +192,13 @@ public class KbService {
     @Transactional
     @Auditable(targetType = AuditTargetType.KB, action = AuditAction.DELETE, targetIdExpression = "#kbId")
     public void softDeleteKnowledgeBase(Long userId, Long kbId) {
+        KbKnowledgeBase lockedDirectory = directoryRevision.lock(Objects.requireNonNull(kbId));
         KbKnowledgeBase kb = getKnowledgeBase(Objects.requireNonNull(kbId));
         if (!canEditKb(userId, kb)) {
             throw new BusinessException(ApiResponse.Code.NO_PERMISSION);
         }
         kb.setDeletedAt(OffsetDateTime.now());
+        directoryRevision.bump(lockedDirectory);
         kbRepository.save(kb);
     }
 

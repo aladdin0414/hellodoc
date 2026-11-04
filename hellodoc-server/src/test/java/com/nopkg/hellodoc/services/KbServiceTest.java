@@ -37,6 +37,8 @@ public class KbServiceTest {
     private UserService userService;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private com.nopkg.hellodoc.mcp.DirectoryRevision directoryRevision;
 
     @InjectMocks
     private KbService kbService;

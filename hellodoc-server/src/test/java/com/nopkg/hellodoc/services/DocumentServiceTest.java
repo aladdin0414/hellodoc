@@ -55,6 +55,8 @@ public class DocumentServiceTest {
     private KbDocRelationRepository docRelationRepository;
     @Mock
     private AssetService assetService;
+    @Mock
+    private com.nopkg.hellodoc.mcp.DirectoryRevision directoryRevision;
 
     @InjectMocks
     private DocumentServiceImpl documentService;
@@ -99,6 +101,19 @@ public class DocumentServiceTest {
     }
 
     @Test
+    public void testMoveRejectsCrossKnowledgeBaseDestination() {
+        KbKnowledgeBase source = new KbKnowledgeBase(); source.setId(1L);
+        KbKnowledgeBase target = new KbKnowledgeBase(); target.setId(2L);
+        KbDocument doc = new KbDocument(); doc.setId(100L); doc.setKb(source);
+        KbDocument folder = new KbDocument(); folder.setId(200L); folder.setKb(target); folder.setType(DocType.FOLDER);
+        when(directoryRevision.lock(1L)).thenReturn(source);
+        when(documentRepository.findByIdAndDeletedAtIsNull(100L)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdAndDeletedAtIsNull(200L)).thenReturn(Optional.of(folder));
+        assertThrows(RuntimeException.class, () -> documentService.move(1L, 100L, 200L));
+        verify(documentRepository, never()).save(any(KbDocument.class));
+    }
+
+    @Test
     public void testMoveDocument() {
         Long userId = 1L;
         Long docId = 100L;
@@ -113,15 +128,20 @@ public class DocumentServiceTest {
 
         KbDocument newParent = new KbDocument();
         newParent.setId(newParentId);
+        newParent.setKb(kb);
+        newParent.setType(DocType.FOLDER);
         newParent.setPath("200");
 
         when(documentRepository.findByIdAndDeletedAtIsNull(docId)).thenReturn(Optional.of(doc));
         when(documentRepository.findByIdAndDeletedAtIsNull(newParentId)).thenReturn(Optional.of(newParent));
+        when(directoryRevision.lock(1L)).thenReturn(kb);
 
         documentService.move(userId, docId, newParentId);
 
         assertEquals(newParent, doc.getParent());
         verify(documentRepository, times(1)).save(doc);
+        verify(directoryRevision).lock(1L);
+        verify(directoryRevision).bump(kb);
     }
 
     @Test

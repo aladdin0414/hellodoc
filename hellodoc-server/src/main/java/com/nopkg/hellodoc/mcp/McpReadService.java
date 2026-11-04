@@ -21,9 +21,10 @@ public class McpReadService {
     private final DocumentService documents;
     private final PermissionChecker permissions;
     private final KbDocumentRepository documentRepository;
+    private final DirectoryRevision revisions;
 
-    public McpReadService(SearchService search, DocumentService documents, PermissionChecker permissions, KbDocumentRepository documentRepository) {
-        this.search = search; this.documents = documents; this.permissions = permissions; this.documentRepository = documentRepository;
+    public McpReadService(SearchService search, DocumentService documents, PermissionChecker permissions, KbDocumentRepository documentRepository, DirectoryRevision revisions) {
+        this.search = search; this.documents = documents; this.permissions = permissions; this.documentRepository = documentRepository; this.revisions = revisions;
     }
 
     @Transactional(readOnly = true)
@@ -79,14 +80,26 @@ public class McpReadService {
 
     @Transactional
     public Map<String, Object> listFolderChildren(long user, long kbId, Long parentId, int offset) {
+        return listFolderChildren(user, kbId, parentId, offset, null);
+    }
+
+    @Transactional
+    public Map<String, Object> listFolderChildren(long user, long kbId, Long parentId, int offset, String expectedSnapshot) {
         if (kbId < 1 || offset < 0 || (parentId != null && parentId < 1)) throw new IllegalArgumentException();
+        var kb = revisions.lock(kbId);
+        String snapshot = Long.toString(kb.getTreeRevision());
         if (parentId == null) {
             permissions.checkKbRole(user, kbId, com.nopkg.hellodoc.enums.KbRole.VIEWER);
-            return folderChildren(user, kbId, null, offset);
+            if (expectedSnapshot != null && !expectedSnapshot.equals(snapshot)) throw new IllegalStateException("ORDER_CONFLICT");
+            var result = folderChildren(user, kbId, null, offset);
+            result.put("snapshot", snapshot);
+            return result;
         }
         var result = read(user, parentId, offset, null);
         if (!"folder".equals(result.get("type")) || !Long.valueOf(kbId).equals(result.get("knowledgeBaseId")))
             throw new IllegalStateException("Folder unavailable");
+        if (expectedSnapshot != null && !expectedSnapshot.equals(snapshot)) throw new IllegalStateException("ORDER_CONFLICT");
+        result.put("snapshot", snapshot);
         return result;
     }
 
@@ -96,9 +109,7 @@ public class McpReadService {
                         : child.getParent() != null && parentId.equals(child.getParent().getId())))
                 .filter(child -> !Boolean.TRUE.equals(child.getIsEncrypted()))
                 .filter(child -> permissions.hasDocRole(user, child.getId(), DocRole.VIEWER))
-                .sorted(java.util.Comparator.comparing(KbDocument::getOrderNum,
-                                java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()))
-                        .thenComparing(KbDocument::getId))
+                .sorted(DirectoryOrder.comparator())
                 .toList();
         int from = Math.min(offset, children.size());
         int to = (int) Math.min((long) children.size(), (long) from + 50);

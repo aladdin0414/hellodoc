@@ -30,8 +30,6 @@ public interface DocumentService {
 
     void move(Long userId, Long docId, Long newParentId);
 
-    void reorder(Long userId, Long parentId, List<Long> orderedIds);
-
     // Content
 
     String getContent(Long docId);

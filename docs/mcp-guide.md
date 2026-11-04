@@ -4,7 +4,7 @@ HelloDoc 提供远程 Streamable HTTP MCP 接口。支持该协议及 Bearer 令
 
 ## 准备访问令牌
 
-1. 升级并启动包含本功能的 HelloDoc 服务端，数据库会执行 V4 迁移。
+1. 升级并启动包含本功能的 HelloDoc 服务端，数据库会执行相应迁移（目录排序需要 V5）。
 2. 登录 HelloDoc，在个人资料的 **MCP 访问令牌**中填写客户端名称并创建令牌。
 3. 立即复制令牌：它只在创建时显示一次。服务端只保存令牌哈希；令牌可在同一界面撤销，撤销后立即失效。
 4. 在支持 Streamable HTTP 的客户端中配置地址 `https://你的服务地址/api/mcp`，并以 `Authorization: Bearer <令牌>` 认证。令牌继承创建者的文档权限，只能用于 MCP 接口；不要提交到仓库或分享给其他人。
@@ -40,6 +40,18 @@ codex mcp add hellodoc --url https://你的服务地址/api/mcp --bearer-token-e
 `move_document` 可在同一知识库内移动普通文档：先调用 `read_document` 取得 `currentParentId`，再指定目标 `parentId`，以读取值作为 `expectedParentId` 提交。两个字段的 `0` 都表示知识库根目录。工具会检查源文档和目标文件夹的权限，不支持跨知识库或移动文件夹。
 
 如果文档已移动到目标目录，相同请求可安全重试；如果它被移动到其他位置，则返回 `LOCATION_CONFLICT`，需要重新读取并确认目标，不应直接覆盖其他人的移动。
+
+## 排序同级文档和文件夹
+
+`reorder_folder_children` 对指定知识库同一目录内的直接子文档和子文件夹混合排序，不改变其父目录。根目录的 `parentId` 使用 `0`；嵌套目录使用文件夹 ID。排序最多支持 10000 个直接子项。
+
+先用 `list_folder_children` 读取第一页，保存返回的 `snapshot`；如果有 `nextOffset`，以该值和 `expectedSnapshot`（第一页的 snapshot）继续读取，直到没有下一页。续页返回 `ORDER_CONFLICT` 时，从第一页重新读取。然后按用户期望排列全部子项 ID，例如：
+
+```json
+{"knowledgeBaseId": 91, "parentId": 0, "expectedSnapshot": "12", "orderedIds": [42, 37, 51]}
+```
+
+所有当前未删除的直接子项必须出现且只出现一次，包括文件夹。目录或子项存在不可读、不可编辑或加密内容时返回 `DIRECTORY_UNAVAILABLE`；这不会暴露隐藏子项信息。提交缺项、重复或非同级 ID 返回 `INVALID_ORDER`。知识库目录或权限变化后返回 `ORDER_CONFLICT`，应重新读取所有页面并结合用户意图重新计算。成功后可用返回的 `snapshot` 继续操作；相同目标已生效时重复请求返回 `changed: false`。
 
 ## 修改已有文档
 

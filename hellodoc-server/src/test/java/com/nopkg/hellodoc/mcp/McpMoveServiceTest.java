@@ -19,8 +19,9 @@ class McpMoveServiceTest {
     final DocumentService documents = mock(DocumentService.class);
     final PermissionChecker permissions = mock(PermissionChecker.class);
     final AiItemService items = mock(AiItemService.class);
+    final DirectoryRevision revisions = mock(DirectoryRevision.class);
     final EntityManager entityManager = mock(EntityManager.class);
-    final McpMoveService service = new McpMoveService(repository, documents, permissions, items);
+    final McpMoveService service = new McpMoveService(repository, documents, permissions, items, revisions);
     final KbKnowledgeBase kb = new KbKnowledgeBase();
     final KbDocument doc = new KbDocument();
     final KbDocument old = new KbDocument();
@@ -29,6 +30,8 @@ class McpMoveServiceTest {
         ReflectionTestUtils.setField(service, "entityManager", entityManager);
         kb.setId(9L); old.setId(3L); target.setId(4L); target.setKb(kb); target.setType(DocType.FOLDER);
         doc.setId(2L); doc.setKb(kb); doc.setType(DocType.FILE); doc.setParent(old);
+        when(repository.findByIdAndDeletedAtIsNull(2L)).thenReturn(Optional.of(doc));
+        when(revisions.lock(9L)).thenReturn(kb);
         when(repository.findByIdForUpdate(2L)).thenReturn(Optional.of(doc));
         when(repository.findByIdForUpdate(4L)).thenReturn(Optional.of(target));
         when(permissions.hasDocRole(7L,2L,DocRole.EDITOR)).thenReturn(true);
@@ -47,6 +50,7 @@ class McpMoveServiceTest {
         verify(repository, never()).save(any());
         service.move(7,2,3,4); service.move(7,2,3,4);
         verify(repository, times(1)).save(doc);
+        verify(revisions, times(1)).bump(kb);
     }
     @Test void movingToRootRequiresPermissionAndAcceptsZero() {
         service.move(7,2,3,0); assertNull(doc.getParent()); verify(items).validateWritableFolder(7,9,null);

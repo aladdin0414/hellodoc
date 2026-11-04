@@ -3,17 +3,14 @@ export interface TreeDocument {
     name: string
     type: string
     parentId: number | null
-    orderNum: number
+    orderNum: number | null
 }
 
 export const sortDocuments = <T extends TreeDocument>(a: T, b: T) => {
-    if (a.orderNum !== b.orderNum) {
-        return a.orderNum - b.orderNum
-    }
-    if (a.type !== b.type) {
-        return a.type === 'folder' ? -1 : 1
-    }
-    return a.name.localeCompare(b.name)
+    if (a.orderNum == null && b.orderNum != null) return 1
+    if (a.orderNum != null && b.orderNum == null) return -1
+    if (a.orderNum != null && b.orderNum != null && a.orderNum !== b.orderNum) return a.orderNum - b.orderNum
+    return a.id - b.id
 }
 
 export const expandAncestorFolders = <T extends TreeDocument>(

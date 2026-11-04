@@ -66,4 +66,8 @@ public class KbKnowledgeBase {
     @Column(name = "deleted_at")
     private java.time.OffsetDateTime deletedAt;
 
+    @NotNull
+    @Column(name = "tree_revision", nullable = false)
+    private Long treeRevision = 0L;
+
 }

@@ -2,6 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { scopeTool, scopeArguments } from '../scope.mjs';
 
+test('directory sorting uses the configured knowledge base only as a default', async () => {
+  const { prepareToolArguments, exposedTools } = await import('../scope.mjs');
+  const tool = { name: 'reorder_folder_children', inputSchema: { type: 'object', properties: { knowledgeBaseId: { type: 'integer' }, parentId: { type: 'integer' } }, required: ['knowledgeBaseId', 'parentId'] } };
+  assert.ok(exposedTools.has(tool.name));
+  assert.ok(scopeTool(tool).inputSchema.properties.knowledgeBaseId);
+  assert.deepEqual(scopeTool(tool).inputSchema.required, ['parentId']);
+  assert.deepEqual(prepareToolArguments(tool.name, { parentId: 0, orderedIds: [2, 1] }, 7), { parentId: 0, orderedIds: [2, 1], knowledgeBaseId: 7 });
+  assert.deepEqual(prepareToolArguments(tool.name, { knowledgeBaseId: 9, parentId: 5 }, 7), { knowledgeBaseId: 9, parentId: 5 });
+});
+
 test('hides the configured knowledge base from tools and prevents callers overriding it', () => {
   const original = { name: 'list_items', inputSchema: { type: 'object', properties: { knowledgeBaseId: {type: 'integer'}, name: {type: 'string'} }, required: ['knowledgeBaseId'] } };
   const scoped = scopeTool(original);
