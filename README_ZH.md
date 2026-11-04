@@ -1,213 +1,133 @@
 # HelloDoc
 
-<p align="center">
-  <strong>现代化全栈知识管理与 AI 协作平台</strong>
-</p>
+[English](README.md) | 简体中文
 
-<p align="center">
-  <a href="README.md">English</a> | <strong>简体中文</strong>
-</p>
+HelloDoc 是一个可自行部署的知识库和文档协作系统，提供 Web、移动端页面和 Electron 桌面客户端，并支持通过 MCP 让 AI 客户端访问有权限的知识库。
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Java-17-orange.svg" alt="Java 17" />
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg" alt="Spring Boot 3" />
-  <img src="https://img.shields.io/badge/Vue-3.x-4fc08d.svg" alt="Vue 3" />
-  <img src="https://img.shields.io/badge/Electron-31.x-47848F.svg" alt="Electron" />
-  <a href="https://hub.docker.com/r/aladdin0414/hellodoc" target="_blank">
-    <img src="https://img.shields.io/docker/pulls/aladdin0414/hellodoc.svg?logo=docker" alt="Docker Image" />
-  </a>
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License MIT" />
-</p>
+## 功能
 
----
+- 知识库与文档：多层目录、文档和文件夹管理、同级排序、搜索与权限控制。
+- 文档编辑：富文本和 Markdown 编辑，支持表格、代码、数学公式及图表等内容。
+- AI 助手：配置模型后进行对话与文档辅助编辑。
+- MCP：通过远程 Streamable HTTP 连接，浏览、搜索、读取和更新文档，创建或移动文档与文件夹，并对同级子项排序。操作受账号权限控制。
+- 多端访问：响应式 Web、移动端页面和 Electron 桌面客户端，支持中文和英文界面。
 
-## 📖 项目简介
+## 技术栈与项目结构
 
-**HelloDoc** 是一套面向知识库管理、团队文档协作与 AI 交互场景的现代化全栈平台。
-项目采用 **Monorepo** 架构，集成了 Web 前端、Spring Boot 高性能后端、Electron 桌面客户端以及基于 Docker Compose 的自动化容器部署方案，旨在为用户提供极致顺畅的知识管理与智能写作体验。
-
----
-
-## ✨ 核心功能
-
-* 📚 **文档与知识库管理**：支持多层级目录组织、富文本/Markdown 编辑与即时保存。
-* 🤖 **AI 智能助手**：内置大模型深度集成（OpenAI API / 自定义 Proxy），提供智能问答、文档续写、润色与摘要生成。
-* 🖥️ **多端无缝体验**：同时提供响应式 Web 前端与桌面客户端 (macOS / Windows)，随时随地高效办公。
-* 🔐 **安全认证与权限**：基于 JWT 的无状态身份验证与高强度加密密码存储，保障团队数据安全。
-* 🐳 **容器化一键部署**：提供标准的 Docker Compose 与环境一键同步脚本，轻松完成生产环境部署。
-
----
-
-## 🛠️ 技术栈
-
-| 模块 | 核心技术 | 描述 |
-| :--- | :--- | :--- |
-| **Web 前端** (`hellodoc-client`) | Vue 3, TypeScript, Vite, Tailwind CSS, Vue Router | 现代化轻量高效的前端界面 |
-| **后端服务** (`hellodoc-server`) | Java 17, Spring Boot 3, Spring Data JPA, PostgreSQL, JWT | 高并发、稳定的 RESTful API 服务 |
-| **桌面客户端** (`hellodoc-desktop`) | Electron, Node.js, Electron Builder | 跨平台桌面端极速体验 |
-| **容器与部署** (`deploy`) | Docker, Docker Compose, Bash | 标准化服务编排与环境自动构建 |
-
----
-
-## 📂 项目结构
+前端使用 Vue 3、TypeScript 和 Vite；后端使用 Java 17、Spring Boot 3、Spring Data JPA 和 PostgreSQL。桌面客户端使用 Electron。
 
 ```text
 hellodoc/
-├── hellodoc-client/    # Vue 3 + TypeScript Web 前端项目
-├── hellodoc-server/    # Spring Boot 3 Java 后端 API 服务
-├── hellodoc-desktop/   # Electron 桌面客户端项目
-├── deploy/             # Docker Compose 部署配置与容器启动脚本
-├── dev.sh              # 前后端本地一键开发启动脚本
-├── build.sh            # 自动化全量构建与产物打包脚本
-└── update-deploy.sh    # 部署包同步与自动更新脚本
+├── hellodoc-client/       Vue Web 前端
+├── hellodoc-server/       Spring Boot 服务端
+├── hellodoc-desktop/      Electron 客户端
+├── hellodoc-mcp-bridge/   旧版 stdio MCP 桥接程序
+├── deploy/                Docker 和远程部署配置
+├── docs/mcp-guide.md      MCP 接入和工具说明
+├── .env.example           本地开发及远程部署配置模板
+├── dev.sh                 本地开发启动脚本
+└── build.sh               Web 与服务端构建脚本
 ```
 
----
+## 使用 Docker 镜像
 
-## 🚀 快速开始
+需要 Docker 和 Docker Compose。以下配置运行 HelloDoc 和 PostgreSQL。
 
-### 预备环境
-- **Node.js** >= 18.0.0
-- **JDK** >= 17
-- **PostgreSQL** >= 13
+```bash
+mkdir hellodoc && cd hellodoc
+curl -O https://raw.githubusercontent.com/aladdin0414/hellodoc/main/deploy/docker-compose.hub.yml
+```
 
-> ⚠️ **重要**：启动后端服务前，请确保 PostgreSQL 服务已启动，并已创建名为 `hellodoc` 的数据库：
-> ```sql
-> CREATE DATABASE hellodoc;
-> ```
+在同一目录创建 `.env`，替换下面的占位值：
 
-### 1. 克隆项目与环境配置
+```dotenv
+DB_USERNAME=postgres
+DB_PASSWORD=replace_with_a_strong_database_password
+JWT_SECRET=replace_with_a_random_secret_of_at_least_64_bytes
+ADMIN_PASSWORD=replace_with_a_strong_admin_password
+SERVER_PORT=8080
+```
+
+在 `docker-compose.hub.yml` 的 `hellodoc` 服务的 `environment` 列表中增加以下项，使默认本地上传目录写入已挂载的 `./data`：
+
+```yaml
+      - FILE_UPLOAD_DIR=/app/data
+```
+
+PostgreSQL 数据保存在 `./postgres-data`。已有部署如果此前使用默认的容器内 `uploads` 目录，应先备份并迁移现有上传文件，再切换路径或重建容器。
+
+```bash
+docker compose -f docker-compose.hub.yml up -d
+```
+
+访问 `http://localhost:8080`。首次初始化的管理员用户名为 `admin`，密码为配置的 `ADMIN_PASSWORD`。Compose 文件默认将 PostgreSQL 的 `5432` 端口映射到宿主机，可通过 `DB_PORT` 修改；按实际网络环境限制数据库访问。镜像默认使用 `aladdin0414/hellodoc:latest`，也可在 `.env` 中设置 `DOCKER_IMAGE` 指定版本。
+
+升级前请备份数据库和数据目录；服务启动时会执行相应数据库迁移。镜像及版本见 [Docker Hub](https://hub.docker.com/r/aladdin0414/hellodoc) 和 [GitHub Releases](https://github.com/aladdin0414/hellodoc/releases)。
+
+## 本地开发
+
+需要 Java 17、PostgreSQL 和 Node.js `^20.19.0` 或 `>=22.12.0`，以及 npm。前端 Node.js 版本要求来自项目使用的 Vite。
 
 ```bash
 git clone https://github.com/aladdin0414/hellodoc.git
 cd hellodoc
-
-# 1. 复制根目录环境变量模板并修改关键配置 (数据库密码、JWT私钥等)
 cp .env.example .env
-
-# 2. 创建 PostgreSQL 数据库 (如已手动创建可跳过)
 psql -U postgres -c "CREATE DATABASE hellodoc;"
-
-# 3. 安装根目录及子项目 Node 依赖
-npm install
+npm ci --prefix hellodoc-client
 ```
 
-### 2. 本地开发运行
+修改 `.env` 中的数据库连接、`JWT_SECRET` 和 `ADMIN_PASSWORD`。如果需要 AI 模型，填写相应模型配置。启动前确保 PostgreSQL 正在运行：
 
-#### 方式 A：一键启动前后端服务 (推荐)
 ```bash
-# 自动读取根目录 .env 并同时启动后端 (8080) 与 Web 前端 (3000)
 npm run dev
-# 或执行脚本
-./dev.sh
 ```
 
-#### 方式 B：单独分模块启动
+默认前端地址为 `http://localhost:3000`，后端地址为 `http://localhost:8080`，移动端页面为 `http://localhost:3000/m`。`dev.sh` 会终止占用前端 `3000` 和配置的后端端口的进程；如果需要保留这些进程，请分别在终端中运行 `npm run dev:server` 和 `npm run dev:client`。
 
-* **启动后端服务 (`hellodoc-server`)**：
-  ```bash
-  npm run dev:server
-  # 或直接在 hellodoc-server 目录下运行
-  # cd hellodoc-server && ./gradlew bootRun
-  ```
+常用命令：
 
-* **启动 Web 前端 (`hellodoc-client`)**：
-  ```bash
-  npm run dev:client
-  # 或进入子目录运行
-  # cd hellodoc-client && npm run dev
-  ```
-
-* **启动桌面客户端 (`hellodoc-desktop`)**：
-  ```bash
-  cd hellodoc-desktop
-  npm install
-  npm run dev
-  ```
-
----
-
-## 📦 项目打包与部署
-
-### 1. 全局构建打包 (Web + 后端)
-在根目录下直接执行构建命令，系统将自动编译 Web 前端静态资源，并将其打入 Java 后端 JAR 包中，打包产物生成至 `dist/` 目录：
 ```bash
-npm run build
-```
-
-### 2. 桌面客户端打包 (Desktop Build)
-若需打包构建各平台的桌面可执行程序（如 Windows 安装包/绿色版或 macOS 安装包）：
-```bash
-cd hellodoc-desktop
-npm install
-
-# 构建全平台桌面程序
+# 构建 Web 和服务端，产物输出到 dist/
 npm run build
 
-# 或仅构建 Windows 64位绿色便携版
-npm run build:win:x64
+# 服务端测试
+(cd hellodoc-server && ./gradlew test)
+
+# MCP Bridge 测试
+(cd hellodoc-mcp-bridge && npm ci && npm test)
+
+# 桌面客户端开发
+(cd hellodoc-desktop && npm install && npm run dev)
 ```
 
-### 3. Docker 部署说明
+`npm run build` 会清理并重新生成 `dist/` 与服务端静态资源目录。桌面端打包和远程部署选项见 [部署指南](deploy/README.md)。
 
-HelloDoc 官方镜像已构建完成并自动发布至 Docker Hub：[aladdin0414/hellodoc](https://hub.docker.com/r/aladdin0414/hellodoc)
+## 主要配置
 
-#### 🚀 方式 A：基于 Docker Hub 镜像极速部署（推荐 NAS / 私有服务器用户，无需克隆源码）
+| 变量 | 用途 |
+| --- | --- |
+| `DB_URL`、`DB_USERNAME`、`DB_PASSWORD` | 本地服务使用的 PostgreSQL 连接信息。Docker Hub Compose 自行设置容器内 `DB_URL`。 |
+| `JWT_SECRET` | JWT 签名密钥，建议使用至少 64 字节的随机值。 |
+| `ADMIN_PASSWORD` | 初次创建 `admin` 账号时使用的密码；已有账号不会因此重置密码。 |
+| `SERVER_PORT` | 本地开发后端或 Docker Hub Compose 对外端口，默认 `8080`。 |
+| `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` | AI 模型相关配置；按实际模型服务填写。 |
+| `VITE_API_TARGET`、`VITE_WS_TARGET` | 前端开发服务器的 API 和 WebSocket 代理地址。 |
+| `HELLODOC_PUBLIC_URL` | 可选的公开服务地址，用于生成 MCP 文档来源链接；Compose 部署时需将该变量传入应用容器。 |
 
-只需下载 Compose 文件与配置环境变量，即可一键拉取镜像并启动：
+完整模板见 [.env.example](.env.example)，Compose 部署可用变量见 [docker-compose.hub.yml](deploy/docker-compose.hub.yml)。
 
-1. **获取 Compose 配置文件**：
-   ```bash
-   # 下载项目预设的 Docker Hub 一键部署文件
-   curl -O https://raw.githubusercontent.com/aladdin0414/hellodoc/main/deploy/docker-compose.hub.yml
-   mv docker-compose.hub.yml docker-compose.yml
-   ```
+## MCP 接入
 
-2. **创建环境变量文件 `.env`（同级目录下）**：
-   ```env
-   POSTGRES_PASSWORD=your_secure_db_password
-   JWT_SECRET=your_custom_random_long_secret_key_at_least_64_chars
-   ADMIN_PASSWORD=your_admin_password
-   OPENAI_API_KEY=your_openai_key_optional
-   ```
+登录 HelloDoc，在个人资料的 **MCP 访问令牌**中创建令牌。令牌只在创建时显示一次，可随时撤销。支持 Streamable HTTP 和 Bearer 令牌的客户端可连接 `https://你的服务地址/api/mcp`，并在 `Authorization` 请求头中提供令牌。建议使用 HTTPS。
 
-3. **启动容器集群**：
-   ```bash
-   docker compose up -d
-   ```
-   *服务启动后，在浏览器访问 `http://<服务器IP>:8080` 即可开始使用 HelloDoc。*
+例如，先通过安全方式将令牌放入环境变量，再配置 Codex：
 
-#### 🔨 方式 B：源码本地 Docker Compose 自动构建与部署
-
-如果您拉取了本 GitHub 仓库源码并希望在本地进行容器构建：
 ```bash
-# 确保根目录下已正确配置 .env 参数
-npm run deploy
-# 或直接运行部署脚本
-./deploy/deploy.sh
+codex mcp add hellodoc --url https://docs.example.com/api/mcp --bearer-token-env-var HELLODOC_MCP_TOKEN
 ```
 
----
+每次启动 Codex 时需提供该环境变量。旧版仅支持 stdio 的客户端可使用 `hellodoc-mcp-bridge`。详细的权限、分页、并发冲突和重试行为见 [MCP 接入指南](docs/mcp-guide.md)。
 
-## ⚙️ 环境变量说明
+## 许可证
 
-开发与部署均依托环境变量驱动，本地开发请维护根目录 `.env`。核心变量详见下表：
-
-| 环境变量 | 是否必填 | 说明 | 默认值 / 推荐值 |
-| :--- | :--- | :--- | :--- |
-| `DB_URL` | **是** | 本地开发数据库连接地址 | `jdbc:postgresql://localhost:5432/hellodoc` |
-| `DB_USERNAME` | **是** | 数据库用户名 | `postgres` |
-| `DB_PASSWORD` | **是** | 数据库密码 | 请修改为实际强密码 |
-| `JWT_SECRET` | **是** | JWT 鉴权签名密钥，要求至少 64 字节（512 位） | 必须自定义随机长字符串 |
-| `ADMIN_PASSWORD` | **是** | 系统初始化创建管理员账号时的默认密码 | 必须自定义密码 |
-| `OPENAI_API_KEY` | 否 | OpenAI API Key (开启 AI 文档/问答助手功能) | - |
-| `OPENAI_BASE_URL` | 否 | OpenAI API Proxy/Base URL | `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | 否 | 使用的大模型名称 | `gpt-4o` |
-| `VITE_API_TARGET` | 否 | 前端开发服务代理的目标 API 地址 | `http://localhost:8080` |
-| `VITE_WS_TARGET` | 否 | 前端开发服务代理的目标 WebSocket 地址 | `ws://localhost:8080` |
-
----
-
-## 📄 开源许可证
-
-本项目基于 [MIT License](LICENSE) 协议开源。
+[MIT License](LICENSE)

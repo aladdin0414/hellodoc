@@ -2,9 +2,17 @@
 
 ## [v3.5.0] - 2026-11-04
 
-- 新增 MCP 创建文件夹工具，支持知识库根目录及嵌套目录，使用 requestId 安全重试。
-- 新增 MCP 移动文件夹工具，支持完整子树移动、权限校验、位置冲突和循环目录防护。
-- 更新 MCP Bridge 和使用文档；升级后需重启服务及 MCP Bridge。
+### 更新说明
+
+- feat: 新增 MCP 创建文件夹工具，支持知识库根目录及嵌套目录，并使用 requestId 安全重试。
+- feat: 新增 MCP 移动文件夹工具，支持完整子树移动、权限校验、位置冲突检测和循环目录防护。
+- docs: 更新 MCP Bridge 和使用文档；升级后需更新并重启 HelloDoc 服务及 MCP Bridge。
+
+### Changelog
+
+- feat: add an MCP tool to create folders at the knowledge base root or in nested folders, with safe retries using requestId.
+- feat: add an MCP tool to move folders and their subtrees, with permission checks, location conflict detection, and protection against directory cycles.
+- docs: update the MCP Bridge and documentation; update and restart the HelloDoc service and MCP Bridge after upgrading.
 
 ## [v3.4.0] - 2026-11-04
 

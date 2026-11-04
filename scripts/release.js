@@ -162,9 +162,14 @@ function updateRootPackageJson(newVersion) {
 // 更新/追加 CHANGELOG.md
 const CHANGELOG_PATH = path.join(ROOT_DIR, 'CHANGELOG.md');
 
-function updateChangelog(version, releaseNotes) {
+function formatBilingualNotes(releaseNotes, englishNotes) {
+  const list = (notes) => notes.map((item) => `- ${item}`).join('\n');
+  return `### 更新说明\n\n${list(releaseNotes)}\n\n### Changelog\n\n${list(englishNotes)}`;
+}
+
+function updateChangelog(version, releaseNotes, englishNotes) {
   const dateStr = new Date().toISOString().split('T')[0];
-  const notesMarkdown = releaseNotes.map((item) => `- ${item}`).join('\n');
+  const notesMarkdown = formatBilingualNotes(releaseNotes, englishNotes);
   const newSection = `## [v${version}] - ${dateStr}\n\n${notesMarkdown}\n\n`;
 
   let content = '';
@@ -333,6 +338,30 @@ async function main() {
     releaseNotes = [`v${targetVersion} 版本发布`];
   }
 
+  for (let i = 0; i < releaseNotes.length; i++) {
+    while (!/\p{Script=Han}/u.test(releaseNotes[i])) {
+      console.log(colors.yellow(`条目 ${i + 1} 需要中文说明：${releaseNotes[i]}`));
+      releaseNotes[i] = await ask(`  中文对应 ${i + 1}: `);
+    }
+  }
+
+  console.log(colors.cyan('\n请逐条输入对应的英文说明，保持内容、顺序和类型前缀一致。'));
+  const englishNotes = [];
+  for (let i = 0; i < releaseNotes.length; i++) {
+    console.log(`  中文 ${i + 1}: ${releaseNotes[i]}`);
+    const prefix = releaseNotes[i].match(/^([a-z]+(?:\([^)]+\))?!?):\s*/i)?.[1];
+    let english = '';
+    while (!english) {
+      english = await ask(`  英文对应 ${i + 1}: `);
+      if (!english) console.log(colors.yellow('英文说明不能为空。'));
+      else if (prefix && !english.startsWith(`${prefix}:`)) {
+        console.log(colors.yellow(`英文说明须使用相同前缀 ${prefix}:`));
+        english = '';
+      }
+    }
+    englishNotes.push(english);
+  }
+
   console.log(colors.bold('\n[1/4] 正在更新各个组件的版本号及元数据...'));
   updateClientPackageJson(targetVersion);
   updateDesktopPackageJson(targetVersion);
@@ -341,14 +370,12 @@ async function main() {
   generateClientVersionTs(targetVersion, releaseNotes);
 
   console.log(colors.bold('\n[2/4] 正在生成/更新 CHANGELOG.md...'));
-  updateChangelog(targetVersion, releaseNotes);
+  updateChangelog(targetVersion, releaseNotes, englishNotes);
 
   console.log(colors.bold('\n[3/4] 正在提交 Git、创建版本 Tag 并推送到远程仓库...'));
   try {
     const commitMsg = `chore: 发布版本 v${targetVersion}`;
-    const tagMsgHeader = `Release v${targetVersion}\n\n更新说明:\n`;
-    const tagMsgBody = releaseNotes.map((n) => `- ${n}`).join('\n');
-    const fullTagMsg = tagMsgHeader + tagMsgBody;
+    const fullTagMsg = `Release v${targetVersion}\n\n${formatBilingualNotes(releaseNotes, englishNotes)}`;
 
     const releaseFiles = [ROOT_PKG_PATH, CLIENT_PKG_PATH, DESKTOP_PKG_PATH,
       SERVER_GRADLE_PATH, CLIENT_VERSION_TS_PATH, CHANGELOG_PATH]
@@ -361,7 +388,7 @@ async function main() {
     const tempTagMsgPath = execFileSync('git', ['rev-parse', '--git-path', 'RELEASE_TAG_MSG_TMP'], { cwd: ROOT_DIR, encoding: 'utf8' }).trim();
     fs.writeFileSync(tempTagMsgPath, fullTagMsg, 'utf-8');
     try {
-      execSync(`git tag -a "v${targetVersion}" -F "${tempTagMsgPath}"`, { cwd: ROOT_DIR });
+      execFileSync('git', ['tag', '-a', `v${targetVersion}`, '--cleanup=verbatim', '-F', tempTagMsgPath], { cwd: ROOT_DIR });
     } finally {
       if (fs.existsSync(tempTagMsgPath)) fs.unlinkSync(tempTagMsgPath);
     }

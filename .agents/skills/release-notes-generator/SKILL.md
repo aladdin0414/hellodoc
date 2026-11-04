@@ -1,6 +1,6 @@
 ---
 name: release-notes-generator
-description: Compare git main branch against the latest tag (or specified base tag), generate a structured Markdown release note formatted for GitHub Releases, and save it to the .local directory. Use when user asks to generate release notes, write changelog, compare main branch with tag, or create release notes in .local directory.
+description: Generate bilingual Chinese and English release notes or a changelog from Git history for a release or GitHub Release.
 ---
 
 # Release Notes Generator
@@ -41,54 +41,24 @@ description: Compare git main branch against the latest tag (or specified base t
 
 ### 3. 生成 GitHub Release 标准 Markdown 内容
 
-撰写更新说明时，必须遵循以下结构规范：
+每次发版说明均须包含中文和英文，英文逐条对应中文，顺序、含义、类型前缀和升级步骤保持一致。基于实际 diff 撰写，不遗漏任一语言；保留 MCP、API 等技术名称。每条采用 `feat:`、`fix:`、`refactor:`、`docs:`、`chore:`、`style:` 等合适的类型前缀。使用以下结构：
 
 ```markdown
-## 🎉 <项目名> <版本号> 发版说明
+### 更新说明
 
-<项目名> **<版本号>** 正式发布！<一两句简短高亮总结本次更新的核心价值与重磅变更>。
+- feat: 中文更新内容
+- fix: 中文修复内容
 
-### ⚠️ 破坏性变更与迁移指南 (BREAKING CHANGES) <!-- 仅在存在破坏性变更时保留 -->
+### Changelog
 
-- **<模块/配置项>**
-  - <具体的改动说明与升级迁移建议>
-
-### 🚀 新特性与优化 (Features & Enhancements)
-
-- **<模块/主题 1>**
-  - <具体的改动说明，保留英文技术术语，重要组件或文件名使用行内代码如 `DocTreeNode`，切勿包含本地绝对路径 `file:///...`>
-  - <具体的改动说明>
-
-- **<模块/主题 2>**
-  - <具体的改动说明>
-
-### 📝 Commit 提交明细
-
-- `<commit-hash-1>` <commit message>
-- `<commit-hash-2>` <commit message>
-
-**Full Changelog**: https://github.com/<owner>/<repo>/compare/<base-tag>...<target-version>
+- feat: corresponding English update
+- fix: corresponding English fix
 ```
 
-#### 分类指引 (Categorization Guidelines)：
-
-按照提交记录与 Diff 语义，将改动划分为以下常用的几类（无改动项的分类可省略）：
-
-- ⚠️ **破坏性变更与迁移指南 (BREAKING CHANGES)**（配置兼容性调整、废弃 API、依赖破坏性升级等）
-- 🚀 **新特性与优化 (Features & Enhancements)**（包含部署、架构解耦、网络、性能等）
-- 🛠️ **后端服务与代码重构 (Server & Refactoring)**
-- 🐛 **缺陷修复 (Bug Fixes)**
-- 📖 **文档与规范升级 (Documentation)**
-- 📦 **依赖与构建工具 (Chore & Dependencies)**
-
-#### Commit 明细过滤规则：
-
-在生成 `📝 Commit 提交明细` 时：
-
-- **自动过滤**发版自循环提交（如 `chore: 发布版本 vX.Y.Z`、`chore: bump version`）和简单的 Merge branch/pull request 默认节点，保持明细干净利炼。
+过滤发版自循环提交（如 `chore: 发布版本 vX.Y.Z`）和默认 Merge 节点；有破坏性变更时在两个语言版本中分别说明迁移步骤。
 
 ### 4. 写入文件与验证
 
-1. 使用 `write_to_file` 工具将生成的 Markdown 保存至 `.local-hellodoc/RELEASE_NOTES_<version>.md`。
-2. 检查生成的 Markdown 文件内容完整无误。
+1. 将生成的 Markdown 保存至 `.local/RELEASE_NOTES_<version>.md`。
+2. 检查两种语言的条目数量、顺序、含义和前缀一致。
 3. 向用户汇报结果，提供超链接指向生成的 `.md` 文件，并在回答中展示或提示用户可直接复制到 GitHub Release 界面使用。
