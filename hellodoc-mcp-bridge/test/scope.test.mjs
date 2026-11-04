@@ -2,6 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { scopeTool, scopeArguments } from '../scope.mjs';
 
+test('folder tools are exposed with a configurable knowledge base', async () => {
+  const { prepareToolArguments, exposedTools } = await import('../scope.mjs');
+  const tool = { name: 'create_folder', inputSchema: { type: 'object', properties: { knowledgeBaseId: { type: 'integer' }, name: { type: 'string' } }, required: ['knowledgeBaseId', 'name'] } };
+  assert.ok(exposedTools.has('create_folder'));
+  assert.ok(exposedTools.has('move_folder'));
+  assert.ok(scopeTool(tool).inputSchema.properties.knowledgeBaseId);
+  assert.deepEqual(scopeTool(tool).inputSchema.required, ['name']);
+  assert.deepEqual(prepareToolArguments('create_folder', { name: 'x' }, 7), { name: 'x', knowledgeBaseId: 7 });
+  assert.deepEqual(prepareToolArguments('create_folder', { knowledgeBaseId: 9 }, 7), { knowledgeBaseId: 9 });
+  assert.deepEqual(prepareToolArguments('move_folder', { folderId: 4, expectedParentId: 0, parentId: 5 }, 7), { folderId: 4, expectedParentId: 0, parentId: 5 });
+});
+
 test('directory sorting uses the configured knowledge base only as a default', async () => {
   const { prepareToolArguments, exposedTools } = await import('../scope.mjs');
   const tool = { name: 'reorder_folder_children', inputSchema: { type: 'object', properties: { knowledgeBaseId: { type: 'integer' }, parentId: { type: 'integer' } }, required: ['knowledgeBaseId', 'parentId'] } };

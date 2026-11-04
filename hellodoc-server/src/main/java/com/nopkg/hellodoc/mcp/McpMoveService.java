@@ -29,6 +29,15 @@ public class McpMoveService {
 
     @Transactional
     public Map<String, Object> move(long user, long documentId, long expectedParentId, long parentId) {
+        return moveEntry(user, documentId, expectedParentId, parentId, DocType.FILE);
+    }
+
+    @Transactional
+    public Map<String, Object> moveFolder(long user, long folderId, long expectedParentId, long parentId) {
+        return moveEntry(user, folderId, expectedParentId, parentId, DocType.FOLDER);
+    }
+
+    private Map<String, Object> moveEntry(long user, long documentId, long expectedParentId, long parentId, DocType requiredType) {
         if (documentId < 1 || expectedParentId < 0 || parentId < 0) throw new McpMoveException("INVALID_ARGUMENT");
         var initial = repository.findByIdAndDeletedAtIsNull(documentId).orElseThrow(() -> new McpMoveException("DOCUMENT_UNAVAILABLE"));
         if (initial.getKb() == null) throw new McpMoveException("DOCUMENT_UNAVAILABLE");
@@ -36,7 +45,7 @@ public class McpMoveService {
         var doc = repository.findByIdForUpdate(documentId).orElseThrow(() -> new McpMoveException("DOCUMENT_UNAVAILABLE"));
         entityManager.refresh(doc, LockModeType.PESSIMISTIC_WRITE);
         if (doc.getKb() == null || doc.getKb().getDeletedAt() != null || doc.getDeletedAt() != null
-                || doc.getType() != DocType.FILE || Boolean.TRUE.equals(doc.getIsEncrypted())
+                || doc.getType() != requiredType || Boolean.TRUE.equals(doc.getIsEncrypted())
                 || !permissions.hasDocRole(user, documentId, DocRole.EDITOR)) throw new McpMoveException("DOCUMENT_UNAVAILABLE");
         long kb = doc.getKb().getId();
         Long targetId = parentId == 0 ? null : parentId;
@@ -46,6 +55,15 @@ public class McpMoveService {
         }
         try { items.validateWritableFolder(user, kb, targetId); }
         catch (Exception e) { throw new McpMoveException("DESTINATION_UNAVAILABLE"); }
+        if (requiredType == DocType.FOLDER && targetId != null) {
+            var seen = new java.util.HashSet<Long>();
+            var ancestor = documents.getById(targetId);
+            while (ancestor != null) {
+                if (ancestor.getId().equals(documentId) || !seen.add(ancestor.getId()))
+                    throw new McpMoveException("INVALID_DESTINATION");
+                ancestor = ancestor.getParent();
+            }
+        }
         long currentParentId = doc.getParent() == null ? 0 : doc.getParent().getId();
         if (currentParentId != parentId) {
             if (currentParentId != expectedParentId) throw new McpMoveException("LOCATION_CONFLICT");

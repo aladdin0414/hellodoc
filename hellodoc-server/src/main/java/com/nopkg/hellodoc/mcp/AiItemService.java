@@ -106,6 +106,14 @@ public class AiItemService {
         return documents.create(userId, kbId, dto);
     }
 
+    KbDocument createFolder(long userId, long kbId, Long parentId, String name, Map<String, Object> requestMeta) {
+        validateWritableFolder(userId, kbId, parentId);
+        DocCreateDTO dto = new DocCreateDTO();
+        dto.setName(requireTitle(name)); dto.setType(DocType.FOLDER); dto.setParentId(parentId);
+        dto.setExtraMeta(requestMeta);
+        return documents.create(userId, kbId, dto);
+    }
+
     private static String requireTitle(String name) {
         if (name == null || name.isBlank() || name.trim().length() > 255) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Name must contain 1 to 255 characters");

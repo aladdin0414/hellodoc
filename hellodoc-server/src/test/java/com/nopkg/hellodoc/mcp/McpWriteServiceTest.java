@@ -14,6 +14,20 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class McpWriteServiceTest {
+    @Test void folderCreationUsesIdempotencyGuardAndMetadata() {
+        var guard = mock(McpWriteGuard.class); var items = mock(AiItemService.class);
+        var docs = mock(DocumentService.class); var permissions = mock(PermissionChecker.class);
+        var em = mock(EntityManager.class); var folder = new KbDocument(); folder.setId(10L);
+        when(guard.execute(eq(2L), eq(3L), eq("folder"), eq("req"), anyString(), any()))
+                .thenAnswer(call -> ((LongSupplier) call.getArgument(5)).getAsLong());
+        when(items.createFolder(eq(2L), eq(3L), eq(4L), eq("目录"), anyMap())).thenReturn(folder);
+        assertEquals(10, new McpWriteService(guard, items, docs, permissions, em).createFolder(2, 3, 4L, "目录", "req"));
+        verify(items).validateWritableFolder(2, 3, 4L);
+        verify(items).createFolder(eq(2L), eq(3L), eq(4L), eq("目录"), argThat(meta -> {
+            Map<?, ?> request = (Map<?, ?>) meta.get("hellodoc_mcp_request");
+            return request != null && "req".equals(request.get("id")) && "folder".equals(request.get("type"));
+        }));
+    }
     @Test
     void itemWriteIsScopedToUserAndRecordsRequestMetadata() {
         var guard = mock(McpWriteGuard.class);

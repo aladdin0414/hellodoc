@@ -62,4 +62,30 @@ class McpMoveServiceTest {
         assertThrows(McpMoveException.class, () -> service.move(7,2,3,4));
         verify(repository, never()).save(any());
     }
+    @Test void folderMovesWithItsChildrenAndCanRetry() {
+        doc.setType(DocType.FOLDER);
+        var child = new KbDocument(); child.setParent(doc);
+        service.moveFolder(7, 2, 3, 4);
+        service.moveFolder(7, 2, 3, 4);
+        assertEquals(target, doc.getParent()); assertEquals(doc, child.getParent());
+        verify(repository, times(1)).save(doc);
+        verify(revisions, times(1)).bump(kb);
+    }
+    @Test void folderCannotMoveIntoItsDescendantOrItself() {
+        doc.setType(DocType.FOLDER); target.setParent(doc);
+        assertEquals("INVALID_DESTINATION", assertThrows(McpMoveException.class,
+                () -> service.moveFolder(7, 2, 3, 4)).getMessage());
+        when(documents.getById(2L)).thenReturn(doc);
+        assertEquals("INVALID_DESTINATION", assertThrows(McpMoveException.class,
+                () -> service.moveFolder(7, 2, 3, 2)).getMessage());
+        verify(repository, never()).save(any());
+    }
+    @Test void folderMoveChecksSourceAndLocation() {
+        doc.setType(DocType.FOLDER);
+        assertEquals("LOCATION_CONFLICT", assertThrows(McpMoveException.class,
+                () -> service.moveFolder(7, 2, 99, 4)).getMessage());
+        when(permissions.hasDocRole(7L,2L,DocRole.EDITOR)).thenReturn(false);
+        assertThrows(McpMoveException.class, () -> service.moveFolder(7, 2, 3, 4));
+        verify(repository, never()).save(any());
+    }
 }

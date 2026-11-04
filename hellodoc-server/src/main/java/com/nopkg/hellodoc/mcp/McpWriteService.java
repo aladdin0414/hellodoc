@@ -82,6 +82,17 @@ public class McpWriteService {
         });
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public long createFolder(long user, long kb, Long parentId, String name, String requestId) {
+        items.validateWritableFolder(user, kb, parentId);
+        Objects.requireNonNull(name, "name");
+        String hash = fingerprint(java.util.Arrays.asList(parentId, name));
+        return guard.execute(user, kb, "folder", requestId, hash, () -> {
+            long id = items.createFolder(user, kb, parentId, name, requestMeta("folder", requestId, hash)).getId();
+            entityManager.flush(); return id;
+        });
+    }
+
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public java.util.OptionalLong findOperation(long user, long kb, String operation, String requestId) {
         permissions.checkKbRole(user, kb, KbRole.VIEWER);

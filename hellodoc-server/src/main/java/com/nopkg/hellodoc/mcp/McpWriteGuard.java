@@ -62,7 +62,7 @@ public class McpWriteGuard {
 
     public java.util.OptionalLong find(long userId, long kbId, String operation, String requestId) {
         if (userId <= 0 || kbId <= 0 || requestId == null || requestId.isBlank() || requestId.length() > 128
-                || !("item".equals(operation) || "document".equals(operation))) {
+                || !("item".equals(operation) || "document".equals(operation) || "folder".equals(operation))) {
             throw new IllegalArgumentException("Invalid operation identity");
         }
         List<Previous> previous = jdbc.query("""

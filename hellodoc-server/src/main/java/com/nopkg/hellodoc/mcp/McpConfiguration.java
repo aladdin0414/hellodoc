@@ -66,7 +66,7 @@ public class McpConfiguration {
                 .inputSchema(documentSchema).build();
         var operationSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
-                "operation", Map.of("type", "string", "enum", List.of("item", "document")),
+                "operation", Map.of("type", "string", "enum", List.of("item", "document", "folder")),
                 "requestId", Map.of("type", "string", "minLength", 1, "maxLength", 128)),
                 List.of("knowledgeBaseId", "operation", "requestId"), false, null, null);
         var operationTool = McpSchema.Tool.builder().name("get_operation")
@@ -117,6 +117,23 @@ public class McpConfiguration {
         var moveTool = McpSchema.Tool.builder().name("move_document")
                 .description("在同一知识库内移动有编辑权限的普通文档；先读取 currentParentId 并用作 expectedParentId，再通过目录浏览确定目标 parentId；0 表示根目录。若位置已改变返回 LOCATION_CONFLICT，应重新读取并确认；重复相同移动可安全重试。不支持移动文件夹或跨知识库移动。")
                 .inputSchema(moveSchema).build();
+        var createFolderSchema = new McpSchema.JsonSchema("object", Map.of(
+                "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
+                "parentId", Map.of("type", "integer", "minimum", 1),
+                "name", Map.of("type", "string", "minLength", 1, "maxLength", 255),
+                "requestId", Map.of("type", "string", "minLength", 1, "maxLength", 128)),
+                List.of("knowledgeBaseId", "name", "requestId"), false, null, null);
+        var createFolderTool = McpSchema.Tool.builder().name("create_folder")
+                .description("在知识库根目录或指定文件夹创建文件夹；先浏览目标目录。省略 parentId 表示根目录。超时重试使用相同 requestId；可用 get_operation 的 folder 类型查询结果。")
+                .inputSchema(createFolderSchema).build();
+        var moveFolderSchema = new McpSchema.JsonSchema("object", Map.of(
+                "folderId", Map.of("type", "integer", "minimum", 1),
+                "expectedParentId", Map.of("type", "integer", "minimum", 0),
+                "parentId", Map.of("type", "integer", "minimum", 0)),
+                List.of("folderId", "expectedParentId", "parentId"), false, null, null);
+        var moveFolderTool = McpSchema.Tool.builder().name("move_folder")
+                .description("在同一知识库内移动文件夹及其子项。先用 read_document 读取 currentParentId；根目录使用 0。不能移入自身或后代。LOCATION_CONFLICT 时重新读取，重复相同移动可安全重试。")
+                .inputSchema(moveFolderSchema).build();
         var reorderSchema = new McpSchema.JsonSchema("object", Map.of(
                 "knowledgeBaseId", Map.of("type", "integer", "minimum", 1),
                 "parentId", Map.of("type", "integer", "minimum", 0),
@@ -129,6 +146,39 @@ public class McpConfiguration {
         return McpServer.sync(transport)
                 .serverInfo("hellodoc", "1.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder().tools(false).build())
+                .toolCall(createFolderTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        long kb = integerArg(args.get("knowledgeBaseId"), 1, Long.MAX_VALUE);
+                        Long parent = args.containsKey("parentId") ? integerArg(args.get("parentId"), 1, Long.MAX_VALUE) : null;
+                        if (!(args.get("name") instanceof String name) || !(args.get("requestId") instanceof String requestId)) throw new IllegalArgumentException();
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        long id = identity.run(auth, user -> writes.createFolder(user, kb, parent, name, requestId));
+                        var result = new java.util.LinkedHashMap<String, Object>();
+                        result.put("folderId", id); result.put("knowledgeBaseId", kb); result.put("parentId", parent);
+                        result.put("name", name); result.put("path", "/kb/" + kb + "/" + id);
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(result))).build();
+                    } catch (Exception error) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("文件夹未确认创建成功，请检查目录和权限；重试时使用相同 requestId。").build();
+                    }
+                })
+                .toolCall(moveFolderTool, (exchange, request) -> {
+                    try {
+                        var args = request.arguments();
+                        long folder = integerArg(args.get("folderId"), 1, Long.MAX_VALUE);
+                        long expected = integerArg(args.get("expectedParentId"), 0, Long.MAX_VALUE);
+                        long parent = integerArg(args.get("parentId"), 0, Long.MAX_VALUE);
+                        var auth = (Authentication) exchange.transportContext().get("authentication");
+                        var result = identity.run(auth, user -> moves.moveFolder(user, folder, expected, parent));
+                        return McpSchema.CallToolResult.builder().addTextContent(mapper.writeValueAsString(sourceLinks.enrich(result))).build();
+                    } catch (McpMoveException error) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent(error.getMessage()).build();
+                    } catch (IllegalArgumentException error) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("INVALID_ARGUMENT").build();
+                    } catch (Exception error) {
+                        return McpSchema.CallToolResult.builder().isError(true).addTextContent("MOVE_FAILED").build();
+                    }
+                })
                 .toolCall(reorderTool, (exchange, request) -> {
                     try {
                         var args = request.arguments();

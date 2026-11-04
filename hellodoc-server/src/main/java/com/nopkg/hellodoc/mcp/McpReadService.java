@@ -131,6 +131,7 @@ public class McpReadService {
         long kbId = folder.getKb().getId();
         Map<String, Object> result = folderChildren(user, kbId, folder.getId(), offset);
         result.put("documentId", folder.getId()); result.put("title", folder.getName());
+        result.put("currentParentId", folder.getParent() == null ? 0 : folder.getParent().getId());
         result.put("type", "folder"); result.put("knowledgeBaseId", kbId);
         result.put("knowledgeBaseTitle", folder.getKb().getTitle());
         result.put("status", folder.getStatus() == null ? null : folder.getStatus().getValue());

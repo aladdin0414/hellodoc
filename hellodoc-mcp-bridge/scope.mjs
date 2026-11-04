@@ -1,5 +1,5 @@
 export function scopeTool(tool) {
-  if (tool.name === 'create_document' || tool.name === 'list_folder_children' || tool.name === 'get_operation' || tool.name === 'reorder_folder_children') {
+  if (tool.name === 'create_document' || tool.name === 'create_folder' || tool.name === 'list_folder_children' || tool.name === 'get_operation' || tool.name === 'reorder_folder_children') {
     return { ...tool, inputSchema: { ...tool.inputSchema,
       required: (tool.inputSchema.required ?? []).filter(name => name !== 'knowledgeBaseId') } };
   }
@@ -12,9 +12,9 @@ export function scopeArguments(args, knowledgeBaseId) {
 }
 
 const scopedTools = new Set(['list_items', 'create_item', 'create_document', 'get_operation']);
-export const exposedTools = new Set([...scopedTools, 'search_documents', 'read_document', 'update_document', 'move_document', 'list_folder_children', 'list_knowledge_bases', 'reorder_folder_children']);
+export const exposedTools = new Set([...scopedTools, 'search_documents', 'read_document', 'update_document', 'move_document', 'create_folder', 'move_folder', 'list_folder_children', 'list_knowledge_bases', 'reorder_folder_children']);
 export function prepareToolArguments(name, args, knowledgeBaseId) {
-  if (name === 'create_document' || name === 'list_folder_children' || name === 'get_operation' || name === 'reorder_folder_children') {
+  if (name === 'create_document' || name === 'create_folder' || name === 'list_folder_children' || name === 'get_operation' || name === 'reorder_folder_children') {
     return { ...args, knowledgeBaseId: args.knowledgeBaseId ?? knowledgeBaseId };
   }
   return scopedTools.has(name) ? scopeArguments(args, knowledgeBaseId) : args;

@@ -33,11 +33,15 @@ codex mcp add hellodoc --url https://你的服务地址/api/mcp --bearer-token-e
 
 `create_document` 需要目标 `knowledgeBaseId`，并接受可选 `parentId`；不提供 `parentId` 时创建在根目录。目标知识库及文件夹须有编辑权限。旧版 `itemId` 调用仍可使用，但不能和 `parentId` 同时传入。`requestId` 应在结果不确定时原样重试，禁止对其他网络错误无条件重放写操作。
 
+`create_folder` 在根目录或指定 `parentId` 下创建文件夹，参数为 `knowledgeBaseId`、`name`、`requestId` 和可选的 `parentId`。创建前先浏览目标目录；结果不确定时使用相同参数和 `requestId` 重试，或通过 `get_operation` 的 `folder` 类型查询结果。同一请求 ID 用于不同参数会被拒绝。
+
 保存前应先查找已有知识库和相关目录；用户指定目录或找到明确匹配时使用对应的 `parentId`。多个目录可能匹配时应询问用户。只有用户指定根目录或没有合适目录时，才使用根目录。
 
 ## 移动文档
 
 `move_document` 可在同一知识库内移动普通文档：先调用 `read_document` 取得 `currentParentId`，再指定目标 `parentId`，以读取值作为 `expectedParentId` 提交。两个字段的 `0` 都表示知识库根目录。工具会检查源文档和目标文件夹的权限，不支持跨知识库或移动文件夹。
+
+`move_folder` 移动文件夹及其全部子项，参数为 `folderId`、`expectedParentId` 和目标 `parentId`。先用 `read_document` 读取文件夹的 `currentParentId`，根目录使用 `0`。工具要求源文件夹及目标目录有编辑权限，禁止跨知识库或移入自身和后代。`LOCATION_CONFLICT` 表示位置已变化，应重新读取；`INVALID_DESTINATION` 表示目标会产生目录循环。重复提交已完成的相同移动是安全的。
 
 如果文档已移动到目标目录，相同请求可安全重试；如果它被移动到其他位置，则返回 `LOCATION_CONFLICT`，需要重新读取并确认目标，不应直接覆盖其他人的移动。
 

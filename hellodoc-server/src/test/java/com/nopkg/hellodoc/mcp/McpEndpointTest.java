@@ -54,6 +54,8 @@ class McpEndpointTest {
         assertTrue(listResult.body().contains("search_documents"), listResult.body());
         assertTrue(listResult.body().contains("read_document"), listResult.body());
         assertTrue(listResult.body().contains("reorder_folder_children"), listResult.body());
+        assertTrue(listResult.body().contains("create_folder"), listResult.body());
+        assertTrue(listResult.body().contains("move_folder"), listResult.body());
         var kb = new com.nopkg.hellodoc.entities.KbKnowledgeBase(); kb.setTitle("mcp integration"); kb.setOwnerId(user.getId());
         kb = knowledgeBases.save(kb);
         String staleList = "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"tools/call\",\"params\":{\"name\":\"list_folder_children\",\"arguments\":{\"knowledgeBaseId\":" + kb.getId() + ",\"offset\":50,\"expectedSnapshot\":\"99999\"}}}";
