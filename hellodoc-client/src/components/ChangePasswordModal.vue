@@ -74,7 +74,7 @@ const handleSubmit = async () => {
                     </button>
                 </div>
 
-                <form class="space-y-4" @submit.prevent="handleSubmit" autocomplete="off">
+                <form id="change-password-form" class="space-y-4" @submit.prevent="handleSubmit" autocomplete="off">
                     <div>
                         <label
                             class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ t('changePassword.oldPassword') }}</label>
@@ -107,7 +107,7 @@ const handleSubmit = async () => {
                     class="px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
                     {{ t('nav.cancel') }}
                 </button>
-                <button @click="handleSubmit" :disabled="loading"
+                <button type="submit" form="change-password-form" :disabled="loading"
                     class="px-5 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
                     <svg v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none"
                         viewBox="0 0 24 24">

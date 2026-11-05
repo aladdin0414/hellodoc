@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import BaseDialog from '../shared/BaseDialog.vue'
 import type { Editor } from '@tiptap/vue-3'
 
 const props = defineProps<{
@@ -158,11 +159,13 @@ const handlePaperColorChange = (value: string) => {
     showPaperColorPicker.value = false
 }
 
-const addLink = () => {
-    const url = window.prompt(t('editor.toolbar.inputLinkUrl'))
-    if (url) {
-        props.editor?.chain().focus().setLink({ href: url }).run()
-    }
+const showLinkDialog = ref(false)
+const linkUrl = ref('')
+const addLink = () => { linkUrl.value = ''; showLinkDialog.value = true }
+const applyLink = () => {
+    const url = linkUrl.value.trim()
+    if (url) props.editor?.chain().focus().setLink({ href: url }).run()
+    showLinkDialog.value = false
 }
 
 const addImage = () => {
@@ -484,6 +487,13 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
     </div>
+    <BaseDialog :show="showLinkDialog" @close="showLinkDialog = false">
+        <form class="p-6 space-y-4" @submit.prevent="applyLink">
+            <label for="editor-link-url" class="block text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('editor.toolbar.inputLinkUrl') }}</label>
+            <input id="editor-link-url" v-model="linkUrl" type="text" required class="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 dark:text-white focus:ring-2 focus:ring-blue-500" />
+            <div class="flex justify-end gap-3"><button type="button" @click="showLinkDialog = false" class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ t('nav.cancel') }}</button><button type="submit" class="rounded-xl bg-blue-600 px-4 py-2 text-white">{{ t('common.confirm') }}</button></div>
+        </form>
+    </BaseDialog>
 </template>
 
 <style scoped>

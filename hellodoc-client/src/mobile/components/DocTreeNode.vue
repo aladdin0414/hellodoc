@@ -2,6 +2,7 @@
   <div class="space-y-0.5">
     <!-- 当前节点行 -->
     <div
+      role="button" tabindex="0" @keydown.enter.self.prevent="handleClick" @keydown.space.self.prevent="handleClick"
       @click="handleClick"
       @touchstart.passive="handleTouchStart"
       @touchmove.passive="handleTouchMove"
@@ -19,7 +20,7 @@
             : 'text-slate-800 dark:text-slate-200'
       ]"
       class="mobile-tree-node p-2.5 flex items-center justify-between rounded-xl transition-all cursor-pointer select-none touch-manipulation"
-      :style="{ paddingLeft: `${depth * 1.15 + 0.625}rem` }"
+      :style="{ paddingLeft: `${Math.min(depth, 5) * 1.15 + 0.625}rem` }"
     >
       <div class="flex items-center gap-2 min-w-0 flex-1">
         <!-- 文件夹可折叠 Icon -->

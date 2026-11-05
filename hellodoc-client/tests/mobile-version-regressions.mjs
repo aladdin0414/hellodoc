@@ -31,7 +31,7 @@ await build({
     b.onLoad({ filter: /\/mobile\/composables\/useTheme\.ts$/ }, () => ({ contents: "import {ref} from 'vue';export const useTheme=()=>({isDark:ref(false),toggleTheme(){}})" }))
     b.onLoad({ filter: /\/setupMdEditor\.[tj]s$/ }, () => ({ contents: '' }))
     b.onLoad({ filter: /\.vue$/ }, async ({ path }) => {
-      if (!path.endsWith('/DocEditView.vue')) return { contents: "export default { render(){return null} }" }
+      if (!path.endsWith('/DocEditView.vue') && !path.endsWith('/mobile/components/ConfirmDialog.vue')) return { contents: "export default { render(){return null} }" }
       const { descriptor } = parse(await readFile(path, 'utf8'), { filename: path })
       return { contents: compileScript(descriptor, { id: 'mobile-test', inlineTemplate: true }).content, loader: 'ts' }
     })
@@ -65,20 +65,20 @@ test('mobile conflict preserves the local draft and blocks stale retries after r
   assert.equal(JSON.parse(localStorage.getItem('hellodoc:mobile-editor-draft:1:8')).version, 3)
   const discardButton = host.querySelector('[role="alert"] button')
   assert.ok(discardButton)
-  dom.window.confirm = () => true
+  const confirmDiscard = async () => { discardButton.click(); await nextTick(); const confirm = [...host.querySelectorAll('button')].find(button => button.textContent.includes('common.confirm')); assert.ok(confirm); confirm.click(); await nextTick(); assert.equal([...host.querySelectorAll('button')].some(button => button.textContent.includes('common.confirm')), false) }
   globalThis.mobileDetail = async () => { throw new Error('offline') }
-  discardButton.click(); await settle()
+  await confirmDiscard(); await settle()
   assert.equal(JSON.parse(localStorage.getItem('hellodoc:mobile-editor-draft:1:8')).content, 'my unsaved text')
   let resolveReload
   globalThis.mobileDetail = () => new Promise(resolve => { resolveReload = resolve })
-  discardButton.click(); await nextTick()
+  await confirmDiscard()
   const editing = host.querySelector('textarea')
   editing.value = 'typed during reload'; editing.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
   await nextTick(); resolveReload({ name: 'doc', content: 'new server', version: 4 }); await settle()
   assert.equal(host.querySelector('textarea').value, 'typed during reload')
   assert.equal(JSON.parse(localStorage.getItem('hellodoc:mobile-editor-draft:1:8')).content, 'typed during reload')
   globalThis.mobileDetail = async () => ({ name: 'doc', content: 'new server', version: 4 })
-  discardButton.click(); await settle()
+  await confirmDiscard(); await settle()
   assert.equal(host.querySelector('textarea').value, 'new server')
   assert.equal(localStorage.getItem('hellodoc:mobile-editor-draft:1:8'), null)
   app.unmount(); host.remove()

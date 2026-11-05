@@ -106,7 +106,7 @@
       @click="showActionSheet = false"
     >
       <div
-        class="bg-white dark:bg-slate-800 rounded-t-3xl p-4 space-y-2 shadow-2xl transition-transform transform translate-y-0 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+        class="bg-white dark:bg-slate-800 rounded-t-3xl p-4 space-y-2 max-h-[90dvh] overflow-y-auto shadow-2xl transition-transform transform translate-y-0 pb-[calc(1rem+env(safe-area-inset-bottom))]"
         @click.stop
       >
         <!-- iOS 顶部 HandleBar 指示条 -->
@@ -357,7 +357,7 @@
 
         <div class="flex items-center justify-end gap-2 pt-2">
           <button @click="showCreateModal = false" class="px-3 py-1.5 text-xs text-gray-500 dark:text-slate-400">{{ t('nav.cancel') }}</button>
-          <button @click="handleCreateNode" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-xl">{{ t('common.create') }}</button>
+          <button @click="handleCreateNode" :disabled="submittingCreate || !newDocName.trim()" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-xl">{{ t('common.create') }}</button>
         </div>
       </div>
     </div>
@@ -591,6 +591,7 @@ const showCreateModal = ref(false)
 const targetParentId = ref<number | null>(null)
 const newDocType = ref<'file' | 'folder'>('file')
 const newDocName = ref('')
+const submittingCreate = ref(false)
 
 const showActionSheet = ref(false)
 const actionNode = ref<DocNode | null>(null)
@@ -1074,7 +1075,8 @@ const syncActiveDocState = () => {
 }
 
 const handleCreateNode = async () => {
-  if (!newDocName.value.trim()) return
+  if (!newDocName.value.trim() || submittingCreate.value) return
+  submittingCreate.value = true
   try {
     const newTitle = newDocName.value.trim()
     const res: any = await createDocument(kbId, {
@@ -1113,6 +1115,8 @@ const handleCreateNode = async () => {
     }
   } catch (err) {
     await fetchData()
+  } finally {
+    submittingCreate.value = false
   }
 }
 

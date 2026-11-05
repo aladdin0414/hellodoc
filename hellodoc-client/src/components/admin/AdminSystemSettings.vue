@@ -147,7 +147,7 @@ onMounted(() => {
     <div v-if="configLoading" class="py-12 text-center text-gray-500">{{ t('common.loading') }}</div>
     <div v-else class="space-y-4">
       <div v-for="config in systemConfigs" :key="config.id"
-        class="p-6 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        class="p-6 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div class="flex-1">
           <div class="flex items-center gap-2 mb-1">
             <h4 class="text-sm font-bold text-gray-900 dark:text-white">{{ getI18nText(config, 'configName') }}</h4>
@@ -155,7 +155,7 @@ onMounted(() => {
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ getI18nText(config, 'description') || t('admin.settings.noDesc') }}</p>
         </div>
 
-        <div class="w-full md:w-auto md:min-w-[600px] flex flex-col items-stretch gap-2">
+        <div class="w-full xl:w-1/2 min-w-0 flex flex-col items-stretch gap-2">
           <span class="self-start px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-[10px] text-gray-500 dark:text-gray-400 rounded font-mono">{{ config.configKey }}</span>
           <template v-if="config.valueType === 'boolean'">
             <label class="relative inline-flex items-center cursor-pointer">
@@ -168,7 +168,7 @@ onMounted(() => {
           <template v-else-if="config.configKey === 'app.kb.nav_style'">
             <select v-model="config.configValue"
               @change="handleUpdateConfig(config)"
-              class="w-full md:w-[600px] px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+              class="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
               <option value="top">{{ t('admin.settings.form.navStyleTop') }}</option>
               <option value="left">{{ t('admin.settings.form.navStyleLeft') }}</option>
             </select>
@@ -179,13 +179,13 @@ onMounted(() => {
               @input="autoResizeTextarea"
               @blur="handleUpdateConfig(config)"
               rows="4"
-              class="w-full md:w-[600px] px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none overflow-y-hidden"></textarea>
+              class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none overflow-y-hidden"></textarea>
           </template>
           <template v-else>
             <input v-model="config.configValue"
               @blur="handleUpdateConfig(config)"
               type="text"
-              class="w-full md:w-[600px] px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+              class="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
           </template>
         </div>
       </div>

@@ -393,7 +393,7 @@ const getKbIcon = (iconName: string | undefined | null) => {
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-1 ml-4 pr-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <div class="flex items-center space-x-1 ml-4 pr-4 kb-actions transition-opacity">
                         <button @click.stop="openPublicView(kb.id)"
                             class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" :title="t('editor.browse')">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -482,7 +482,7 @@ const getKbIcon = (iconName: string | undefined | null) => {
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-1 ml-4 pr-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <div class="flex items-center space-x-1 ml-4 pr-4 kb-actions transition-opacity">
                         <button @click.stop="openPublicView(kb.id)"
                             class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" :title="t('editor.browse')">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -492,6 +492,8 @@ const getKbIcon = (iconName: string | undefined | null) => {
                                     d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                         </button>
+                        <button v-if="canManageMembers(kb)" @click.stop="openMemberModal(kb)" class="p-1.5 text-gray-400 hover:text-blue-600 rounded-md" :title="t('kb.collabMembers')" :aria-label="t('kb.collabMembers')"><Icons.Users class="h-4 w-4" /></button>
+                        <button v-if="canManageMembers(kb)" @click.stop="openEditModal(kb)" class="p-1.5 text-gray-400 hover:text-blue-600 rounded-md" :title="t('kb.settings')" :aria-label="t('kb.settings')"><Icons.Settings class="h-4 w-4" /></button>
                         <button @click.stop="handlePin(kb)"
                             class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                             :class="{ 'text-blue-600': kb.isPinned }" :title="kb.isPinned ? t('kb.unpin') : t('kb.pin')">
@@ -613,7 +615,7 @@ const getKbIcon = (iconName: string | undefined | null) => {
                                             <component :is="(Icons as any).Book" class="kb-icon-glyph kb-icon-glyph--sm" :style="getIconStyle(kb.color)" />
                                         </template>
                                     </div>
-                                    <div class="flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                    <div class="flex gap-1.5 kb-actions transition-opacity">
                                         <button @click.stop="openPublicView(kb.id)"
                                             class="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" :title="t('editor.browse')">
                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -713,7 +715,7 @@ const getKbIcon = (iconName: string | undefined | null) => {
                                             <component :is="(Icons as any).Book" class="kb-icon-glyph kb-icon-glyph--sm" :style="getIconStyle(kb.color)" />
                                         </template>
                                     </div>
-                                    <div class="flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                    <div class="flex gap-1.5 kb-actions transition-opacity">
                                         <button @click.stop="openPublicView(kb.id)"
                                             class="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" :title="t('editor.browse')">
                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -799,5 +801,10 @@ const getKbIcon = (iconName: string | undefined | null) => {
 </template>
 
 <style scoped>
+@media (min-width: 768px) and (hover: hover) {
+    .kb-actions { opacity: 0; }
+    .group:hover .kb-actions, .group:focus-within .kb-actions { opacity: 1; }
+}
+
 @import '../../styles/kb-icon.css';
 </style>

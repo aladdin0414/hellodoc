@@ -21,7 +21,7 @@ const emit = defineEmits(['confirm', 'cancel'])
     <Transition enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100"
         leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
         <BaseDialog :show="show" z-index-class="z-[500]" max-width-class="max-w-sm"
-            panel-class="ring-1 ring-slate-900/5 dark:ring-gray-700" :close-on-overlay="false">
+            panel-class="ring-1 ring-slate-900/5 dark:ring-gray-700" :close-on-overlay="false" @close="emit('cancel')">
                 <div class="p-6">
                     <div class="flex items-center space-x-3 mb-4">
                         <div v-if="type === 'danger'"

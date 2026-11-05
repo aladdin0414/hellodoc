@@ -81,7 +81,7 @@
 
       <div v-if="versionConflict" role="alert" class="p-3 rounded-lg bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
         <span>{{ t('error.versionConflict') }}</span>
-        <button class="ml-2 underline font-semibold" @click="discardConflictingDraft">{{ t('error.discardDraft') }}</button>
+        <button class="ml-2 underline font-semibold" @click="showDiscardConfirm = true">{{ t('error.discardDraft') }}</button>
       </div>
 
       <!-- 编辑模式 -->
@@ -152,6 +152,7 @@
       </div>
       </template>
     </main>
+    <ConfirmDialog v-model:show="showDiscardConfirm" :title="t('error.discardDraft')" :message="t('error.confirmDiscardDraft')" confirm-type="danger" @confirm="showDiscardConfirm = false; discardConflictingDraft()" />
   </div>
 </template>
 
@@ -160,6 +161,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from '../components/HeaderNav.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import { Eye, Edit3, Loader2, Check, Sun, Moon, Image as ImageIcon, Undo2, Redo2 } from 'lucide-vue-next'
 import VisualEditor from '../../components/editor/VisualEditor.vue'
 import '../../components/editor/setupMdEditor'
@@ -190,6 +192,7 @@ const docTitle = ref('')
 const docContent = ref('')
 const docVersion = ref<number | null>(null)
 const versionConflict = ref(false)
+const showDiscardConfirm = ref(false)
 const mobileDraftKey = `hellodoc:mobile-editor-draft:${kbId}:${docId}`
 
 const saveMobileDraft = () => {
@@ -530,7 +533,7 @@ const handleSave = async (options?: { silent?: boolean }) => {
 }
 
 const discardConflictingDraft = async () => {
-  if (!versionConflict.value || !window.confirm(t('error.confirmDiscardDraft'))) return
+  if (!versionConflict.value) return
   const previous = { title: docTitle.value, content: docContent.value }
   try {
     const fresh: any = await getAuthDocumentDetail(kbId, docId)

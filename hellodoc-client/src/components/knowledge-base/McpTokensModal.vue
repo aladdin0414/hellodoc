@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { listMcpTokens, createMcpToken, revokeMcpToken, type McpTokenInfo } from '../../api/user'
 import BaseDialog from '../shared/BaseDialog.vue'
+import ConfirmDialog from '../ConfirmDialog.vue'
 const show = defineModel<boolean>('show', { required: true })
 const { t, locale } = useI18n()
 const formatDate = (value: string) => {
@@ -13,6 +14,7 @@ const mcpTokens = ref<McpTokenInfo[]>([])
 const mcpName = ref('')
 const newMcpToken = ref('')
 const mcpBusy = ref(false)
+const revokeId = ref<string | null>(null)
 const loadMcpTokens = async () => { try { mcpTokens.value = await listMcpTokens() } catch { /* request layer reports errors */ } }
 const createToken = async () => {
     if (!mcpName.value.trim() || mcpBusy.value) return
@@ -20,8 +22,10 @@ const createToken = async () => {
     try { const result = await createMcpToken(mcpName.value.trim()); newMcpToken.value = result.token; mcpName.value = ''; await loadMcpTokens() }
     catch { /* request layer reports errors */ } finally { mcpBusy.value = false }
 }
-const revokeToken = async (id: string) => {
-    if (!window.confirm(t('userProfile.mcpConfirm'))) return
+const revokeToken = async () => {
+    const id = revokeId.value
+    if (!id) return
+    revokeId.value = null
     try { await revokeMcpToken(id); await loadMcpTokens() } catch { /* request layer reports errors */ }
 }
 watch(show, (visible) => {
@@ -61,11 +65,12 @@ watch(show, (visible) => {
                                 <p class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ token.name }}</p>
                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('userProfile.mcpCreatedAt', { date: formatDate(token.createdAt) }) }}</p>
                             </div>
-                            <button @click="revokeToken(token.id)" class="shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition">{{ t('userProfile.mcpRevoke') }}</button>
+                            <button @click="revokeId = token.id" class="shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition">{{ t('userProfile.mcpRevoke') }}</button>
                         </li>
                     </ul>
                 </div>
             </section>
         </div>
+        <ConfirmDialog :show="revokeId !== null" :title="t('userProfile.mcpRevoke')" :message="t('userProfile.mcpConfirm')" type="danger" @confirm="revokeToken" @cancel="revokeId = null" />
     </BaseDialog>
 </template>

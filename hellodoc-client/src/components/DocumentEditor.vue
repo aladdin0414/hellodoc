@@ -16,6 +16,7 @@ import DocumentEditorOverlays from './editor/DocumentEditorOverlays.vue'
 import RevisionDrawer from './editor/RevisionDrawer.vue'
 import RevisionDiffDialog from './editor/RevisionDiffDialog.vue'
 import ImagePreview from './ImagePreview.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import AiAssistantDrawer from './ai/AiAssistantDrawer.vue'
 import type { SearchResult } from './SearchResultList.vue'
 import { message } from '../utils/message'
@@ -432,9 +433,8 @@ const handleMove = async (doc: DocListItem, direction: 'up' | 'down') => {
     await treeHandleMove(doc, direction)
 }
 
-const handleDiscardConflict = () => {
-    if (window.confirm(t('error.confirmDiscardDraft'))) void discardConflictingDraftAndReload()
-}
+const showDiscardConfirm = ref(false)
+const handleDiscardConflict = () => { showDiscardConfirm.value = true }
 
 const handleSave = () => {
     if (isReadOnlyByCollab.value) {
@@ -1092,6 +1092,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
         @update:visible="showAiDrawer = $event"
         @insert-to-doc="handleInsertAiContent"
     />
+    <ConfirmDialog :show="showDiscardConfirm" :title="t('error.discardDraft')" :message="t('error.confirmDiscardDraft')" type="danger" @cancel="showDiscardConfirm = false" @confirm="showDiscardConfirm = false; discardConflictingDraftAndReload()" />
 </template>
 
 

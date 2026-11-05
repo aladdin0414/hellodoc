@@ -70,6 +70,7 @@
           <div
             v-for="kb in filteredKbs"
             :key="kb.id"
+            role="link" tabindex="0" @keydown.enter.self.prevent="($event.currentTarget as HTMLElement).click()" @keydown.space.self.prevent="($event.currentTarget as HTMLElement).click()"
             @click="$router.push({ path: `/m/kb/${kb.id}`, query: { from: '/m/shared' } })"
             class="p-4 bg-white dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/50 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:border-slate-300 dark:hover:border-slate-600 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-between"
           >

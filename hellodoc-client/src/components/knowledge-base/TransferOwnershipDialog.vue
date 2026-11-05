@@ -45,7 +45,7 @@ const transfer = async () => {
 }
 </script>
 <template>
-    <BaseDialog :show="show" z-index-class="z-[90]" max-width-class="max-w-lg" @close="show = false">
+    <BaseDialog :show="show" z-index-class="z-[110]" max-width-class="max-w-lg" @close="show = false">
         <div class="p-6 space-y-5 bg-white dark:bg-gray-800">
             <div class="flex justify-between items-start gap-4">
                 <div><h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('kbTransfer.title') }}</h3><p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ kbTitle }}</p></div>
