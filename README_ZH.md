@@ -48,21 +48,40 @@ ADMIN_PASSWORD=replace_with_a_strong_admin_password
 SERVER_PORT=8080
 ```
 
-在 `docker-compose.hub.yml` 的 `hellodoc` 服务的 `environment` 列表中增加以下项，使默认本地上传目录写入已挂载的 `./data`：
-
-```yaml
-      - FILE_UPLOAD_DIR=/app/data
-```
-
 PostgreSQL 数据保存在 `./postgres-data`。已有部署如果此前使用默认的容器内 `uploads` 目录，应先备份并迁移现有上传文件，再切换路径或重建容器。
 
 ```bash
 docker compose -f docker-compose.hub.yml up -d
 ```
 
-访问 `http://localhost:8080`。首次初始化的管理员用户名为 `admin`，密码为配置的 `ADMIN_PASSWORD`。Compose 文件默认将 PostgreSQL 的 `5432` 端口映射到宿主机，可通过 `DB_PORT` 修改；按实际网络环境限制数据库访问。镜像默认使用 `aladdin0414/hellodoc:latest`，也可在 `.env` 中设置 `DOCKER_IMAGE` 指定版本。
+访问 `http://localhost:8080`。首次初始化的管理员用户名为 `admin`，密码为配置的 `ADMIN_PASSWORD`。PostgreSQL 默认只对 Compose 网络内的容器开放，不映射到宿主机。镜像默认使用 `aladdin0414/hellodoc:latest`，也可在 `.env` 中设置 `DOCKER_IMAGE` 指定版本。
+
+可用 `docker compose -f docker-compose.hub.yml ps` 查看状态，使用 `docker compose -f docker-compose.hub.yml logs -f` 查看日志。若 8080 端口被占用，在 `.env` 中修改 `SERVER_PORT`。可用 `openssl rand -hex 64` 生成随机 JWT 密钥。
 
 升级前请备份数据库和数据目录；服务启动时会执行相应数据库迁移。镜像及版本见 [Docker Hub](https://hub.docker.com/r/aladdin0414/hellodoc) 和 [GitHub Releases](https://github.com/aladdin0414/hellodoc/releases)。
+
+### 备份、恢复与失败首装修复
+
+备份前停止写入；以下命令在 Compose 文件所在目录运行。保存 `.env`、数据库备份和 `data` 目录，并妥善保护其中的密钥和文件：
+
+```bash
+docker compose -f docker-compose.hub.yml exec -T hellodoc-db pg_dump -U "$(grep '^DB_USERNAME=' .env | cut -d= -f2-)" -d hellodoc -Fc > hellodoc-db.dump
+tar -cf hellodoc-data.tar data
+```
+
+恢复到新的空目录时，放入同版本 Compose 和 `.env`，先解压 `data`，启动数据库，等待其就绪后恢复，再启动应用：
+
+```bash
+tar -xf hellodoc-data.tar
+docker compose -f docker-compose.hub.yml up -d hellodoc-db
+docker compose -f docker-compose.hub.yml exec -T hellodoc-db pg_isready -U postgres -d hellodoc
+docker compose -f docker-compose.hub.yml exec -T hellodoc-db pg_restore -U postgres -d hellodoc --exit-on-error < hellodoc-db.dump
+docker compose -f docker-compose.hub.yml up -d
+```
+
+示例中的 `postgres` 应替换为 `.env` 中的 `DB_USERNAME`；如数据库尚未就绪，请稍等后重试 `pg_isready`。恢复前确保目标数据库为空，切勿向现有生产库直接执行恢复。升级前应先演练恢复。
+
+如果旧镜像首次安装失败，日志包含 `kb_knowledge_base does not exist`，且确认该数据库从未保存需要保留的数据，可停止 Compose，将 `postgres-data` 重命名备份，再用修复后的镜像重新启动，让它创建空数据库。若已有任何需要保留的数据，请勿重置，先备份并从有效备份恢复或排查数据库状态。
 
 ## 本地开发
 

@@ -2,7 +2,8 @@ FROM eclipse-temurin:17.0.14_7-jre
 
 WORKDIR /app
 
-ENV TZ=Asia/Shanghai
+ENV TZ=Asia/Shanghai \
+    SERVER_SERVLET_CONTEXT_PATH=/
 
 RUN mkdir -p /app/data /app/logs
 

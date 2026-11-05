@@ -1,5 +1,21 @@
 # Changelog
 
+## [v3.5.1] - 2026-11-05
+
+### 更新说明
+
+- fix: 修复 PostgreSQL 空数据库首次安装时初始化及迁移顺序错误。
+- fix: 修复 Docker 镜像首页及 API 路径，确保可以访问和登录。
+- fix: 持久化上传文件，等待数据库就绪，并要求配置数据库密码、管理员密码和 JWT 密钥；数据库默认不再映射到宿主机。
+- docs: 更新 Docker 部署、备份恢复和失败首装处理说明；发布流程增加空数据库迁移检查并同步 Docker Hub 页面。
+
+### Changelog
+
+- fix: correct initialization and migration order when installing with an empty PostgreSQL database.
+- fix: correct the Docker image's homepage and API paths so users can access and sign in.
+- fix: persist uploads, wait for the database, and require database, administrator, and JWT secrets; the database port is no longer exposed to the host by default.
+- docs: update Docker deployment, backup, recovery, and failed first-install instructions; add a fresh-database migration check to publishing and synchronize the Docker Hub page.
+
 ## [v3.5.0] - 2026-11-04
 
 ### 更新说明

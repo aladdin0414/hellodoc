@@ -48,21 +48,40 @@ ADMIN_PASSWORD=replace_with_a_strong_admin_password
 SERVER_PORT=8080
 ```
 
-Add the following item to the `hellodoc` service's `environment` list in `docker-compose.hub.yml` so the default local upload directory uses the mounted `./data` directory:
-
-```yaml
-      - FILE_UPLOAD_DIR=/app/data
-```
-
 PostgreSQL data is stored in `./postgres-data`. If an existing deployment used the default `uploads` directory inside the container, back up and migrate those files before changing the path or recreating the container.
 
 ```bash
 docker compose -f docker-compose.hub.yml up -d
 ```
 
-Open `http://localhost:8080`. The initial administrator username is `admin` and the password is the configured `ADMIN_PASSWORD`. Compose maps PostgreSQL port `5432` to the host by default; set `DB_PORT` to change it and restrict database access for your network. The default image is `aladdin0414/hellodoc:latest`; set `DOCKER_IMAGE` in `.env` to select a version.
+Open `http://localhost:8080`. The initial administrator username is `admin` and the password is the configured `ADMIN_PASSWORD`. PostgreSQL is only accessible to containers on the Compose network by default. The default image is `aladdin0414/hellodoc:latest`; set `DOCKER_IMAGE` in `.env` to select a version.
+
+To inspect startup, run `docker compose -f docker-compose.hub.yml ps` and `docker compose -f docker-compose.hub.yml logs -f`. If port 8080 is occupied, set `SERVER_PORT` in `.env`. Generate a random JWT secret with `openssl rand -hex 64`.
 
 Back up the database and data directories before upgrading. The server runs applicable database migrations at startup. See [Docker Hub](https://hub.docker.com/r/aladdin0414/hellodoc) and [GitHub Releases](https://github.com/aladdin0414/hellodoc/releases) for images and versions.
+
+### Backup, restore, and failed first installs
+
+Stop writes before backing up. From the Compose directory, save `.env`, the database dump, and uploads securely:
+
+```bash
+docker compose -f docker-compose.hub.yml exec -T hellodoc-db pg_dump -U "$(grep '^DB_USERNAME=' .env | cut -d= -f2-)" -d hellodoc -Fc > hellodoc-db.dump
+tar -cf hellodoc-data.tar data
+```
+
+To restore into a new empty directory, place the same Compose version and `.env` there, extract the uploads, start PostgreSQL, wait for readiness, restore the database, and start the app:
+
+```bash
+tar -xf hellodoc-data.tar
+docker compose -f docker-compose.hub.yml up -d hellodoc-db
+docker compose -f docker-compose.hub.yml exec -T hellodoc-db pg_isready -U postgres -d hellodoc
+docker compose -f docker-compose.hub.yml exec -T hellodoc-db pg_restore -U postgres -d hellodoc --exit-on-error < hellodoc-db.dump
+docker compose -f docker-compose.hub.yml up -d
+```
+
+Replace `postgres` with `DB_USERNAME` from `.env`. Retry `pg_isready` if the database is still starting. Restore only into an empty database, never directly over a production database; test recovery before upgrading.
+
+If an old image failed on its first install with `kb_knowledge_base does not exist`, and you have confirmed that its database contains no data worth keeping, stop Compose, rename `postgres-data` as a backup, and restart with the fixed image to initialize a fresh database. If any data must be preserved, do not reset it; back it up and restore a valid backup or investigate the database first.
 
 ## Local development
 
