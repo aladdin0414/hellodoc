@@ -125,7 +125,7 @@ public class DocShareController {
     @Operation(summary = "Revoke share", description = "Delete specified permission or share link")
     @RequireDocRole(DocRole.EDITOR)
     public ApiResponse<Void> removePermission(@PathVariable Long docId, @PathVariable Long permissionId) {
-        permissionService.removePermission(permissionId);
+        permissionService.removePermission(docId, permissionId);
         return ApiResponse.success(null);
     }
 }

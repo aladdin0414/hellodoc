@@ -35,4 +35,5 @@ export interface CreateKbInput {
     icon?: string
     color?: string
     visibility?: string
+    guestbookEnabled?: boolean
 }

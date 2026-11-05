@@ -18,7 +18,7 @@ class DirectoryPermissionMutationTest {
         when(kbs.findById(9L)).thenReturn(Optional.of(kb));
         var service = new com.nopkg.hellodoc.services.KbService(kbs, mock(KbKbMemberRepository.class),
                 mock(com.nopkg.hellodoc.repositories.KbKbUserPrefRepository.class),
-                mock(com.nopkg.hellodoc.services.UserService.class), mock(com.nopkg.hellodoc.repositories.UserRepository.class), revisions);
+                mock(com.nopkg.hellodoc.services.UserService.class), mock(com.nopkg.hellodoc.repositories.UserRepository.class), mock(com.nopkg.hellodoc.repositories.KbDocPermissionRepository.class), revisions);
         var dto = new com.nopkg.hellodoc.web.dto.kb.KbUpdateDTO();
         dto.setVisibility(com.nopkg.hellodoc.enums.Visibility.PUBLIC);
         service.updateKnowledgeBase(7L, 9L, dto);
@@ -45,7 +45,7 @@ class DirectoryPermissionMutationTest {
         var kb = new KbKnowledgeBase(); kb.setId(9L); kb.setOwnerId(7L);
         when(kbs.findById(9L)).thenReturn(Optional.of(kb));
         when(revisions.lock(9L)).thenReturn(kb);
-        var service = new KbMemberService(repo, kbs, revisions);
+        var service = new KbMemberService(repo, kbs, mock(com.nopkg.hellodoc.repositories.KbDocPermissionRepository.class), revisions);
         service.addMember(7L, 9L, 8L, KbRole.EDITOR);
         verify(revisions).lock(9L);
         verify(revisions).bump(kb);

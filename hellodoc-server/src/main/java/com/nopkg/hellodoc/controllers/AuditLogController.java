@@ -25,6 +25,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuditLogController {
 
     private final AuditLogService auditLogService;
+    private final com.nopkg.hellodoc.services.PermissionChecker permissionChecker;
+    private final com.nopkg.hellodoc.services.KbService kbService;
+
+    private Long currentUserId() {
+        return kbService.requireUserId(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName());
+    }
 
     @GetMapping("/audit-logs")
     @Operation(summary = "All logs", description = "Admin query for all audit logs")
@@ -52,6 +58,7 @@ public class AuditLogController {
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "20") int pageSize) {
         Pageable pageable = PageRequest.of(Math.max(0, pageNum - 1), Math.min(100, Math.max(1, pageSize)));
+        permissionChecker.requireKbMember(currentUserId(), kbId);
         return ApiResponse.success(auditLogService
                 .getTargetLogs(AuditTargetType.KB, kbId, pageable).map(this::toVo));
     }
@@ -63,6 +70,7 @@ public class AuditLogController {
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "20") int pageSize) {
         Pageable pageable = PageRequest.of(Math.max(0, pageNum - 1), Math.min(100, Math.max(1, pageSize)));
+        permissionChecker.requirePrivateDocAccess(currentUserId(), docId);
         return ApiResponse.success(auditLogService
                 .getTargetLogs(AuditTargetType.DOCUMENT, docId, pageable).map(this::toVo));
     }

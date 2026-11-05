@@ -27,6 +27,7 @@ public class KbMemberController {
 
     private final KbMemberService memberService;
     private final KbService kbService;
+    private final com.nopkg.hellodoc.services.PermissionChecker permissionChecker;
 
     record KbMemberVO(Long id, Long userId, String nickname, String email, String avatar, KbRole role) {
     }
@@ -46,6 +47,7 @@ public class KbMemberController {
     @Operation(summary = "Member list", description = "Get list of members in knowledge base")
     @RequireKbRole(KbRole.VIEWER)
     public ApiResponse<List<KbMemberVO>> listMembers(@PathVariable Long kbId) {
+        permissionChecker.requireKbMember(currentUserId(), kbId);
         List<KbKbMember> members = memberService.listMembers(kbId);
         Set<Long> userIds = members.stream().map(KbKbMember::getUserId).collect(Collectors.toSet());
         Map<Long, SysUser> users = kbService.loadUsersByIds(userIds);

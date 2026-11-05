@@ -27,14 +27,26 @@ public class CommentController {
     private final CommentService commentService;
     private final UserAuthRepository userAuthRepository;
     private final ConfigService configService;
+    private final com.nopkg.hellodoc.repositories.DocCommentRepository commentRepository;
+    private final com.nopkg.hellodoc.repositories.KbDocumentRepository documentRepository;
+    private final com.nopkg.hellodoc.services.PermissionChecker permissionChecker;
 
     @PostMapping("/docs/{docId}/comments")
     @Operation(summary = "Add comment", description = "Add new comment or anchor comment in specific document")
     public ApiResponse<DocCommentVO> addComment(
             @PathVariable Long docId,
             @RequestBody CommentCreateDTO dto) {
-        checkGuestbookEnabled();
         Long userId = currentUserId();
+        permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.VIEWER);
+        if (dto.getParentId() == null) {
+            if (dto.getAnchorType() == null) checkGuestbookEnabled(docId);
+            else permissionChecker.requirePrivateDocAccess(userId, docId);
+        } else {
+            DocComment parent = findComment(dto.getParentId());
+            if (!parent.getDocId().equals(docId)) throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.PARAM_ERROR);
+            if (isGuestbookThread(parent)) checkGuestbookEnabled(docId);
+            else permissionChecker.requirePrivateDocAccess(userId, docId);
+        }
         dto.setDocId(docId);
         return ApiResponse.success(DocCommentVO.from(commentService.addComment(dto, userId)));
     }
@@ -42,8 +54,13 @@ public class CommentController {
     @GetMapping("/docs/{docId}/comments")
     @Operation(summary = "List document comments", description = "Get all comments including replies for specific document")
     public ApiResponse<List<DocCommentVO>> getDocumentComments(@PathVariable Long docId) {
+        Long userId = currentUserId();
+        permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.VIEWER);
         List<DocComment> comments = commentService.getDocumentComments(docId);
+        boolean enabled = isGuestbookEnabled(docId);
+        boolean privateAccess = permissionChecker.hasPrivateDocAccess(userId, docId);
         return ApiResponse.success(comments.stream()
+                .filter(comment -> isGuestbookThread(comment) ? enabled : privateAccess)
                 .map(DocCommentVO::from)
                 .collect(Collectors.toList()));
     }
@@ -70,8 +87,11 @@ public class CommentController {
     public ApiResponse<DocCommentVO> replyComment(
             @PathVariable Long id,
             @RequestBody Map<String, String> payload) {
-        checkGuestbookEnabled();
         Long userId = currentUserId();
+        DocComment parent = findComment(id);
+        permissionChecker.checkDocRole(userId, parent.getDocId(), com.nopkg.hellodoc.enums.DocRole.VIEWER);
+        if (isGuestbookThread(parent)) checkGuestbookEnabled(parent.getDocId());
+        else permissionChecker.requirePrivateDocAccess(userId, parent.getDocId());
         return ApiResponse.success(DocCommentVO.from(commentService.replyComment(id, payload.get("content"), userId)));
     }
 
@@ -95,11 +115,32 @@ public class CommentController {
         return ApiResponse.success(commentService.getUnresolvedCount(docId));
     }
 
-    private void checkGuestbookEnabled() {
-        Boolean enabled = configService.getConfigValue("app.enable_guestbook", Boolean.class);
-        if (Boolean.FALSE.equals(enabled)) {
-            throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.SYSTEM_ERROR, com.nopkg.hellodoc.utils.MessageUtils.get("guestbook.disabled"));
+    private boolean isGuestbookEnabled(Long docId) {
+        Boolean systemEnabled = configService.getConfigValue("app.enable_guestbook", Boolean.class);
+        var doc = documentRepository.findByIdAndDeletedAtIsNull(docId)
+                .orElseThrow(() -> new com.nopkg.hellodoc.exceptions.ResourceNotFoundException("Document", docId));
+        return !Boolean.FALSE.equals(systemEnabled) && !Boolean.FALSE.equals(doc.getKb().getGuestbookEnabled());
+    }
+
+    private void checkGuestbookEnabled(Long docId) {
+        if (!isGuestbookEnabled(docId)) {
+            throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.NO_PERMISSION, com.nopkg.hellodoc.utils.MessageUtils.get("guestbook.disabled"));
         }
+    }
+
+    private DocComment findComment(Long id) {
+        return commentRepository.findById(id).orElseThrow(() -> new com.nopkg.hellodoc.exceptions.ResourceNotFoundException("Comment", id));
+    }
+
+    private boolean isGuestbookThread(DocComment comment) {
+        java.util.Set<Long> visited = new java.util.HashSet<>();
+        while (comment.getParentId() != null) {
+            if (!visited.add(comment.getId())) throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.PARAM_ERROR);
+            DocComment parent = findComment(comment.getParentId());
+            if (!parent.getDocId().equals(comment.getDocId())) throw new com.nopkg.hellodoc.exceptions.BusinessException(ApiResponse.Code.PARAM_ERROR);
+            comment = parent;
+        }
+        return comment.getAnchorType() == null;
     }
 
     private Long currentUserId() {

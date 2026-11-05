@@ -9,6 +9,7 @@ export interface DocComment {
         avatar: string
     }
     parentId: number | null
+    anchorType: string | null
     content: string
     isResolved: boolean
     createdAt: string

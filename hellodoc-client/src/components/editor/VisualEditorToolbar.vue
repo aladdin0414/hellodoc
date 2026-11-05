@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Editor } from '@tiptap/vue-3'
 
@@ -28,6 +28,14 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const showPaperColorPicker = ref(false)
+const tableButtonRef = ref<HTMLButtonElement | null>(null)
+const paperButtonRef = ref<HTMLButtonElement | null>(null)
+const popoverPosition = ref({ top: '0px', left: '0px' })
+const positionPopover = (button: HTMLButtonElement | null, width: number) => {
+    if (!button) return
+    const rect = button.getBoundingClientRect()
+    popoverPosition.value = { top: `${rect.bottom + 4}px`, left: `${Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))}px` }
+}
 const paperColorPresets = [
     '#ffffff',
     '#faf9de',
@@ -139,7 +147,10 @@ const togglePageMode = () => {
 }
 
 const openPaperColorPicker = () => {
-    showPaperColorPicker.value = !showPaperColorPicker.value
+    const next = !showPaperColorPicker.value
+    showTableSelector.value = false
+    if (next) positionPopover(paperButtonRef.value, 182)
+    showPaperColorPicker.value = next
 }
 
 const handlePaperColorChange = (value: string) => {
@@ -202,7 +213,10 @@ const insertTableWithGrid = () => {
 }
 
 const addTable = () => {
-    showTableSelector.value = !showTableSelector.value
+    const next = !showTableSelector.value
+    showPaperColorPicker.value = false
+    if (next) positionPopover(tableButtonRef.value, 226)
+    showTableSelector.value = next
 }
 
 const closeDropdowns = () => {
@@ -210,15 +224,23 @@ const closeDropdowns = () => {
     showPaperColorPicker.value = false
 }
 
+onMounted(() => {
+    window.addEventListener('resize', closeDropdowns)
+    window.addEventListener('scroll', closeDropdowns, true)
+})
+onUnmounted(() => {
+    window.removeEventListener('resize', closeDropdowns)
+    window.removeEventListener('scroll', closeDropdowns, true)
+})
 defineExpose({ closeDropdowns })
 </script>
 
 <template>
-    <div v-if="editor" class="visual-toolbar w-full flex flex-wrap items-center gap-1 px-4 py-2 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 bg-white dark:bg-[#161b22]" @click.stop>
+    <div v-if="editor" class="visual-toolbar w-full flex flex-nowrap items-center gap-1 overflow-x-auto px-4 py-2 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 bg-white dark:bg-[#161b22]" @click.stop @scroll="closeDropdowns">
         <!-- Hidden File Input -->
         <input type="file" ref="fileInputRef" class="hidden" accept="image/*" multiple @change="handleFileChange" />
 
-        <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="togglePlainTextMode" :class="{ 'is-active': isPlainTextMode }" :title="t('editor.toolbar.togglePlainTextMode')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2"/>
@@ -242,7 +264,7 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
         <template v-if="!isPlainTextMode">
-        <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="toggleBold" :class="{ 'is-active': editor.isActive('bold') }" :title="t('editor.toolbar.bold')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
             </button>
@@ -260,7 +282,7 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
 
-        <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <select
                 v-if="useBlockTypeDropdown"
                 class="toolbar-select"
@@ -287,7 +309,7 @@ defineExpose({ closeDropdowns })
             </template>
         </div>
 
-        <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="setAlignLeft" :class="{ 'is-active': editor.isActive({ textAlign: 'left' }) }" :title="t('editor.toolbar.alignLeft')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="15" y1="12" y2="12"/><line x1="3" x2="19" y1="18" y2="18"/></svg>
             </button>
@@ -299,7 +321,7 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
 
-        <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="toggleBulletList" :class="{ 'is-active': editor.isActive('bulletList') }" :title="t('editor.toolbar.bulletList')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
             </button>
@@ -319,7 +341,7 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
 
-        <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="toggleBlockquote" :class="{ 'is-active': editor.isActive('blockquote') }" :title="t('editor.toolbar.blockquote')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H3"/><path d="M21 12H8"/><path d="M21 18H8"/><path d="M3 12v6"/></svg>
             </button>
@@ -336,12 +358,13 @@ defineExpose({ closeDropdowns })
                 <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
             </button>
             <div class="relative">
-                <button @click="addTable" :title="t('editor.toolbar.insertTable')" class="toolbar-btn" :class="{ 'is-active': showTableSelector }">
+                <button ref="tableButtonRef" @click="addTable" :title="t('editor.toolbar.insertTable')" class="toolbar-btn" :class="{ 'is-active': showTableSelector }">
                     <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
                 </button>
                 
                 <!-- Table Selector Popover -->
-                <div v-if="showTableSelector" class="absolute top-full left-0 mt-1 p-3 bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg z-50">
+                <Teleport to="body">
+                <div v-if="showTableSelector" :style="popoverPosition" @click.stop class="fixed p-3 bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg z-[100]">
                     <div class="mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider flex justify-between items-center">
                         <span>{{ t('editor.toolbar.tableSize') }}</span>
                         <span class="text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">{{ hoverRows }} x {{ hoverCols }}</span>
@@ -358,10 +381,11 @@ defineExpose({ closeDropdowns })
                         </div>
                     </div>
                 </div>
+                </Teleport>
             </div>
         </div>
 
-        <div class="toolbar-group flex gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
             <button @click="undo" :title="t('editor.toolbar.undo')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--lean" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
             </button>
@@ -371,9 +395,10 @@ defineExpose({ closeDropdowns })
         </div>
         </template>
 
-        <div class="toolbar-group flex gap-0.5 px-2">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2">
             <div class="relative" v-if="!isPlainTextMode && (showPaperColorButton ?? true)">
                 <button
+                    ref="paperButtonRef"
                     @click="openPaperColorPicker"
                     :title="t('toolbar.paperColor')"
                     class="toolbar-btn"
@@ -387,7 +412,8 @@ defineExpose({ closeDropdowns })
                         <circle cx="16.5" cy="10" r="1" />
                     </svg>
                 </button>
-                <div v-if="showPaperColorPicker" class="absolute top-full right-0 mt-1 p-2 bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg z-50">
+                <Teleport to="body">
+                <div v-if="showPaperColorPicker" :style="popoverPosition" @click.stop class="fixed p-2 bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg z-[100]">
                     <div class="paper-color-grid">
                         <button
                             v-for="color in paperColorPresets"
@@ -400,6 +426,7 @@ defineExpose({ closeDropdowns })
                         ></button>
                     </div>
                 </div>
+                </Teleport>
             </div>
             <button
                 v-if="!isPlainTextMode"
@@ -460,6 +487,12 @@ defineExpose({ closeDropdowns })
 </template>
 
 <style scoped>
+.visual-toolbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+    overscroll-behavior-x: contain;
+}
+
 .toolbar-btn {
     @apply h-8 w-8 inline-flex items-center justify-center p-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200 font-bold text-xs leading-none;
 }

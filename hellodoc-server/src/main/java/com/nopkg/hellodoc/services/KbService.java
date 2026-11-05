@@ -41,6 +41,7 @@ public class KbService {
     private final KbKbUserPrefRepository prefRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final com.nopkg.hellodoc.repositories.KbDocPermissionRepository docPermissionRepository;
     private final com.nopkg.hellodoc.mcp.DirectoryRevision directoryRevision;
 
     public Long requireUserId(String username) {
@@ -62,6 +63,10 @@ public class KbService {
         owned.forEach(kb -> merged.put(kb.getId(), kb));
         memberKbs.forEach(kb -> merged.put(kb.getId(), kb));
         return new ArrayList<>(merged.values());
+    }
+
+    public List<KbKnowledgeBase> listOwnedKnowledgeBases(Long ownerId) {
+        return kbRepository.findByOwnerIdAndDeletedAtIsNull(ownerId);
     }
 
     public List<KbKnowledgeBase> listPublicKbs() {
@@ -140,6 +145,7 @@ public class KbService {
         kb.setIcon(dto.getIcon());
         kb.setOwnerId(userId);
         kb.setAllowAnonymous(Boolean.TRUE.equals(dto.getAllowAnonymous()));
+        kb.setGuestbookEnabled(!Boolean.FALSE.equals(dto.getGuestbookEnabled()));
         if (dto.getVisibility() != null) {
             kb.setVisibility(dto.getVisibility());
         }
@@ -157,6 +163,60 @@ public class KbService {
         memberRepository.save(ownerMember);
 
         return saved;
+    }
+
+    @Transactional
+    @Auditable(targetType = AuditTargetType.KB, action = AuditAction.UPDATE, targetIdExpression = "#kbId")
+    public KbKnowledgeBase transferOwnership(Long kbId, Long operatorId, Long expectedOwnerId, Long targetUserId,
+                                              boolean keepFormerOwner, boolean systemAdmin) {
+        if (kbId == null || expectedOwnerId == null || targetUserId == null) {
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Owner and recipient are required");
+        }
+        KbKnowledgeBase kb = directoryRevision.lock(kbId);
+        Long oldOwnerId = kb.getOwnerId();
+        if (!Objects.equals(oldOwnerId, expectedOwnerId)) {
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Knowledge base owner has changed");
+        }
+        if (!systemAdmin && !Objects.equals(operatorId, oldOwnerId)) {
+            throw new BusinessException(ApiResponse.Code.NO_PERMISSION);
+        }
+        if (Objects.equals(oldOwnerId, targetUserId)) {
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Recipient is already the owner");
+        }
+        SysUser target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", targetUserId));
+        if (target.getStatus() != null && target.getStatus() != 0) {
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Recipient account is disabled");
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        KbKbMember oldMember = memberRepository.findByKbIdAndUserId(kbId, oldOwnerId).orElse(null);
+        if (oldMember != null) {
+            if (keepFormerOwner) {
+                oldMember.setRole(KbRole.ADMIN);
+                oldMember.setUpdatedAt(now);
+                memberRepository.save(oldMember);
+            } else {
+                memberRepository.delete(oldMember);
+            }
+        } else if (keepFormerOwner) {
+            oldMember = new KbKbMember(); oldMember.setKb(kb); oldMember.setUserId(oldOwnerId);
+            oldMember.setRole(KbRole.ADMIN); oldMember.setCreatedAt(now); oldMember.setUpdatedAt(now);
+            memberRepository.save(oldMember);
+        }
+        if (!keepFormerOwner) {
+            var grants = docPermissionRepository.findByTargetTypeAndTargetId(com.nopkg.hellodoc.enums.TargetType.USER, oldOwnerId)
+                    .stream().filter(p -> kbId.equals(p.getDoc().getKb().getId())).toList();
+            docPermissionRepository.deleteAll(grants);
+        }
+        KbKbMember recipient = memberRepository.findByKbIdAndUserId(kbId, targetUserId).orElseGet(() -> {
+            KbKbMember member = new KbKbMember(); member.setKb(kb); member.setUserId(targetUserId);
+            member.setCreatedAt(now); member.setInvitedBy(operatorId); return member;
+        });
+        recipient.setRole(KbRole.OWNER); recipient.setUpdatedAt(now);
+        memberRepository.save(recipient);
+        kb.setOwnerId(targetUserId); kb.setUpdatedAt(now);
+        directoryRevision.bump(kb);
+        return kbRepository.save(kb);
     }
 
     @Transactional
@@ -184,6 +244,7 @@ public class KbService {
         if (dto.getVisibility() != null) {
             kb.setVisibility(dto.getVisibility());
         }
+        if (dto.getGuestbookEnabled() != null) kb.setGuestbookEnabled(dto.getGuestbookEnabled());
         if (dto.getVisibility() != null || dto.getAllowAnonymous() != null) directoryRevision.bump(lockedDirectory);
         kb.setUpdatedAt(OffsetDateTime.now());
         return kbRepository.save(kb);

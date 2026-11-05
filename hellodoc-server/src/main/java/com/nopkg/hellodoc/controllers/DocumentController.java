@@ -39,6 +39,7 @@ public class DocumentController {
         private final DocumentService documentService;
         private final KbService kbService;
         private final RecentService recentService;
+        private final com.nopkg.hellodoc.services.PermissionChecker permissionChecker;
         private final com.nopkg.hellodoc.mcp.McpReorderService reorderService;
 
         record ReorderRequest(Long parentId, List<Long> expectedIds, List<Long> orderedIds) {}
@@ -107,6 +108,18 @@ public class DocumentController {
         @RequireKbRole(KbRole.VIEWER)
         public ApiResponse<List<KbDocItem>> listDocuments(@PathVariable Long kbId) {
                 List<KbDocument> docs = documentService.getTree(kbId);
+                if (!permissionChecker.isKbMember(currentUserId(), kbId)) {
+                        Map<Long, KbDocument> byId = docs.stream().collect(Collectors.toMap(KbDocument::getId, doc -> doc));
+                        Set<Long> visibleIds = new java.util.HashSet<>();
+                        for (KbDocument doc : docs) {
+                                if (doc.getStatus() != com.nopkg.hellodoc.enums.DocStatus.PUBLISHED) continue;
+                                KbDocument current = doc;
+                                while (current != null && visibleIds.add(current.getId())) {
+                                        current = current.getParent() == null ? null : byId.get(current.getParent().getId());
+                                }
+                        }
+                        docs = docs.stream().filter(doc -> visibleIds.contains(doc.getId())).toList();
+                }
                 List<KbDocItem> items = docs.stream()
                                 .map(doc -> toDocItem(doc, null, null))
                                 .toList();
@@ -170,6 +183,7 @@ public class DocumentController {
         @Operation(summary = "Get trash list", description = "List items in trash for knowledge base")
         @RequireKbRole(KbRole.VIEWER)
         public ApiResponse<List<KbDocItem>> getTrashList(@PathVariable Long kbId) {
+                permissionChecker.requireKbMember(currentUserId(), kbId);
                 List<KbDocument> docs = documentService.getTrashList(currentUserId(), kbId);
                 List<KbDocItem> items = docs.stream()
                                 .map(doc -> toDocItem(doc, null, null))
@@ -205,6 +219,7 @@ public class DocumentController {
         @Operation(summary = "Get revision history", description = "Get document revision history list")
         @RequireDocRole(DocRole.VIEWER)
         public ApiResponse<List<KbRevision>> listRevisions(@PathVariable Long kbId, @PathVariable Long docId) {
+                permissionChecker.requirePrivateDocAccess(currentUserId(), docId);
                 List<KbDocumentRevision> revisions = documentService.listRevisions(currentUserId(), kbId, docId);
                 Set<Long> authorIds = revisions.stream().map(KbDocumentRevision::getAuthorUserId)
                                 .filter(Objects::nonNull)

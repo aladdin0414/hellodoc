@@ -39,11 +39,11 @@ public class PublicKbController {
 
         public record KbSummary(Long id, String title, String description, String icon, String color,
                         Long ownerId, String ownerName, String ownerAvatar, String lastModified,
-                        Visibility visibility, OffsetDateTime createdAt) {
+                        Visibility visibility, Boolean guestbookEnabled, OffsetDateTime createdAt) {
         }
 
         public record KbDocItem(Long id, String name, String type, Long parentId, Integer orderNum, String status,
-                        String content, String paperBgColor, String paperBgImage, Map<String, Object> extraMeta, Boolean isOpen, Boolean isCover,
+                        String content, String paperBgColor, String paperBgImage, Map<String, Object> extraMeta, Boolean isOpen, Boolean isCover, Boolean isEncrypted,
                         Integer currentVersion, Long viewCount,
                         String updatedAt, String createdAt) {
         }
@@ -67,7 +67,7 @@ public class PublicKbController {
 
                 KbSummary summary = new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(), kb.getIcon(),
                                 kb.getColor(), kb.getOwnerId(), ownerName, ownerAvatar, lastModified,
-                                kb.getVisibility(), kb.getCreatedAt());
+                                kb.getVisibility(), kb.getGuestbookEnabled(), kb.getCreatedAt());
                 return ApiResponse.success(summary);
         }
 
@@ -90,7 +90,7 @@ public class PublicKbController {
                                                 null,
                                                 doc.getPaperBgColor(), doc.getPaperBgImage(),
                                                 doc.getExtraMeta() != null ? doc.getExtraMeta() : Map.of(),
-                                                doc.getIsOpen(), doc.getIsCover(), doc.getCurrentVersion(),
+                                                doc.getIsOpen(), doc.getIsCover(), doc.getIsEncrypted(), doc.getCurrentVersion(),
                                                 doc.getViewCount() == null ? 0 : doc.getViewCount(),
                                                 doc.getUpdatedAt() != null ? doc.getUpdatedAt().toString() : null,
                                                 doc.getCreatedAt() != null ? doc.getCreatedAt().toString() : null))
@@ -125,7 +125,7 @@ public class PublicKbController {
                                 documentService.getContent(doc.getId()),
                                 doc.getPaperBgColor(), doc.getPaperBgImage(),
                                 doc.getExtraMeta() != null ? doc.getExtraMeta() : Map.of(),
-                                doc.getIsOpen(), doc.getIsCover(), doc.getCurrentVersion(),
+                                doc.getIsOpen(), doc.getIsCover(), doc.getIsEncrypted(), doc.getCurrentVersion(),
                                 (doc.getViewCount() == null ? 0 : doc.getViewCount()) + 1,
                                 doc.getUpdatedAt() != null ? doc.getUpdatedAt().toString() : null,
                                 doc.getCreatedAt() != null ? doc.getCreatedAt().toString() : null);

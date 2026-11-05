@@ -186,7 +186,7 @@ const currentUser = ref<any>(null)
 const frontendConfigs = ref<Record<string, string>>({})
 
 const isGuestbookEnabled = computed(() => {
-    return frontendConfigs.value['app.enable_guestbook'] !== 'false'
+    return frontendConfigs.value['app.enable_guestbook'] !== 'false' && kbDetail.value?.guestbookEnabled !== false
 })
 
 const canEdit = computed(() => {
@@ -1067,6 +1067,7 @@ watch(sharePopover, (newVal) => {
                             ></div>
 
                             <DocumentTreeNodeLabel
+                                :show-published-badge="false"
                                 :doc="doc"
                                 :expanded="expandedFolders.has(doc.id) || !!searchQuery"
                                 folder-chevron-class="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"
@@ -1198,7 +1199,8 @@ watch(sharePopover, (newVal) => {
                         <div v-if="currentDoc" class="max-w-4xl mx-auto px-6 sm:px-10 lg:px-12 py-8 md:py-10">
 
                             <!-- Markdown 正文渲染 (使用 VisualEditor 只读纯净渲染) -->
-                            <article class="w-full kb-visual-preview" @click="handlePreviewContainerClick">
+                            <div v-if="currentDoc.isEncrypted" class="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">{{ t('kbView.doc.encryptedHint') }}</div>
+                            <article v-else class="w-full kb-visual-preview" @click="handlePreviewContainerClick">
                                 <VisualEditor
                                     :model-value="renderedContent"
                                     :is-read-only="true"

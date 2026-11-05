@@ -37,16 +37,16 @@ public class KbController {
         record KbSummary(Long id, String title, String description, String icon, String color,
                         Long ownerId, String ownerName, String ownerAvatar, Boolean isPinned, Boolean isShared,
                         String lastModified,
-                        Boolean allowAnonymous, Visibility visibility, OffsetDateTime pinnedAt, Integer sortOrder,
+                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled, OffsetDateTime pinnedAt, Integer sortOrder,
                         OffsetDateTime createdAt, String role) {
         }
 
         record CreateKbRequest(String title, String description, String color, String icon,
-                        Boolean allowAnonymous, Visibility visibility) {
+                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled) {
         }
 
         record UpdateKbRequest(String title, String description, String color, String icon,
-                        Boolean allowAnonymous, Visibility visibility) {
+                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled) {
         }
 
         record PinRequest(Boolean pinned) {
@@ -58,6 +58,24 @@ public class KbController {
         private Long currentUserId() {
                 String username = SecurityContextHolder.getContext().getAuthentication().getName();
                 return kbService.requireUserId(username);
+        }
+
+        record TransferOwnerRequest(Long expectedOwnerId, Long targetUserId, boolean keepFormerOwner) {}
+        record OwnedKb(Long id, String title, Long ownerId) {}
+
+        @GetMapping("/admin/owned-by/{ownerId}")
+        @org.springframework.security.access.prepost.PreAuthorize("hasRole('admin')")
+        public ApiResponse<List<OwnedKb>> listOwnedForAdmin(@PathVariable Long ownerId) {
+                return ApiResponse.success(kbService.listOwnedKnowledgeBases(ownerId).stream()
+                        .map(kb -> new OwnedKb(kb.getId(), kb.getTitle(), kb.getOwnerId())).toList());
+        }
+
+        @PostMapping("/{kbId}/transfer-ownership")
+        public ApiResponse<Void> transferOwnership(@PathVariable Long kbId, @RequestBody TransferOwnerRequest request) {
+                var authentication = SecurityContextHolder.getContext().getAuthentication();
+                boolean admin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_admin"));
+                kbService.transferOwnership(kbId, currentUserId(), request.expectedOwnerId(), request.targetUserId(), request.keepFormerOwner(), admin);
+                return ApiResponse.success(null);
         }
 
         @GetMapping("/listKnowledgeBases")
@@ -101,7 +119,7 @@ public class KbController {
                                                         kb.getIcon(), kb.getColor(),
                                                         kb.getOwnerId(), ownerName, ownerAvatar, pinned, shared,
                                                         lastModified,
-                                                        kb.getAllowAnonymous(), kb.getVisibility(),
+                                                        kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(),
                                                         pref != null ? pref.getPinnedAt() : null,
                                                         pref != null ? pref.getSortOrder() : null,
                                                         kb.getCreatedAt(), role);
@@ -147,6 +165,7 @@ public class KbController {
                 dto.setIcon(request.icon());
                 dto.setAllowAnonymous(request.allowAnonymous());
                 dto.setVisibility(request.visibility());
+                dto.setGuestbookEnabled(request.guestbookEnabled());
 
                 KbKnowledgeBase kb = kbService.createKnowledgeBase(userId, dto);
                 SysUser owner = kbService.loadUsersByIds(Set.of(userId)).get(userId);
@@ -155,7 +174,7 @@ public class KbController {
                 KbSummary summary = new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(), kb.getIcon(),
                                 kb.getColor(), kb.getOwnerId(), ownerName, ownerAvatar, false, false,
                                 Optional.ofNullable(kb.getUpdatedAt()).map(OffsetDateTime::toString).orElse(""),
-                                kb.getAllowAnonymous(), kb.getVisibility(), null, null, kb.getCreatedAt(), "OWNER");
+                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), null, null, kb.getCreatedAt(), "OWNER");
                 return ApiResponse.success(summary);
         }
 
@@ -188,7 +207,7 @@ public class KbController {
                                 kb.getColor(), kb.getOwnerId(), ownerName, ownerAvatar,
                                 pref != null && Boolean.TRUE.equals(pref.getIsPinned()), shared,
                                 Optional.ofNullable(kb.getUpdatedAt()).map(OffsetDateTime::toString).orElse(""),
-                                kb.getAllowAnonymous(), kb.getVisibility(),
+                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(),
                                 pref != null ? pref.getPinnedAt() : null,
                                 pref != null ? pref.getSortOrder() : null,
                                 kb.getCreatedAt(), role);
@@ -208,6 +227,7 @@ public class KbController {
                 dto.setIcon(request.icon());
                 dto.setAllowAnonymous(request.allowAnonymous());
                 dto.setVisibility(request.visibility());
+                dto.setGuestbookEnabled(request.guestbookEnabled());
 
                 KbKnowledgeBase kb = kbService.updateKnowledgeBase(userId, kbId, dto);
                 SysUser owner = kbService.loadUsersByIds(Set.of(kb.getOwnerId())).get(kb.getOwnerId());
@@ -226,7 +246,7 @@ public class KbController {
                 KbSummary summary = new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(), kb.getIcon(),
                                 kb.getColor(), kb.getOwnerId(), ownerName, ownerAvatar, false, shared,
                                 Optional.ofNullable(kb.getUpdatedAt()).map(OffsetDateTime::toString).orElse(""),
-                                kb.getAllowAnonymous(), kb.getVisibility(), null, null, kb.getCreatedAt(), role);
+                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), null, null, kb.getCreatedAt(), role);
                 return ApiResponse.success(summary);
         }
 
@@ -260,7 +280,7 @@ public class KbController {
                                         return new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(),
                                                         kb.getIcon(), kb.getColor(),
                                                         kb.getOwnerId(), "", "", false, false, lastModified,
-                                                        kb.getAllowAnonymous(), kb.getVisibility(), null, null,
+                                                        kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), null, null,
                                                         kb.getCreatedAt(), "OWNER");
                                 })
                                 .toList();

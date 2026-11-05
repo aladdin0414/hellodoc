@@ -77,9 +77,11 @@ public class KbDocPermissionService {
     }
 
     @Transactional
-    public void removePermission(Long permissionId) {
+    public void removePermission(Long docId, Long permissionId) {
         var permission = permissionRepository.findById(permissionId).orElse(null);
-        if (permission == null) return;
+        if (permission == null || !permission.getDoc().getId().equals(docId)) {
+            throw new ResourceNotFoundException("DocPermission", permissionId);
+        }
         var lockedDirectory = directoryRevision.lock(permission.getDoc().getKb().getId());
         permissionRepository.deleteById(permissionId);
         directoryRevision.bump(lockedDirectory);

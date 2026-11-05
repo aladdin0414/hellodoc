@@ -59,6 +59,26 @@ public class PermissionChecker {
         return false;
     }
 
+    public boolean isKbMember(Long userId, Long kbId) {
+        if (userId == null || kbId == null) return false;
+        KbKnowledgeBase kb = kbService.getKnowledgeBase(kbId);
+        return userId.equals(kb.getOwnerId()) || memberService.hasPermission(kbId, userId, KbRole.VIEWER);
+    }
+
+    public void requireKbMember(Long userId, Long kbId) {
+        if (!isKbMember(userId, kbId)) throw new BusinessException(ApiResponse.Code.NO_PERMISSION);
+    }
+
+    public boolean hasPrivateDocAccess(Long userId, Long docId) {
+        KbDocument doc = documentRepository.findById(docId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
+        return userId != null && (isKbMember(userId, doc.getKb().getId())
+                || docPermissionService.hasPermission(docId, userId, DocRole.VIEWER));
+    }
+
+    public void requirePrivateDocAccess(Long userId, Long docId) {
+        if (!hasPrivateDocAccess(userId, docId)) throw new BusinessException(ApiResponse.Code.NO_PERMISSION);
+    }
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public void checkDocRole(Long userId, Long docId, DocRole requiredRole) {
         if (hasDocRole(userId, docId, requiredRole))
@@ -73,6 +93,8 @@ public class PermissionChecker {
         KbDocument doc = documentRepository.findById(docId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
         KbKnowledgeBase kb = doc.getKb();
+        // The actual owner must retain full control even if they had an older viewer grant.
+        if (userId != null && userId.equals(kb.getOwnerId())) return true;
 
         // 1. 文档级权限（最高优先级）
         // 如果用户被明确授予了该文档的编辑者（Editor）或查看者（Viewer）权限
@@ -83,6 +105,8 @@ public class PermissionChecker {
         // 2. 知识库级权限
         KbRole mapRole = (requiredRole == DocRole.EDITOR) ? KbRole.EDITOR : KbRole.VIEWER;
         if (hasKbRole(userId, kb.getId(), mapRole)) {
+            // Public access does not grant access to unpublished documents.
+            if (!isKbMember(userId, kb.getId()) && doc.getStatus() != com.nopkg.hellodoc.enums.DocStatus.PUBLISHED) return false;
             // 注意：如果用户拥有文档级权限，应该已在步骤 1 中捕获。
             // 如果他们来到这里，说明他们没有明确的文档级权限。
             // 但是慢着，工作流规定如果他们拥有文档级查看者权限，但拥有知识库级编辑者权限，他们获得的是查看者权限。

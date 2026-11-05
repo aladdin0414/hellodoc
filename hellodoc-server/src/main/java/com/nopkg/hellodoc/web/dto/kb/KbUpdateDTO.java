@@ -10,5 +10,6 @@ public class KbUpdateDTO {
     private String icon;
     private String color;
     private Boolean allowAnonymous;
+    private Boolean guestbookEnabled;
     private Visibility visibility;
 }

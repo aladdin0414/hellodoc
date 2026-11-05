@@ -28,7 +28,7 @@ public class DocComment {
     @Column(name = "parent_id")
     private Long parentId; // 回复的父评论
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = AnchorType.AnchorTypeConverter.class)
     private AnchorType anchorType;
 
     @Column(columnDefinition = "TEXT")

@@ -137,7 +137,7 @@ See [.env.example](.env.example) for the complete template and [docker-compose.h
 
 ## Connect an MCP client
 
-Sign in to HelloDoc and create a token under **MCP access tokens** in your profile. The token is displayed once and can be revoked. Clients supporting Streamable HTTP and Bearer tokens can connect to `https://your-server/api/mcp` with the token in the `Authorization` header. HTTPS is recommended.
+Sign in to HelloDoc and create a token under **MCP access tokens** in the avatar menu. The token is displayed once and can be revoked. Clients supporting Streamable HTTP and Bearer tokens can connect to `https://your-server/api/mcp` with the token in the `Authorization` header. HTTPS is recommended.
 
 For example, provide the token through an environment variable using a secure method, then configure Codex:
 

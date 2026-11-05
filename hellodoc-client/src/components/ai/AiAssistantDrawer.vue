@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import 'katex/dist/katex.min.css'
 import { message } from '../../utils/message'
 import { useAiModels } from '../../composables/useAiModels'
+import { getAiModelStatus } from '../../api/aiModel'
 import { aiCompletionStream, type AiChatMessage } from '../../api/ai'
 import { renderMarkdownToHtml, formatChineseMarkdown } from '../../utils/markdown'
 
@@ -20,7 +21,43 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { activeModels, currentModelId, fetchActiveModels, selectModel, selectedModel } = useAiModels()
+const { activeModels, currentModelId, fetchActiveModels, selectModel, selectedModel, loading, loadError } = useAiModels()
+const fallbackConfigured = ref<boolean | null>(null)
+const checkingFallback = ref(false)
+const fallbackError = ref(false)
+const modelState = computed(() => {
+  if (loading.value || checkingFallback.value) return 'loading'
+  if (loadError.value || fallbackError.value) return 'error'
+  if (activeModels.value.length > 0 && selectedModel.value) return 'ready'
+  if (fallbackConfigured.value === true) return 'fallback'
+  if (fallbackConfigured.value === false) return 'empty'
+  return 'loading'
+})
+const canSend = computed(() => modelState.value === 'ready' || modelState.value === 'fallback')
+const statusText = computed(() => {
+  if (modelState.value === 'loading') return t('aiDrawer.loadingModels')
+  if (modelState.value === 'error') return t('aiDrawer.modelsLoadError')
+  if (modelState.value === 'fallback') return t('aiDrawer.usingDefaultConfig')
+  return t('aiDrawer.noModel')
+})
+let modelLoadSequence = 0
+const refreshModels = async () => {
+  const sequence = ++modelLoadSequence
+  checkingFallback.value = true
+  fallbackError.value = false
+  fallbackConfigured.value = null
+  await fetchActiveModels(true)
+  if (sequence !== modelLoadSequence) return
+  if (!loadError.value && activeModels.value.length === 0) {
+    try {
+      const status = await getAiModelStatus()
+      if (sequence === modelLoadSequence) fallbackConfigured.value = status.defaultConfigured
+    } catch {
+      if (sequence === modelLoadSequence) fallbackError.value = true
+    }
+  }
+  if (sequence === modelLoadSequence) checkingFallback.value = false
+}
 
 interface ChatMessage {
   id: string
@@ -72,7 +109,7 @@ const clearHistory = () => {
 // 发送消息
 const handleSend = async () => {
   const prompt = inputPrompt.value.trim()
-  if (!prompt || isGenerating.value) return
+  if (!prompt || isGenerating.value || !canSend.value) return
 
   // Include complete turns only; interrupted/error responses are not model context.
   const history: AiChatMessage[] = []
@@ -180,7 +217,7 @@ const insertToDoc = (text: string) => {
 
 watch(() => props.visible, (val) => {
   if (val) {
-    fetchActiveModels()
+    void refreshModels()
     scrollToBottom()
   } else {
     stopGeneration()
@@ -222,6 +259,7 @@ watch(() => props.visible, (val) => {
           <div class="flex items-center gap-2">
             <!-- 模型切换选择器 -->
             <select
+              v-if="modelState === 'ready'"
               :value="currentModelId"
               :disabled="isGenerating"
               @change="selectModel(($event.target as HTMLSelectElement).value)"
@@ -236,6 +274,8 @@ watch(() => props.visible, (val) => {
                 {{ model.name }}{{ model.isDefault ? ` (${t('aiDrawer.default')})` : '' }}
               </option>
             </select>
+
+            <span v-else class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ statusText }}</span>
 
             <!-- 清空历史 -->
             <button
@@ -270,12 +310,15 @@ watch(() => props.visible, (val) => {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
-            <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('aiDrawer.greeting') }}</h4>
-            <p class="text-xs text-gray-400 max-w-xs mx-auto mb-6">
-              {{ t('aiDrawer.ready', { model: selectedModel?.name || t('aiDrawer.defaultModel') }) }}
+            <h4 v-if="canSend" class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('aiDrawer.greeting') }}</h4>
+            <h4 v-else class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ statusText }}</h4>
+            <p v-if="canSend" class="text-xs text-gray-400 max-w-xs mx-auto mb-6">
+              {{ modelState === 'fallback' ? t('aiDrawer.fallbackHint') : t('aiDrawer.ready', { model: selectedModel?.name || t('aiDrawer.defaultModel') }) }}
             </p>
+            <p v-else-if="modelState === 'empty'" class="text-xs text-gray-400 max-w-xs mx-auto mb-6">{{ t('aiDrawer.noModelHint') }}</p>
+            <button v-else-if="modelState === 'error'" @click="refreshModels" class="mt-3 text-xs text-blue-600 dark:text-blue-400">{{ t('aiDrawer.retryModels') }}</button>
 
-            <div class="grid grid-cols-1 gap-2 text-left">
+            <div v-if="canSend" class="grid grid-cols-1 gap-2 text-left">
               <button
                 v-for="s in quickSuggestions"
                 :key="s"
@@ -363,17 +406,17 @@ watch(() => props.visible, (val) => {
               v-model="inputPrompt"
               maxlength="32000"
               rows="3"
-              :disabled="isGenerating"
+              :disabled="isGenerating || !canSend"
               @keydown.enter.exact.prevent="handleSend"
               :placeholder="t('aiDrawer.placeholder')"
               class="w-full bg-transparent text-xs text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none resize-none px-1 py-1"
             ></textarea>
             <div class="flex items-center justify-between pt-1 px-1">
-              <span class="text-[10px] text-gray-400">{{ t('aiDrawer.currentModel', { model: selectedModel?.name || t('aiDrawer.defaultModel') }) }}</span>
+              <span class="text-[10px] text-gray-400">{{ canSend ? t('aiDrawer.currentModel', { model: selectedModel?.name || t('aiDrawer.defaultModel') }) : '' }}</span>
               <button v-if="isGenerating" @click="stopGeneration" class="text-xs text-red-600 px-3 py-1.5">{{ t('aiDrawer.stop') }}</button>
               <button v-else
                 @click="handleSend"
-                :disabled="!inputPrompt.trim() || isGenerating"
+                :disabled="!inputPrompt.trim() || isGenerating || !canSend"
                 class="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <svg v-if="isGenerating" class="animate-spin -ml-0.5 mr-1.5 h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">

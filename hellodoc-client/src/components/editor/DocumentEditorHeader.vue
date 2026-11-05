@@ -145,7 +145,7 @@ onUnmounted(() => {
                 </router-link>
 
                 <div class="w-px h-5 bg-slate-200 dark:bg-gray-700 mx-1"></div>
-                <Switch v-if="currentDoc.type === 'file'" :model-value="currentDoc.status === 'published'"
+                <Switch v-if="currentDoc.type === 'file'" :title="t('editor.publishHint')" :model-value="currentDoc.status === 'published'"
                     :label="t('editor.publish')" @change="emit('toggleStatus')" />
             </template>
 
@@ -185,7 +185,7 @@ onUnmounted(() => {
                         <span>{{ t('editor.browseKb') }}</span>
                     </button>
                     <div class="h-px bg-slate-100 dark:bg-gray-700 my-1"></div>
-                    <div class="px-4 py-2 flex items-center justify-between">
+                    <div class="px-4 py-2 flex items-center justify-between" :title="t('editor.publishHint')">
                         <span class="text-sm font-medium text-slate-700 dark:text-gray-300">{{ t('editor.publish') }}</span>
                         <Switch v-if="currentDoc.type === 'file'" :model-value="currentDoc.status === 'published'"
                             @change="emit('toggleStatus')" />

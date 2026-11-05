@@ -13,6 +13,7 @@ import SystemSettingsModal from './SystemSettingsModal.vue'
 import KbUpsertModal from './knowledge-base/KbUpsertModal.vue'
 import KbMemberModal from './knowledge-base/KbMemberModal.vue'
 import UserProfileModal from './knowledge-base/UserProfileModal.vue'
+import McpTokensModal from './knowledge-base/McpTokensModal.vue'
 import KnowledgeBaseNavbar from './knowledge-base/KnowledgeBaseNavbar.vue'
 import KnowledgeBaseContent from './knowledge-base/KnowledgeBaseContent.vue'
 import SearchModal from './SearchModal.vue'
@@ -143,6 +144,7 @@ type KbUpsertModel = {
     color?: string
     icon?: string
     visibility?: string
+    guestbookEnabled?: boolean
 }
 
 const HOME_WIDGET_SETTINGS_KEY = 'homeWidgetSettings'
@@ -151,8 +153,8 @@ const getHomeWidgetSettingsStorageKey = () => {
     return `${HOME_WIDGET_SETTINGS_KEY}:${userKey}`
 }
 const homeWidgetSettings = ref<HomeWidgetSettings>({
-    showRecent: true,
-    showFavorites: true
+    showRecent: false,
+    showFavorites: false
 })
 
 const loadHomeWidgetSettings = () => {
@@ -163,8 +165,8 @@ const loadHomeWidgetSettings = () => {
         const parsed = JSON.parse(raw)
         if (!parsed || typeof parsed !== 'object') return
         homeWidgetSettings.value = {
-            showRecent: typeof (parsed as any).showRecent === 'boolean' ? (parsed as any).showRecent : true,
-            showFavorites: typeof (parsed as any).showFavorites === 'boolean' ? (parsed as any).showFavorites : true
+            showRecent: typeof (parsed as any).showRecent === 'boolean' ? (parsed as any).showRecent : false,
+            showFavorites: typeof (parsed as any).showFavorites === 'boolean' ? (parsed as any).showFavorites : false
         }
         if (!localStorage.getItem(namespacedKey)) {
             localStorage.setItem(namespacedKey, JSON.stringify(homeWidgetSettings.value))
@@ -452,7 +454,8 @@ const resetUpsertKb = () => {
         title: '',
         description: '',
         color: colors[0]?.value,
-        visibility: 'private'
+        visibility: 'private',
+        guestbookEnabled: true
     }
 }
 
@@ -481,7 +484,8 @@ const handleCreate = async () => {
             description: upsertKb.value.description,
             color: upsertKb.value.color,
             icon: upsertKb.value.icon,
-            visibility: upsertKb.value.visibility
+            visibility: upsertKb.value.visibility,
+            guestbookEnabled: upsertKb.value.guestbookEnabled
         })
         showCreateModal.value = false
         resetUpsertKb()
@@ -507,7 +511,8 @@ const handleUpdate = async () => {
             description: upsertKb.value.description,
             color: upsertKb.value.color,
             icon: upsertKb.value.icon,
-            visibility: upsertKb.value.visibility
+            visibility: upsertKb.value.visibility,
+            guestbookEnabled: upsertKb.value.guestbookEnabled
         })
         showEditModal.value = false
         resetUpsertKb()
@@ -594,7 +599,7 @@ const handlePin = async (kb: KbSummary) => {
 }
 
 const openMemberModal = (kb: KbSummary) => {
-    memberKb.value = { id: kb.id, title: kb.title }
+    memberKb.value = { id: kb.id, title: kb.title, ownerId: kb.ownerId, role: kb.role }
     showMemberModal.value = true
 }
 
@@ -620,6 +625,7 @@ const handleLogout = () => {
 // Profile Management
 const showUserDropdown = ref(false)
 const showProfileModal = ref(false)
+const showMcpTokensModal = ref(false)
 const showChangePasswordModal = ref(false)
 
 const fetchProfile = async () => {
@@ -804,6 +810,13 @@ const handleKbSelected = (kbId: number) => {
                                 </svg>
                                 <span>{{ t('nav.profile') }}</span>
                             </button>
+                            <button @click="showMcpTokensModal = true; showUserDropdown = false"
+                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-2">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a4 4 0 11-7.46 2H3v3h3v3h3l2.54-2.54A4 4 0 0115 7z" />
+                                </svg>
+                                <span>{{ t('userProfile.mcpTitle') }}</span>
+                            </button>
                             <button @click="showChangePasswordModal = true; showUserDropdown = false"
                                 class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-2">
                                 <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -853,7 +866,7 @@ const handleKbSelected = (kbId: number) => {
                     :avatar="avatar" :userRole="userRole" :searchEnabled="isSearchEnabled" v-model:showUserDropdown="showUserDropdown"
                     :navStyle="navStyle"
                     @navigate="navigateToTab"
-                    @open-profile="openProfileModal" @open-change-password="showChangePasswordModal = true"
+                    @open-profile="openProfileModal" @open-mcp-tokens="showMcpTokensModal = true" @open-change-password="showChangePasswordModal = true"
                     @open-system-settings="showSystemSettings = true" @logout="handleLogout" @go-admin="router.push('/admin')"
                     @open-search-modal="showSearchModal = true" />
 
@@ -884,7 +897,7 @@ const handleKbSelected = (kbId: number) => {
         <KbUpsertModal v-model:show="showEditModal" v-model:kb="upsertKb" mode="edit" :colors="colors"
             :submitting="submitting" @save="handleUpdate" />
 
-        <KbMemberModal v-model:show="showMemberModal" :kb-id="memberKb.id" :kb-title="memberKb.title" />
+        <KbMemberModal v-model:show="showMemberModal" :kb-id="memberKb.id" :kb-title="memberKb.title" :owner-id="memberKb.ownerId" :can-transfer="memberKb.role === 'OWNER'" @transferred="fetchKbs()" />
 
         <!-- Confirm Dialog -->
         <ConfirmDialog :show="showConfirmModal" :title="confirmOptions.title" :message="confirmOptions.message"
@@ -893,6 +906,8 @@ const handleKbSelected = (kbId: number) => {
 
         <UserProfileModal v-model:show="showProfileModal" :nickname="nickname" :avatar="avatar"
             @updated="handleProfileUpdated" />
+
+        <McpTokensModal v-model:show="showMcpTokensModal" />
 
         <ChangePasswordModal :show="showChangePasswordModal" @close="showChangePasswordModal = false" />
         <SystemSettingsModal :show="showSystemSettings" v-model:showHomeRecent="homeWidgetSettings.showRecent"

@@ -5,6 +5,7 @@ import { searchUsers } from '../../api/user'
 import { useI18n } from 'vue-i18n'
 import ConfirmDialog from '../ConfirmDialog.vue'
 import BaseDialog from '../shared/BaseDialog.vue'
+import TransferOwnershipDialog from './TransferOwnershipDialog.vue'
 
 type KbMember = {
     id: number
@@ -25,14 +26,19 @@ type SysUser = {
 const props = defineProps<{
     kbId?: number
     kbTitle?: string
+    ownerId?: number
+    canTransfer?: boolean
 }>()
 
+const emit = defineEmits<{ (e: 'transferred'): void }>()
+const showTransfer = ref(false)
 const show = defineModel<boolean>('show', { required: true })
 const { t } = useI18n()
 
 const members = ref<KbMember[]>([])
 const memberLoading = ref(false)
 const userSearchKeyword = ref('')
+const inviteRole = ref<'viewer' | 'editor' | 'admin'>('viewer')
 const userSearchResults = ref<SysUser[]>([])
 const searchingUsers = ref(false)
 
@@ -106,6 +112,7 @@ watch(show, (val) => {
     if (val) {
         userSearchKeyword.value = ''
         userSearchResults.value = []
+        inviteRole.value = 'viewer'
         fetchMembers()
         return
     }
@@ -121,7 +128,7 @@ watch(() => props.kbId, () => {
 const addMember = async (user: SysUser) => {
     if (!props.kbId) return
     try {
-        await addKbMember(props.kbId, { userId: user.id, role: 'editor' })
+        await addKbMember(props.kbId, { userId: user.id, role: inviteRole.value })
         userSearchKeyword.value = ''
         userSearchResults.value = []
         fetchMembers()
@@ -171,8 +178,20 @@ const removeMember = (member: KbMember) => {
             </div>
 
             <div class="p-6 overflow-y-auto flex-1">
+                <div v-if="canTransfer && kbId && ownerId" class="mb-5 flex items-center justify-between gap-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 p-3">
+                    <span class="text-sm text-gray-600 dark:text-gray-300">{{ t('kbTransfer.ownerHint') }}</span>
+                    <button @click="showTransfer = true" class="shrink-0 text-sm font-medium text-blue-600 dark:text-blue-400">{{ t('kbTransfer.title') }}</button>
+                </div>
                 <div class="mb-6 relative">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('kbMember.invite') }}</label>
+                    <div class="mb-3 flex items-center gap-3">
+                        <label for="invite-role" class="text-sm text-gray-600 dark:text-gray-300">{{ t('kbMember.inviteRole') }}</label>
+                        <select id="invite-role" v-model="inviteRole" class="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200">
+                            <option value="viewer">{{ t('kbMember.role.viewer') }}</option>
+                            <option value="editor">{{ t('kbMember.role.editor') }}</option>
+                            <option value="admin">{{ t('kbMember.role.admin') }}</option>
+                        </select>
+                    </div>
                     <div class="relative">
                         <input v-model="userSearchKeyword" type="text"
                             class="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -273,6 +292,8 @@ const removeMember = (member: KbMember) => {
                     </div>
                 </div>
             </div>
+
+        <TransferOwnershipDialog v-if="kbId && ownerId" v-model:show="showTransfer" :kb-id="kbId" :kb-title="kbTitle || ''" :owner-id="ownerId" @transferred="show = false; emit('transferred')" />
 
         <ConfirmDialog :show="showConfirmModal" :title="confirmOptions.title" :message="confirmOptions.message"
             :type="confirmOptions.type" :hide-cancel="confirmOptions.hideCancel" @confirm="confirmOptions.onConfirm"

@@ -29,3 +29,7 @@ export const searchInKb = (kbId: number, query: string, config?: any) => request
 export const searchEditorInKb = (kbId: number, query: string, config?: any) => request.get<never, any[]>(`/api/kb/${kbId}/search-editor`, { ...config, params: { q: query } })
 export const searchPublicInKb = (kbId: number, query: string, config?: any) => request.get<never, any[]>(`/api/public/kb/${kbId}/search`, { ...config, params: { q: query } })
 export const searchAll = (query: string) => request.get<never, any[]>('/api/search', { params: { q: query } })
+
+export interface OwnedKb { id: number; title: string; ownerId: number }
+export const getOwnedKbsForAdmin = (ownerId: number) => request.get<never, OwnedKb[]>(`/api/kb/admin/owned-by/${ownerId}`)
+export const transferKbOwnership = (kbId: number, data: { expectedOwnerId: number; targetUserId: number; keepFormerOwner: boolean }) => request.post(`/api/kb/${kbId}/transfer-ownership`, data)

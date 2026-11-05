@@ -100,7 +100,7 @@ const handleDeleteComment = async (id: number) => {
 }
 
 const rootComments = computed(() => {
-    return comments.value.filter(c => !c.parentId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return comments.value.filter(c => !c.parentId && !c.anchorType).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 })
 
 const getReplies = (parentId: number) => {

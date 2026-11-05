@@ -8,6 +8,7 @@ const activeModels = ref<AiModelItem[]>([])
 const currentModelId = ref<string>('')
 const loading = ref(false)
 const hasLoaded = ref(false)
+const loadError = ref(false)
 
 export function useAiModels() {
   const fetchActiveModels = async (force = false) => {
@@ -15,6 +16,7 @@ export function useAiModels() {
       return
     }
     loading.value = true
+    loadError.value = false
     try {
       const list: any = await getActiveAiModels()
       activeModels.value = list || []
@@ -38,6 +40,7 @@ export function useAiModels() {
         }
       }
     } catch (err) {
+      loadError.value = true
       console.error('Failed to fetch active AI models:', err)
     } finally {
       loading.value = false
@@ -62,6 +65,7 @@ export function useAiModels() {
     currentModelId,
     selectedModel,
     loading,
+    loadError,
     fetchActiveModels,
     selectModel
   }

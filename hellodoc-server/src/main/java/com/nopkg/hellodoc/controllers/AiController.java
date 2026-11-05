@@ -43,6 +43,14 @@ public class AiController {
         return ApiResponse.success(aiModelService.getActiveModels());
     }
 
+    public record ModelStatus(boolean defaultConfigured) {}
+
+    @GetMapping("/model-status")
+    @Operation(summary = "Check whether the legacy default AI configuration is present")
+    public ApiResponse<ModelStatus> getModelStatus() {
+        return ApiResponse.success(new ModelStatus(aiService.isDefaultConfigured()));
+    }
+
     @PostMapping("/completion")
     @Operation(summary = "同步生成 AI 文本补全")
     public ApiResponse<AiCompletionResp> completion(@Valid @RequestBody AiCompletionReq req) {

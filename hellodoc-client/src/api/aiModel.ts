@@ -68,6 +68,10 @@ export const getActiveAiModels = (): Promise<AiModelItem[]> => {
     return request.get('/api/ai/models/active')
 }
 
+export const getAiModelStatus = (): Promise<{ defaultConfigured: boolean }> => {
+    return request.get('/api/ai/model-status')
+}
+
 // 创建模型 (管理员)
 export const createAiModel = (data: AiModelCreateData): Promise<AiModelItem> => {
     return request.post('/api/admin/ai/models', data)

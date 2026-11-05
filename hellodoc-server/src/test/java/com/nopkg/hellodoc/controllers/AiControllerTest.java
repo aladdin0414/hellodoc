@@ -32,6 +32,13 @@ class AiControllerTest {
     }
     @AfterEach void cleanup() { runtime.shutdown(); }
 
+    @Test void exposesOnlyWhetherDefaultConfigurationIsUsable() throws Exception {
+        when(ai.isDefaultConfigured()).thenReturn(true);
+        mvc.perform(get("/api/ai/model-status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.defaultConfigured").value(true));
+    }
+
     @Test void streamErrorsFollowRequestLanguage() throws Exception {
         when(ai.getStreamTimeout(any())).thenReturn(1000);
         when(ai.getResolvedModel(any())).thenReturn("test-model");

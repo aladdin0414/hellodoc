@@ -97,6 +97,36 @@ public class CommentControllerTest {
     }
 
     @Test
+    void knowledgeBaseGuestbookCanBeDisabledWithoutDisablingAnchoredComments() throws Exception {
+        String guest = mockMvc.perform(post("/api/docs/{docId}/comments", docId).header("Authorization", authHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"visitor message\"}"))
+                .andExpect(jsonPath("$.code").value(0)).andReturn().getResponse().getContentAsString();
+        long guestId = objectMapper.readTree(guest).path("data").path("id").asLong();
+        mockMvc.perform(put("/api/kb/{kbId}", kbId).header("Authorization", authHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"guestbookEnabled\":false}"))
+                .andExpect(jsonPath("$.data.guestbookEnabled").value(false));
+        mockMvc.perform(post("/api/docs/{docId}/comments", docId).header("Authorization", authHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"blocked\"}"))
+                .andExpect(jsonPath("$.code").value(403));
+        mockMvc.perform(post("/api/comments/{id}/reply", guestId).header("Authorization", authHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"blocked reply\"}"))
+                .andExpect(jsonPath("$.code").value(403));
+        String annotation = mockMvc.perform(post("/api/docs/{docId}/comments", docId).header("Authorization", authHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"annotation\",\"anchorType\":\"BLOCK\"}"))
+                .andExpect(jsonPath("$.code").value(0)).andReturn().getResponse().getContentAsString();
+        long annotationId = objectMapper.readTree(annotation).path("data").path("id").asLong();
+        mockMvc.perform(post("/api/comments/{id}/reply", annotationId).header("Authorization", authHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"annotation reply\"}"))
+                .andExpect(jsonPath("$.code").value(0));
+        mockMvc.perform(get("/api/docs/{docId}/comments", docId).header("Authorization", authHeader))
+                .andExpect(jsonPath("$.data.length()").value(2));
+        mockMvc.perform(put("/api/kb/{kbId}", kbId).header("Authorization", authHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"guestbookEnabled\":true}"));
+        mockMvc.perform(get("/api/docs/{docId}/comments", docId).header("Authorization", authHeader))
+                .andExpect(jsonPath("$.data.length()").value(3));
+    }
+
+    @Test
     void testCommentController_workflow() throws Exception {
         // 1. Add Comment
         ObjectNode addCommentRequest = objectMapper.createObjectNode();

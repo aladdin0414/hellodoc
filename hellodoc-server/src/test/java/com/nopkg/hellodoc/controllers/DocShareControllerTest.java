@@ -153,6 +153,34 @@ public class DocShareControllerTest {
                 .andExpect(jsonPath("$.data.length()").value(1));
     }
 
+    @Test
+    void publicKnowledgeBaseDoesNotExposeDraftsToLoggedInNonMembers() throws Exception {
+        String otherToken = "Bearer " + loginAndGetAccessToken("doc_other", "other_pass");
+        mockMvc.perform(put("/api/kb/{kbId}", kbId).header("Authorization", ownerAuthHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"visibility\":\"public\"}"))
+                .andExpect(jsonPath("$.code").value(0));
+        mockMvc.perform(get("/api/kb/{kbId}/documents/{docId}", kbId, docId).header("Authorization", otherToken))
+                .andExpect(jsonPath("$.code").value(403));
+        mockMvc.perform(get("/api/kb/{kbId}/documents", kbId).header("Authorization", otherToken))
+                .andExpect(jsonPath("$.data.length()").value(0));
+        mockMvc.perform(get("/api/kb/{kbId}/documents/{docId}", kbId, docId).header("Authorization", ownerAuthHeader))
+                .andExpect(jsonPath("$.code").value(0));
+        mockMvc.perform(put("/api/kb/{kbId}/documents/{docId}", kbId, docId).header("Authorization", ownerAuthHeader)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"published\",\"password\":\"test-password\"}"))
+                .andExpect(jsonPath("$.code").value(0));
+        mockMvc.perform(get("/api/public/kb/{kbId}/documents/{docId}", kbId, docId))
+                .andExpect(jsonPath("$.data.isEncrypted").value(true))
+                .andExpect(jsonPath("$.data.content").value(""));
+        mockMvc.perform(get("/api/kb/{kbId}/documents/{docId}/revisions", kbId, docId).header("Authorization", otherToken))
+                .andExpect(jsonPath("$.code").value(403));
+        mockMvc.perform(get("/api/kb/{kbId}/trash", kbId).header("Authorization", otherToken))
+                .andExpect(jsonPath("$.code").value(403));
+        mockMvc.perform(get("/api/kb/{kbId}/members", kbId).header("Authorization", otherToken))
+                .andExpect(jsonPath("$.code").value(403));
+        mockMvc.perform(get("/api/kb/{kbId}/audit-logs", kbId).header("Authorization", otherToken))
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
     private String loginAndGetAccessToken(String username, String password) throws Exception {
         ObjectNode loginRequest = objectMapper.createObjectNode();
         loginRequest.put("username", username);

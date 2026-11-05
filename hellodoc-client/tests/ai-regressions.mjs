@@ -12,16 +12,17 @@ localStorage.setItem('accessToken','test-only')
 const output=new URL('../node_modules/.tmp/ai-regressions.mjs',import.meta.url)
 const {dependencies}=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'))
 await build({
- stdin:{contents:`export {default as Drawer} from './src/components/ai/AiAssistantDrawer.vue'; export {aiCompletionStream} from './src/api/ai.ts'; export {renderMarkdownToHtml} from './src/utils/markdown.ts'; export {i18n} from './src/i18n/index.ts'`,resolveDir:new URL('..',import.meta.url).pathname},
+ stdin:{contents:`export {default as Drawer} from './src/components/ai/AiAssistantDrawer.vue'; export {aiCompletionStream} from './src/api/ai.ts'; export {renderMarkdownToHtml} from './src/utils/markdown.ts'; export {i18n} from './src/i18n/index.ts'; export {testModelState} from './src/composables/useAiModels.ts'`,resolveDir:new URL('..',import.meta.url).pathname},
  bundle:true,format:'esm',platform:'node',outfile:output.pathname,external:Object.keys(dependencies),
  plugins:[{name:'vue',setup(b){
   b.onResolve({filter:/\.css$/},()=>({path:'empty',namespace:'empty-css'}))
   b.onLoad({filter:/.*/,namespace:'empty-css'},()=>({contents:''}))
-  b.onLoad({filter:/\/useAiModels\.ts$/},()=>({contents:`import {ref} from 'vue';export const useAiModels=()=>({activeModels:ref([]),currentModelId:ref('test'),selectedModel:ref({name:'test'}),fetchActiveModels(){},selectModel(){}})`}))
+  b.onLoad({filter:/\/useAiModels\.ts$/},()=>({contents:`import {ref} from 'vue'; export const testModelState={activeModels:ref([{id:'test',name:'test'}]),currentModelId:ref('test'),selectedModel:ref({id:'test',name:'test'}),loading:ref(false),loadError:ref(false),async fetchActiveModels(){},selectModel(){}}; export const useAiModels=()=>testModelState`}))
+  b.onLoad({filter:/\/api\/aiModel\.ts$/},()=>({contents:`export const getAiModelStatus=async()=>{if(globalThis.__aiStatusFailure)throw Error('offline');return {defaultConfigured:!!globalThis.__aiDefaultConfigured}}`}))
   b.onLoad({filter:/\.vue$/},async({path})=>{const{descriptor}=parse(await readFile(path,'utf8'),{filename:path});return{contents:compileScript(descriptor,{id:'ai-test',inlineTemplate:true}).content,loader:'ts'}})
  }}],
 })
-const{Drawer,aiCompletionStream,renderMarkdownToHtml,i18n}=await import(output.href)
+const{Drawer,aiCompletionStream,renderMarkdownToHtml,i18n,testModelState}=await import(output.href)
 const{createApp,h,reactive,nextTick}=await import('vue')
 const tick=()=>new Promise(resolve=>setTimeout(resolve,5))
 const sse=text=>`event: chunk\ndata: ${JSON.stringify(text)}\n\nevent: done\ndata: ok\n\n`
@@ -44,6 +45,15 @@ test('model settings messages interpolate in both languages',()=>{
 test('assistant labels update when the language changes',async()=>{
  const previous=i18n.global.locale.value; const c=await mount()
  try{i18n.global.locale.value='en-US';await nextTick();assert.match(c.root.textContent,/AI knowledge assistant/);i18n.global.locale.value='zh-CN';await nextTick();assert.match(c.root.textContent,/AI 知识助理/)}finally{i18n.global.locale.value=previous;c.close()}
+})
+test('unconfigured assistant shows an explicit disabled state',async()=>{
+ const previous=i18n.global.locale.value; i18n.global.locale.value='en-US'; testModelState.activeModels.value=[]; testModelState.selectedModel.value=null;globalThis.__aiDefaultConfigured=false
+ const c=await mount();try{await tick();assert.match(c.root.textContent,/No AI model configured/);assert.equal(c.root.querySelector('textarea').disabled,true);assert.equal(c.root.querySelector('select'),null)}finally{c.close();i18n.global.locale.value=previous;testModelState.activeModels.value=[{id:'test',name:'test'}];testModelState.selectedModel.value={id:'test',name:'test'}}
+})
+test('legacy default stays usable and loading failure can be retried',async()=>{
+ const previous=i18n.global.locale.value;i18n.global.locale.value='en-US';testModelState.activeModels.value=[];testModelState.selectedModel.value=null;globalThis.__aiDefaultConfigured=true
+ const c=await mount();try{await tick();assert.match(c.root.textContent,/Using default configuration/);assert.equal(c.root.querySelector('textarea').disabled,false)}finally{c.close()}
+ globalThis.__aiStatusFailure=true;const failed=await mount();try{await tick();assert.match(failed.root.textContent,/Failed to load models/);assert.equal(failed.root.querySelector('textarea').disabled,true);assert.ok([...failed.root.querySelectorAll('button')].some(b=>b.textContent.includes('Retry')))}finally{failed.close();globalThis.__aiStatusFailure=false;globalThis.__aiDefaultConfigured=false;i18n.global.locale.value=previous;testModelState.activeModels.value=[{id:'test',name:'test'}];testModelState.selectedModel.value={id:'test',name:'test'}}
 })
 test('AI HTML strips active content while preserving KaTeX',()=>{
  const html=renderMarkdownToHtml('<img src="x" onerror="alert(1)"><script>alert(1)</script><a href="javascript:alert(1)">link</a>\n\n$x^2$')

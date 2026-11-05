@@ -85,32 +85,27 @@ export const useDocumentActions = (options: UseDocumentActionsOptions) => {
 
         const actionText = targetStatus === 'published' ? i18n.global.t('editor.publishAll') : i18n.global.t('editor.unpublishAll')
 
-        affectedDocs.forEach(doc => {
-            doc.status = targetStatus
-            if (options.currentDoc.value && options.currentDoc.value.id === doc.id) {
-                options.currentDoc.value.status = targetStatus
-            }
-        })
-
-        try {
-            await Promise.all(affectedDocs.map(doc =>
-                updateDocument(options.kbId.value, doc.id, {
-                    id: doc.id,
-                    name: doc.name,
-                    status: targetStatus,
-                    type: doc.type,
-                    parentId: doc.parentId,
-                    orderNum: doc.orderNum
-                })
-            ))
-            message.success(i18n.global.t('editor.actionSuccess', { action: actionText }))
-            return true
-        } catch (error) {
-            console.error(`${actionText} failed:`, error)
-            message.error(i18n.global.t('editor.actionFailed', { action: actionText }))
-            fetchDocuments(true)
+        const results = await Promise.allSettled(affectedDocs.map(doc =>
+            updateDocument(options.kbId.value, doc.id, {
+                id: doc.id, name: doc.name, status: targetStatus, type: doc.type,
+                parentId: doc.parentId, orderNum: doc.orderNum
+            })
+        ))
+        await fetchDocuments(true)
+        if (options.currentDoc.value) {
+            const refreshed = options.documents.value.find(doc => doc.id === options.currentDoc.value?.id)
+            if (refreshed) options.currentDoc.value.status = refreshed.status
+        }
+        const failed = results.flatMap((result, index) => result.status === 'rejected' ? [affectedDocs[index]!.name] : [])
+        if (failed.length) {
+            message.warning(i18n.global.t('editor.batchStatusPartial', {
+                action: actionText, success: affectedDocs.length - failed.length, failed: failed.length,
+                names: failed.join(', ')
+            }))
             return false
         }
+        message.success(i18n.global.t('editor.actionSuccess', { action: actionText }))
+        return true
     }
 
     const handleToggleStatus = async (targetDoc?: DocumentActionItem) => {

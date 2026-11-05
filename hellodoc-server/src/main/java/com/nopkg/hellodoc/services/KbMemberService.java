@@ -21,6 +21,7 @@ public class KbMemberService {
 
     private final KbKbMemberRepository memberRepository;
     private final KbKnowledgeBaseRepository kbRepository;
+    private final com.nopkg.hellodoc.repositories.KbDocPermissionRepository docPermissionRepository;
     private final com.nopkg.hellodoc.mcp.DirectoryRevision directoryRevision;
 
     public List<KbKbMember> listMembers(Long kbId) {
@@ -48,6 +49,10 @@ public class KbMemberService {
                     return created;
                 });
 
+        if (role == KbRole.OWNER && !targetUserId.equals(kb.getOwnerId())) {
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Cannot grant owner role");
+        }
+
         // Protected owner role
         if (targetUserId.equals(kb.getOwnerId())) {
             member.setRole(KbRole.OWNER);
@@ -74,6 +79,9 @@ public class KbMemberService {
         KbKnowledgeBase kb = member.getKb();
         checkHasAdminPermission(operatorId, kb);
 
+        if (role == KbRole.OWNER) {
+            throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "Cannot grant owner role");
+        }
         if (role != null) {
             member.setRole(role);
         }
@@ -98,6 +106,11 @@ public class KbMemberService {
             checkHasAdminPermission(operatorId, kb);
         }
 
+        var directPermissions = docPermissionRepository.findByTargetTypeAndTargetId(
+                com.nopkg.hellodoc.enums.TargetType.USER, targetUserId).stream()
+                .filter(permission -> kbId.equals(permission.getDoc().getKb().getId()))
+                .toList();
+        docPermissionRepository.deleteAll(directPermissions);
         memberRepository.delete(member);
         directoryRevision.bump(lockedDirectory);
     }

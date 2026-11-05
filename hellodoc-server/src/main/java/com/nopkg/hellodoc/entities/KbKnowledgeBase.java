@@ -40,6 +40,11 @@ public class KbKnowledgeBase {
     @Column(name = "owner_id")
     private Long ownerId;
 
+    @NotNull
+    @ColumnDefault("true")
+    @Column(name = "guestbook_enabled", nullable = false)
+    private Boolean guestbookEnabled = true;
+
     @ColumnDefault("false")
     @Column(name = "allow_anonymous")
     private Boolean allowAnonymous;

@@ -179,6 +179,13 @@ public class AiService {
         return aiProperties.getTimeout();
     }
 
+    /** Reports whether the legacy fallback has the fields needed to make a request, without exposing them. */
+    public boolean isDefaultConfigured() {
+        return StringUtils.hasText(getLegacyApiKey())
+                && StringUtils.hasText(getLegacyBaseUrl())
+                && StringUtils.hasText(getLegacyModel());
+    }
+
     private String getLegacyApiKey() {
         String dbValue = configService.getConfigValue("ai.openai.api-key");
         return StringUtils.hasText(dbValue) ? dbValue : aiProperties.getApiKey();

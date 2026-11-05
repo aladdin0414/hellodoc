@@ -137,7 +137,7 @@ npm run build
 
 ## MCP 接入
 
-登录 HelloDoc，在个人资料的 **MCP 访问令牌**中创建令牌。令牌只在创建时显示一次，可随时撤销。支持 Streamable HTTP 和 Bearer 令牌的客户端可连接 `https://你的服务地址/api/mcp`，并在 `Authorization` 请求头中提供令牌。建议使用 HTTPS。
+登录 HelloDoc，在头像菜单的 **MCP 访问令牌**中创建令牌。令牌只在创建时显示一次，可随时撤销。支持 Streamable HTTP 和 Bearer 令牌的客户端可连接 `https://你的服务地址/api/mcp`，并在 `Authorization` 请求头中提供令牌。建议使用 HTTPS。
 
 例如，先通过安全方式将令牌放入环境变量，再配置 Codex：
 

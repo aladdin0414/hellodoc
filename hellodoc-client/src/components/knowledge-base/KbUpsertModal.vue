@@ -14,6 +14,7 @@ type KbUpsertModel = {
     color?: string
     icon?: string
     visibility?: string
+    guestbookEnabled?: boolean
 }
 
 const props = defineProps<{
@@ -189,6 +190,10 @@ onUnmounted(() => {
                         </div>
                     </div>
                 </div>
+                <label class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                    <span><span class="block text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('kb.guestbookLabel') }}</span><span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{{ t('kb.guestbookHint') }}</span></span>
+                    <input v-model="kb.guestbookEnabled" type="checkbox" class="mt-1 h-4 w-4 accent-blue-600" />
+                </label>
                 <div class="mt-6 flex justify-end space-x-3">
                     <button @click="show = false" :disabled="submitting"
                         class="px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all disabled:opacity-50">

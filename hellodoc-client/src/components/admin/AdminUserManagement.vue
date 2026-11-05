@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { message } from '../../utils/message'
 import { listUsers, createUser, updateUser, deleteUser, initPassword } from '../../api/user'
 import BaseDialog from '../shared/BaseDialog.vue'
+import TransferOwnershipDialog from '../knowledge-base/TransferOwnershipDialog.vue'
+import { getOwnedKbsForAdmin, type OwnedKb } from '../../api/kb'
 
 interface User {
   id?: number
@@ -20,6 +22,20 @@ interface User {
 }
 
 const { t } = useI18n()
+
+const ownedKbs = ref<OwnedKb[]>([])
+const showOwnedKbs = ref(false)
+const ownedUser = ref<User | null>(null)
+const selectedKb = ref<OwnedKb | null>(null)
+const showTransfer = ref(false)
+const loadingOwned = ref(false)
+const openOwnedKbs = async (user: User) => {
+  if (!user.id) return
+  ownedUser.value = user; ownedKbs.value = []; showOwnedKbs.value = true; loadingOwned.value = true
+  try { ownedKbs.value = await getOwnedKbsForAdmin(user.id) } finally { loadingOwned.value = false }
+}
+const openTransfer = (kb: OwnedKb) => { selectedKb.value = kb; showTransfer.value = true }
+const afterTransfer = async () => { if (ownedUser.value) await openOwnedKbs(ownedUser.value) }
 
 // Pagination and List state
 const userList = ref<User[]>([])
@@ -252,6 +268,7 @@ onMounted(() => {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">{{ formatDate(user.createTime) }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+              <button @click="openOwnedKbs(user)" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors">{{ t('kbTransfer.ownedKbs') }}</button>
               <button @click="openEditModal(user)"
                 class="text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors">{{ t('admin.user.editUser') }}</button>
               <button @click="handleInitPwd(user.id)"
@@ -277,6 +294,16 @@ onMounted(() => {
           class="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm disabled:opacity-50 transition-colors">{{ t('admin.next') }}</button>
       </div>
     </div>
+
+    <BaseDialog :show="showOwnedKbs" max-width-class="max-w-lg" @close="showOwnedKbs = false">
+      <div class="p-6 space-y-4 bg-white dark:bg-gray-800">
+        <div class="flex justify-between"><h3 class="text-lg font-bold dark:text-white">{{ t('kbTransfer.ownedBy', { name: ownedUser?.nickname || '' }) }}</h3><button @click="showOwnedKbs = false" class="text-gray-500 text-xl">×</button></div>
+        <p v-if="loadingOwned" class="text-sm text-gray-500">{{ t('common.loading') }}</p>
+        <p v-else-if="!ownedKbs.length" class="text-sm text-gray-500">{{ t('kbTransfer.noOwnedKbs') }}</p>
+        <ul v-else class="space-y-2 max-h-96 overflow-auto"><li v-for="kb in ownedKbs" :key="kb.id" class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3"><span class="text-sm dark:text-white">{{ kb.title }}</span><button @click="openTransfer(kb)" class="text-sm text-blue-600 dark:text-blue-400">{{ t('kbTransfer.title') }}</button></li></ul>
+      </div>
+    </BaseDialog>
+    <TransferOwnershipDialog v-if="selectedKb" v-model:show="showTransfer" :kb-id="selectedKb.id" :kb-title="selectedKb.title" :owner-id="selectedKb.ownerId" @transferred="afterTransfer" />
 
     <!-- User Modal Overlay -->
     <BaseDialog :show="showUserModal" max-width-class="max-w-md" @close="showUserModal = false">

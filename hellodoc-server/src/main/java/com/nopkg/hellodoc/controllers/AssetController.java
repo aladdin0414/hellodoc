@@ -36,6 +36,7 @@ public class AssetController {
 
     private final AssetService assetService;
     private final KbService kbService;
+    private final com.nopkg.hellodoc.services.PermissionChecker permissionChecker;
 
     public record AssetVO(
             Long id,
@@ -167,6 +168,7 @@ public class AssetController {
     @Operation(summary = "Knowledge Base asset list")
     public ApiResponse<List<AssetVO>> listKbAssets(@PathVariable Long kbId) {
         Long userId = currentUserIdOrNull();
+        permissionChecker.requireKbMember(userId, kbId);
         return ApiResponse.success(assetService.getKbAssets(kbId, userId).stream().map(this::toVo).toList());
     }
 
