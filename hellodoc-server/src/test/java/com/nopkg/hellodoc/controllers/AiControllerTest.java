@@ -23,9 +23,30 @@ class AiControllerTest {
     private final AiStreamRuntime runtime = new AiStreamRuntime();
     private MockMvc mvc;
     @BeforeEach void setup() {
-        mvc = MockMvcBuilders.standaloneSetup(new AiController(ai, mock(AiModelService.class), runtime, new ObjectMapper())).build();
+        var source = new org.springframework.context.support.ResourceBundleMessageSource();
+        source.setBasename("i18n.messages"); source.setDefaultEncoding("UTF-8");
+        var i18n = new com.nopkg.hellodoc.i18n.ApiI18nService(source);
+        mvc = MockMvcBuilders.standaloneSetup(new AiController(ai, mock(AiModelService.class), runtime, new ObjectMapper(), i18n))
+                .setMessageConverters(new org.springframework.http.converter.StringHttpMessageConverter(java.nio.charset.StandardCharsets.UTF_8),
+                        new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter()).build();
     }
     @AfterEach void cleanup() { runtime.shutdown(); }
+
+    @Test void streamErrorsFollowRequestLanguage() throws Exception {
+        when(ai.getStreamTimeout(any())).thenReturn(1000);
+        when(ai.getResolvedModel(any())).thenReturn("test-model");
+        doThrow(new IllegalStateException("Failed to stream AI response: disconnected"))
+                .when(ai).streamCompletion(any(), any(), any(), any(), any(), any(), any());
+        com.nopkg.hellodoc.i18n.LanguageContext.setLocale("zh-CN");
+        try {
+            MvcResult result = mvc.perform(post("/api/ai/completion/stream").contentType("application/json")
+                    .content("{\"context\":\"\",\"prompt\":\"q\"}"))
+                    .andExpect(request().asyncStarted()).andReturn();
+            result.getAsyncResult(2000);
+            String body = mvc.perform(asyncDispatch(result)).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+            assertTrue(body.contains("流式"), body);
+        } finally { com.nopkg.hellodoc.i18n.LanguageContext.clear(); }
+    }
 
     @Test void rejectsHistoryThatCanOverrideTheSystemRole() throws Exception {
         mvc.perform(post("/api/ai/completion/stream").contentType("application/json")

@@ -1,5 +1,21 @@
 # Changelog
 
+## [v3.5.2] - 2026-11-05
+
+### 更新说明
+
+- fix: 完善 AI 助手、模型配置、错误提示和移动端创建知识库的中英文显示，修复缺失词条。
+- fix: 修复移动端语言偏好保存与跨端同步，并使页面标题和日期格式跟随语言切换。
+- fix: 修复服务端消息、通知和 AI 流式错误的语言选择，补齐文档版本冲突等提示。
+- chore: 增加前后端国际化词条、语言切换和错误处理检查，并将客户端国际化检查加入镜像发布流程。
+
+### Changelog
+
+- fix: improve Chinese and English text for the AI assistant, model configuration, error messages, and mobile knowledge base creation, including missing translations.
+- fix: save and synchronize mobile language preferences across clients, and update page titles and date formatting when the language changes.
+- fix: correct language selection for server messages, notifications, and AI streaming errors, and add document version conflict messages.
+- chore: add frontend and backend checks for translations, language switching, and error handling, and run client internationalization checks during image publishing.
+
 ## [v3.5.1] - 2026-11-05
 
 ### 更新说明

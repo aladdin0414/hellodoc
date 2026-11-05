@@ -69,10 +69,10 @@ const fetchConfigs = async () => {
 const handleUpdateConfig = async (config: any) => {
   try {
     await updateConfig(config)
-    message.success(t('admin.msg.configSaved'))
+    message.success(t('admin.msg.configUpdated'))
   } catch (err) {
     console.error('Update config failed:', err)
-    message.error(t('admin.msg.configSaveFailed'))
+    message.error(t('admin.msg.configUpdateFailed'))
   }
 }
 

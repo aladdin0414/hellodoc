@@ -35,6 +35,7 @@ public class AiController {
     private final AiModelService aiModelService;
     private final AiStreamRuntime streams;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final com.nopkg.hellodoc.i18n.ApiI18nService apiI18nService;
 
     @GetMapping("/models/active")
     @Operation(summary = "获取当前所有已激活的 AI 大模型列表")
@@ -96,8 +97,10 @@ public class AiController {
         }));
         // A very short deadline can fire while the timer handles are being registered.
         if (control.isCancelled()) { cleanup.run(); return emitter; }
+        String requestLocale = com.nopkg.hellodoc.i18n.LanguageContext.getLocale();
         try {
             streams.execute(() -> {
+                com.nopkg.hellodoc.i18n.LanguageContext.setLocale(requestLocale);
                 try {
                     if (control.isCancelled()) return;
                     emitter.send(SseEmitter.event().name("model").data(model));
@@ -116,12 +119,15 @@ public class AiController {
                 } catch (Exception e) {
                     if (!control.isCancelled()) {
                         try {
-                            emitter.send(SseEmitter.event().name("error").data(e.getMessage() == null ? "AI generation failed" : e.getMessage()));
+                            emitter.send(SseEmitter.event().name("error").data(apiI18nService.resolveMessage(
+                                    ApiResponse.Code.SYSTEM_ERROR, e.getMessage()),
+                                    new MediaType("text", "plain", java.nio.charset.StandardCharsets.UTF_8)));
                         } catch (Exception ignored) {
                         }
                         emitter.complete();
                     }
                 } finally {
+                    com.nopkg.hellodoc.i18n.LanguageContext.clear();
                     cleanup.run();
                 }
             });

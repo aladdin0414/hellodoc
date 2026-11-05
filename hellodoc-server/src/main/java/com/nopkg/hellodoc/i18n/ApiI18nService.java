@@ -44,6 +44,9 @@ public class ApiI18nService {
     }
 
     private String resolveLegacyMessage(String message) {
+        if ("URL、API Key 与 模型标识不能为空".equals(message)) {
+            return getMessage("ai.model.connection_required", message);
+        }
         Matcher requiredEn = REQUIRED_EN_PATTERN.matcher(message);
         if (requiredEn.matches()) {
             return getMessage("legacy.field.required", "{0} is required", requiredEn.group(1));
@@ -85,6 +88,10 @@ public class ApiI18nService {
         }
 
         return switch (message) {
+            case "指定的 AI 模型不存在" -> getMessage("ai.model.not_found", message);
+            case "系统必须保留一个默认模型，请直接将其他模型设为默认" -> getMessage("ai.model.require_default", message);
+            case "系统默认模型不能停用，请先将其他模型设为默认" -> getMessage("ai.model.default_cannot_disable", message);
+            case "默认模型不可删除，请先将其他模型设为默认" -> getMessage("ai.model.default_cannot_delete", message);
             case "AI API Key is not configured." -> getMessage("ai.key_not_configured", message);
             case "AI response parsing failed or empty choices." -> getMessage("ai.response_error", message);
             case "Document not found in kb" -> getMessage("legacy.document.not_found_in_kb", "Document not found in knowledge base");
@@ -130,7 +137,10 @@ public class ApiI18nService {
     }
 
     private String resolvePrefixedMessage(String message) {
-        return resolvePrefix(message, "读取文件失败: ", "legacy.file.read_failed", "Failed to read file: {0}")
+        return resolvePrefix(message, "模型响应状态异常: ", "ai.model.bad_response", "Unexpected model response status: {0}")
+                .or(() -> resolvePrefix(message, "连接失败: ", "ai.model.connection_failed", "Connection failed: {0}"))
+                .or(() -> resolvePrefix(message, "连接超时或网络异常: ", "ai.model.network_failed", "Connection timed out or network error: {0}"))
+                .or(() -> resolvePrefix(message, "读取文件失败: ", "legacy.file.read_failed", "Failed to read file: {0}"))
                 .or(() -> resolvePrefix(message, "抓取URL失败: ", "legacy.asset.fetch_url_failed", "Failed to fetch URL: {0}"))
                 .or(() -> resolvePrefix(message, "上传文件失败: ", "legacy.storage.upload_failed", "Failed to upload file: {0}"))
                 .or(() -> resolvePrefix(message, "计算文件哈希失败: ", "legacy.storage.hash_failed", "Failed to calculate file hash: {0}"))

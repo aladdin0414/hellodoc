@@ -164,7 +164,7 @@ public class DocumentServiceImpl implements DocumentService {
         }
 
         if (dto.getContent() != null && dto.getExpectedVersion() == null) {
-            throw new BusinessException(ApiResponse.Code.VERSION_REQUIRED, "VERSION_REQUIRED：客户端版本过旧，请升级后重试");
+            throw new BusinessException(ApiResponse.Code.VERSION_REQUIRED);
         }
         if (dto.getContent() != null
                 && !dto.getExpectedVersion().equals(doc.getCurrentVersion() == null ? 0 : doc.getCurrentVersion())) {

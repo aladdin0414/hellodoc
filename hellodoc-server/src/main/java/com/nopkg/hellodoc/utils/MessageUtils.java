@@ -1,5 +1,6 @@
 package com.nopkg.hellodoc.utils;
 
+import com.nopkg.hellodoc.i18n.LanguageContext;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
@@ -29,7 +30,8 @@ public class MessageUtils {
         if (messageSource == null) {
             return code;
         }
-        Locale locale = LocaleContextHolder.getLocale();
+        Locale locale = LanguageContext.hasLocale()
+                ? Locale.forLanguageTag(LanguageContext.getLocale()) : LocaleContextHolder.getLocale();
         return messageSource.getMessage(code, args, code, locale);
     }
 

@@ -115,8 +115,9 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private String renderFallbackContent(com.nopkg.hellodoc.enums.NotifyType type, String locale, Map<String, Object> params) {
-        String defaultUser = com.nopkg.hellodoc.utils.MessageUtils.get("notify.user", "User");
-        String defaultDoc = com.nopkg.hellodoc.utils.MessageUtils.get("notify.doc", "Document");
+        java.util.Locale recipientLocale = java.util.Locale.forLanguageTag(locale);
+        String defaultUser = com.nopkg.hellodoc.utils.MessageUtils.get(recipientLocale, "notify.user");
+        String defaultDoc = com.nopkg.hellodoc.utils.MessageUtils.get(recipientLocale, "notify.doc");
         String senderName = toStringOrDefault(params.get("senderName"), defaultUser);
         String docName = toStringOrDefault(params.get("docName"), defaultDoc);
         String commentSnippet = toStringOrDefault(params.get("commentSnippet"), "");
@@ -124,22 +125,22 @@ public class NotificationServiceImpl implements NotificationService {
         if (type == com.nopkg.hellodoc.enums.NotifyType.MENTION) {
             return enUS
                     ? senderName + " mentioned you in \"" + docName + "\""
-                    : senderName + " " + com.nopkg.hellodoc.utils.MessageUtils.get("notify.mentioned_you_in", "mentioned you in") + "《" + docName + "》";
+                    : senderName + " " + com.nopkg.hellodoc.utils.MessageUtils.get(recipientLocale, "notify.mentioned_you_in") + "《" + docName + "》";
         }
         if (type == com.nopkg.hellodoc.enums.NotifyType.REPLY) {
             return enUS
                     ? senderName + " replied to your comment in \"" + docName + "\""
-                    : senderName + " " + com.nopkg.hellodoc.utils.MessageUtils.get("notify.replied_comment_in", "replied to your comment in") + "《" + docName + "》";
+                    : senderName + " " + com.nopkg.hellodoc.utils.MessageUtils.get(recipientLocale, "notify.replied_comment_in") + "《" + docName + "》";
         }
         if (type == com.nopkg.hellodoc.enums.NotifyType.RESOLVE) {
             return enUS
                     ? senderName + " resolved a comment in \"" + docName + "\""
-                    : senderName + " " + com.nopkg.hellodoc.utils.MessageUtils.get("notify.resolved_comment_in", "resolved a comment in") + "《" + docName + "》";
+                    : senderName + " " + com.nopkg.hellodoc.utils.MessageUtils.get(recipientLocale, "notify.resolved_comment_in") + "《" + docName + "》";
         }
         if (StringUtils.hasText(commentSnippet)) {
             return enUS ? senderName + ": " + commentSnippet : senderName + "：" + commentSnippet;
         }
-        return enUS ? "You have a new notification" : com.nopkg.hellodoc.utils.MessageUtils.get("notify.new_notification", "You have a new notification");
+        return enUS ? "You have a new notification" : com.nopkg.hellodoc.utils.MessageUtils.get(recipientLocale, "notify.new_notification");
     }
 
     private String toStringOrDefault(Object value, String defaultValue) {

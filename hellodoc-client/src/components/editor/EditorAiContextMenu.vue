@@ -106,7 +106,7 @@ watch(() => props.visible, (newVal) => {
 
                 <!-- 大模型选择器（仅显示已激活模型） -->
                 <div v-if="activeModels.length > 0" class="flex items-center gap-1.5">
-                    <span class="text-xs text-slate-400">模型:</span>
+                    <span class="text-xs text-slate-400">{{ t('aiDrawer.modelLabel') }}</span>
                     <select
                         :value="currentModelId"
                         @change="selectModel(($event.target as HTMLSelectElement).value)"
@@ -117,7 +117,7 @@ watch(() => props.visible, (newVal) => {
                             :key="model.id"
                             :value="model.id"
                         >
-                            {{ model.name }}{{ model.isDefault ? ' (默认)' : '' }}
+                            {{ model.name }}{{ model.isDefault ? ` (${t('aiDrawer.default')})` : '' }}
                         </option>
                     </select>
                 </div>

@@ -52,13 +52,13 @@ const form = reactive({
 })
 
 // 常见提供商快捷选项
-const providers = [
+const providers = computed(() => [
   { label: 'DeepSeek', value: 'deepseek', defaultUrl: 'https://api.deepseek.com/v1', defaultModel: 'deepseek-chat' },
   { label: 'OpenAI', value: 'openai', defaultUrl: 'https://api.openai.com/v1', defaultModel: 'gpt-4o' },
-  { label: '阿里通义千问', value: 'qwen', defaultUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModel: 'qwen-plus' },
-  { label: '月之暗面 (Kimi)', value: 'moonshot', defaultUrl: 'https://api.moonshot.cn/v1', defaultModel: 'moonshot-v1-8k' },
-  { label: '自定义 / 兼容代理', value: 'custom', defaultUrl: '', defaultModel: '' }
-]
+  { label: t('aiModelExtra.providerQwen'), value: 'qwen', defaultUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModel: 'qwen-plus' },
+  { label: t('aiModelExtra.providerKimi'), value: 'moonshot', defaultUrl: 'https://api.moonshot.cn/v1', defaultModel: 'moonshot-v1-8k' },
+  { label: t('aiModelExtra.providerCustom'), value: 'custom', defaultUrl: '', defaultModel: '' }
+])
 
 // 统计数据
 const totalCount = computed(() => models.value.length)
@@ -71,7 +71,7 @@ const fetchModels = async () => {
     const res: any = await listAllAiModels()
     models.value = res || []
   } catch (err: any) {
-    message.error(err?.message || '获取 AI 模型列表失败')
+    message.error(err?.message || t('aiModelExtra.fetchFailed'))
   } finally {
     loading.value = false
   }
@@ -122,7 +122,7 @@ const openEditModal = (model: AiModelItem) => {
 // 快速切换 Provider
 const handleProviderChange = (e: Event) => {
   const target = e.target as HTMLSelectElement
-  const p = providers.find(item => item.value === target.value)
+  const p = providers.value.find(item => item.value === target.value)
   if (p && !isEditing.value) {
     if (p.defaultUrl) form.baseUrl = p.defaultUrl
     if (p.defaultModel) form.modelName = p.defaultModel
@@ -132,16 +132,16 @@ const handleProviderChange = (e: Event) => {
 // 提交表单（保存）
 const handleSubmit = async () => {
   if (!form.name.trim()) {
-    return message.error(t('admin.aiModel.form.name') + ' 不能为空')
+    return message.error(t('aiModelExtra.required', { field: t('admin.aiModel.form.name') }))
   }
   if (!form.baseUrl.trim()) {
-    return message.error(t('admin.aiModel.form.baseUrl') + ' 不能为空')
+    return message.error(t('aiModelExtra.required', { field: t('admin.aiModel.form.baseUrl') }))
   }
   if (!isEditing.value && !form.apiKey.trim()) {
-    return message.error(t('admin.aiModel.form.apiKey') + ' 不能为空')
+    return message.error(t('aiModelExtra.required', { field: t('admin.aiModel.form.apiKey') }))
   }
   if (!form.modelName.trim()) {
-    return message.error(t('admin.aiModel.form.modelName') + ' 不能为空')
+    return message.error(t('aiModelExtra.required', { field: t('admin.aiModel.form.modelName') }))
   }
 
   submitting.value = true
@@ -162,7 +162,7 @@ const handleSubmit = async () => {
         updateData.apiKey = form.apiKey.trim()
       }
       await updateAiModel(editingId.value, updateData)
-      message.success('AI 模型配置已更新')
+      message.success(t('aiModelExtra.updated'))
     } else {
       const createData: AiModelCreateData = {
         name: form.name.trim(),
@@ -177,12 +177,12 @@ const handleSubmit = async () => {
         disableThinking: form.disableThinking
       }
       await createAiModel(createData)
-      message.success('AI 模型已创建')
+      message.success(t('aiModelExtra.created'))
     }
     showModal.value = false
     await fetchModels()
   } catch (err: any) {
-    message.error(err?.message || '保存模型失败')
+    message.error(err?.message || t('aiModelExtra.saveFailed'))
   } finally {
     submitting.value = false
   }
@@ -191,10 +191,10 @@ const handleSubmit = async () => {
 // 连通性测试
 const handleTestConnection = async () => {
   if (!form.baseUrl.trim() || !form.modelName.trim()) {
-    return message.error('请先填写 Base URL 和模型标识')
+    return message.error(t('aiModelExtra.needUrlModel'))
   }
   if (!isEditing.value && !form.apiKey.trim()) {
-    return message.error('请先填写 API Key')
+    return message.error(t('aiModelExtra.needKey'))
   }
 
   testing.value = true
@@ -210,15 +210,15 @@ const handleTestConnection = async () => {
     testResult.value = {
       success: true,
       latencyMs: res.latencyMs,
-      message: res.reply ? `模型回复: "${res.reply}"` : '连接正常'
+      message: res.reply ? t('aiModelExtra.reply', { reply: res.reply }) : t('aiModelExtra.connected')
     }
     message.success(t('admin.aiModel.testSuccess', { ms: res.latencyMs }))
   } catch (err: any) {
     testResult.value = {
       success: false,
-      message: err?.message || '测试失败'
+      message: err?.message || t('aiModelExtra.testFailed')
     }
-    message.error(t('admin.aiModel.testFailed', { msg: err?.message || '连接失败' }))
+    message.error(t('admin.aiModel.testFailed', { msg: err?.message || t('aiModelExtra.connectionFailed') }))
   } finally {
     testing.value = false
   }
@@ -227,11 +227,11 @@ const handleTestConnection = async () => {
 // 卡片上单次连通测试
 const handleCardTest = async (model: AiModelItem) => {
   try {
-    message.info('正在测试连通性...')
+    message.info(t('aiModelExtra.testing'))
     const res = await testAiModelConnection({ id: model.id })
-    message.success(`${model.name} 连接成功！时延 ${res.latencyMs}ms`)
+    message.success(t('aiModelExtra.cardSuccess', { name: model.name, ms: res.latencyMs }))
   } catch (err: any) {
-    message.error(`${model.name} 测试失败: ${err?.message || '网络或认证异常'}`)
+    message.error(t('aiModelExtra.cardFailure', { name: model.name, error: err?.message || t('aiModelExtra.networkAuth') }))
   }
 }
 
@@ -240,10 +240,10 @@ const handleSetDefault = async (model: AiModelItem) => {
   if (model.isDefault) return
   try {
     await setDefaultAiModel(model.id)
-    message.success(`已将 ${model.name} 设为系统默认模型`)
+    message.success(t('aiModelExtra.setDefaultSuccess', { name: model.name }))
     await fetchModels()
   } catch (err: any) {
-    message.error(err?.message || '设为默认模型失败')
+    message.error(err?.message || t('aiModelExtra.setDefaultFailed'))
   }
 }
 
@@ -251,10 +251,10 @@ const handleSetDefault = async (model: AiModelItem) => {
 const handleToggleActive = async (model: AiModelItem) => {
   try {
     await toggleActiveAiModel(model.id)
-    message.success(`${model.name} 已${model.isEnabled ? '停用' : '激活'}`)
+    message.success(t(model.isEnabled ? 'aiModelExtra.disabled' : 'aiModelExtra.enabled', { name: model.name }))
     await fetchModels()
   } catch (err: any) {
-    message.error(err?.message || '操作失败')
+    message.error(err?.message || t('aiModelExtra.operationFailed'))
   }
 }
 
@@ -269,11 +269,11 @@ const handleDelete = async () => {
   if (!deletingModel.value) return
   try {
     await deleteAiModel(deletingModel.value.id)
-    message.success('模型已删除')
+    message.success(t('aiModelExtra.deleted'))
     showDeleteConfirm.value = false
     await fetchModels()
   } catch (err: any) {
-    message.error(err?.message || '删除失败')
+    message.error(err?.message || t('aiModelExtra.deleteFailed'))
   }
 }
 
@@ -322,7 +322,7 @@ onMounted(() => {
       </div>
       <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{{ t('admin.aiModel.empty') }}</h3>
       <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-4">
-        配置您的大模型 API 密钥与地址，即可开启前台 AI 智能写作与问答服务。
+        {{ t('aiModelExtra.emptyHint') }}
       </p>
       <button
         @click="openCreateModal"
@@ -382,7 +382,7 @@ onMounted(() => {
           <!-- 激活 Switch -->
           <button
             @click="handleToggleActive(model)"
-            :title="model.isEnabled ? '点击停用' : '点击激活'"
+            :title="model.isEnabled ? t('aiModelExtra.disable') : t('aiModelExtra.enable')"
             class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
             :class="model.isEnabled ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'"
           >
@@ -396,23 +396,23 @@ onMounted(() => {
         <!-- 卡片元信息 -->
         <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400 py-2 border-y border-gray-100 dark:border-gray-700/60 my-3">
           <div>
-            <span class="text-gray-400">端点:</span>
+            <span class="text-gray-400">{{ t('aiModelExtra.endpoint') }}</span>
             <span class="ml-1 font-mono text-gray-700 dark:text-gray-300 truncate inline-block max-w-[140px] align-bottom" :title="model.baseUrl">
               {{ model.baseUrl?.replace(/^https?:\/\//, '') }}
             </span>
           </div>
           <div>
-            <span class="text-gray-400">温度:</span>
+            <span class="text-gray-400">{{ t('aiModelExtra.temperature') }}</span>
             <span class="ml-1 font-medium text-gray-700 dark:text-gray-300">{{ model.temperature ?? 0.7 }}</span>
           </div>
           <div>
-            <span class="text-gray-400">服务商:</span>
+            <span class="text-gray-400">{{ t('aiModelExtra.provider') }}</span>
             <span class="ml-1 uppercase text-gray-700 dark:text-gray-300">{{ model.provider || 'CUSTOM' }}</span>
           </div>
           <div>
-            <span class="text-gray-400">思考过滤:</span>
+            <span class="text-gray-400">{{ t('aiModelExtra.thinkingFilter') }}</span>
             <span class="ml-1 font-medium" :class="model.disableThinking !== false ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'">
-              {{ model.disableThinking !== false ? '开启' : '关闭' }}
+              {{ model.disableThinking !== false ? t('aiModelExtra.on') : t('aiModelExtra.off') }}
             </span>
           </div>
         </div>
@@ -448,7 +448,7 @@ onMounted(() => {
             <button
               @click="openEditModal(model)"
               class="p-1.5 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              title="编辑模型"
+              :title="t('aiModelExtra.edit')"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -458,7 +458,7 @@ onMounted(() => {
             <button
               @click="confirmDelete(model)"
               class="p-1.5 text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-              title="删除模型"
+              :title="t('aiModelExtra.delete')"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -483,7 +483,7 @@ onMounted(() => {
           {{ isEditing ? t('admin.aiModel.editModel') : t('admin.aiModel.addModel') }}
         </h3>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">
-          配置 OpenAI 兼容标准接口参数，前台将通过后端安全代理发起调用。
+          {{ t('aiModelExtra.formHint') }}
         </p>
 
         <form @submit.prevent="handleSubmit" class="space-y-4">
@@ -534,7 +534,7 @@ onMounted(() => {
             <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
               {{ t('admin.aiModel.form.apiKey') }}
               <span v-if="!isEditing" class="text-red-500">*</span>
-              <span v-else class="text-xs text-gray-400 font-normal"> (留空表示沿用原有密钥)</span>
+              <span v-else class="text-xs text-gray-400 font-normal">{{ t('aiModelExtra.keepKey') }}</span>
             </label>
             <div class="relative">
               <input
@@ -607,7 +607,7 @@ onMounted(() => {
                 @click="form.agentPrompt = ''"
                 class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
               >
-                重置为系统默认
+                {{ t('aiModelExtra.reset') }}
               </button>
             </div>
             <textarea
@@ -650,7 +650,7 @@ onMounted(() => {
             <svg v-if="testResult.success" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
             <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
             <div class="flex-1 min-w-0">
-              <span class="font-semibold">{{ testResult.success ? '测试通过' : '测试失败' }}:</span>
+              <span class="font-semibold">{{ testResult.success ? t('aiModelExtra.testPassed') : t('aiModelExtra.testFailed') }}:</span>
               <span class="ml-1 break-all">{{ testResult.message }}</span>
             </div>
           </div>
@@ -681,14 +681,14 @@ onMounted(() => {
                 @click="showModal = false"
                 class="px-4 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors"
               >
-                取消
+                {{ t('aiModelExtra.cancel') }}
               </button>
               <button
                 type="submit"
                 :disabled="submitting"
                 class="px-5 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-xl shadow-sm transition-all disabled:opacity-50"
               >
-                {{ submitting ? t('admin.submitting') : '保存配置' }}
+                {{ submitting ? t('admin.submitting') : t('aiModelExtra.save') }}
               </button>
             </div>
           </div>
@@ -708,7 +708,7 @@ onMounted(() => {
             <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
           </svg>
         </div>
-        <h3 class="text-base font-bold text-gray-900 dark:text-white mb-2">删除确认</h3>
+        <h3 class="text-base font-bold text-gray-900 dark:text-white mb-2">{{ t('aiModelExtra.confirmDelete') }}</h3>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">
           {{ t('admin.aiModel.confirmDelete', { name: deletingModel?.name || '' }) }}
         </p>
@@ -718,14 +718,14 @@ onMounted(() => {
             @click="showDeleteConfirm = false"
             class="px-4 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 rounded-xl"
           >
-            取消
+            {{ t('aiModelExtra.cancel') }}
           </button>
           <button
             type="button"
             @click="handleDelete"
             class="px-4 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl"
           >
-            确定删除
+            {{ t('aiModelExtra.deleteConfirm') }}
           </button>
         </div>
       </div>

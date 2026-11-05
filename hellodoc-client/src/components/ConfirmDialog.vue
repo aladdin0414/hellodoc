@@ -46,7 +46,7 @@ const emit = defineEmits(['confirm', 'cancel'])
                     <div class="mt-8 flex justify-end space-x-3">
                         <button v-if="!hideCancel" @click="emit('cancel')"
                             class="px-5 py-2.5 text-sm font-bold text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 rounded-xl transition-colors duration-200">
-                            {{ cancelText || t('common.cancel') }}
+                            {{ cancelText || t('nav.cancel') }}
                         </button>
                         <button @click="emit('confirm')" :class="[
                             'px-5 py-2 text-sm font-semibold text-white rounded-xl transition-all duration-200 active:scale-95',

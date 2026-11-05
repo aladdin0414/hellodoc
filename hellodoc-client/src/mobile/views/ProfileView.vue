@@ -139,6 +139,7 @@ import TabBar from '../components/TabBar.vue'
 import { LogOut, Sun, Moon, Monitor, ChevronRight, Globe, Check, X } from 'lucide-vue-next'
 import { useTheme } from '../composables/useTheme'
 import { getMe } from '../../api/user'
+import { useLocale, setLocaleModeLocal } from '../../composables/useLocale'
 import versionInfo from '../../version'
 
 interface UserProfile {
@@ -152,6 +153,7 @@ interface UserProfile {
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
 const { t, locale } = useI18n()
+const { setLocaleMode } = useLocale()
 
 const showLangModal = ref(false)
 
@@ -159,11 +161,13 @@ const currentLocaleName = computed(() => {
   return locale.value === 'en-US' ? t('locale.enUS') : t('locale.zhCN')
 })
 
-const selectLocale = (targetLocale: 'zh-CN' | 'en-US') => {
-  locale.value = targetLocale
-  localStorage.setItem('locale', targetLocale)
-  localStorage.setItem('localeMode', targetLocale)
-  showLangModal.value = false
+const selectLocale = async (targetLocale: 'zh-CN' | 'en-US') => {
+  try {
+    await setLocaleMode(targetLocale)
+    showLangModal.value = false
+  } catch {
+    // useLocale restores the previous language and displays an error.
+  }
 }
 
 const userInfo = ref<UserProfile>({
@@ -182,6 +186,7 @@ const fetchProfileData = async () => {
   try {
     const data: any = await getMe()
     if (data) {
+      if (data.languageMode) setLocaleModeLocal(data.languageMode)
       userInfo.value = {
         nickname: data.nickname || '',
         username: data.username || '',

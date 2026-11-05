@@ -29,7 +29,7 @@ const props = defineProps<{
 const router = useRouter()
 const route = useRoute()
 const { isDark, toggleTheme } = useTheme()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 // 独立展示模式：query 参数中带有 standalone=true 时隐藏导航与侧边栏
 const isStandalone = computed(() => route.query.standalone === 'true')
@@ -362,7 +362,7 @@ const formatDate = (dateStr: string, fallbackStr?: string) => {
     if (!finalStr) return '-'
     const date = new Date(finalStr)
     if (isNaN(date.getTime())) return '-'
-    return date.toLocaleString('zh-CN', {
+    return date.toLocaleString(locale.value, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -445,8 +445,8 @@ const enhanceCodeBlocks = () => {
         btn.className = 'code-copy-btn'
         btn.setAttribute('type', 'button')
         btn.setAttribute('contenteditable', 'false')
-        btn.setAttribute('title', '复制代码')
-        btn.setAttribute('aria-label', '复制代码')
+        btn.setAttribute('title', t('aiDrawer.copyCode'))
+        btn.setAttribute('aria-label', t('aiDrawer.copyCode'))
         btn.innerHTML = copySvgHtml
         pre.appendChild(btn)
     })
@@ -945,7 +945,7 @@ watch(sharePopover, (newVal) => {
                     <Icons.Sun v-if="isDark" class="w-4 h-4" />
                     <Icons.Moon v-else class="w-4 h-4" />
                 </button>
-                <button @click="isMobileDrawerOpen = true" class="p-2 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg" aria-label="打开侧边菜单">
+                <button @click="isMobileDrawerOpen = true" class="p-2 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg" :aria-label="t('aiDrawer.openMenu')">
                     <Icons.Menu class="w-5 h-5" />
                 </button>
             </div>
@@ -1125,7 +1125,7 @@ watch(sharePopover, (newVal) => {
                     <button
                         @click.stop="moreMenuOpen = !moreMenuOpen"
                         class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xs border border-slate-200/60 dark:border-zinc-800 shadow-2xs"
-                        title="更多操作"
+                        :title="t('aiDrawer.moreActions')"
                     >
                         <Icons.MoreHorizontal class="w-4 h-4" />
                     </button>

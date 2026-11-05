@@ -59,6 +59,11 @@ jobs:
       - name: Set up npm
         run: npm install --global npm@11.6.2
 
+      - name: Check client translations
+        run: |
+          npm ci --prefix hellodoc-client --no-audit --no-fund
+          npm run test:i18n --prefix hellodoc-client
+
       - name: Make build script executable
         run: chmod +x build.sh publish-docker.sh
 

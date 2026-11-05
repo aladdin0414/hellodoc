@@ -11,6 +11,10 @@ public final class LanguageContext {
         LOCALE_HOLDER.set(normalize(locale));
     }
 
+    public static boolean hasLocale() {
+        return LOCALE_HOLDER.get() != null;
+    }
+
     public static String getLocale() {
         String locale = LOCALE_HOLDER.get();
         if (locale == null || locale.isBlank()) {

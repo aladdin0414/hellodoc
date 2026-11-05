@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, nextTick, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import 'katex/dist/katex.min.css'
 import { message } from '../../utils/message'
 import { useAiModels } from '../../composables/useAiModels'
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   (e: 'insert-to-doc', content: string, docId?: number): void
 }>()
 
+const { t } = useI18n()
 const { activeModels, currentModelId, fetchActiveModels, selectModel, selectedModel } = useAiModels()
 
 interface ChatMessage {
@@ -47,12 +49,7 @@ onBeforeUnmount(stopGeneration)
 watch(() => props.docId, resetConversation, { flush: 'sync' })
 
 // 快捷开场白提问建议
-const quickSuggestions = [
-  '帮我润色这段文字，使其更加专业优雅',
-  '针对当前文档主题生成一份结构大纲',
-  '为系统撰写一段严谨的 API 设计说明',
-  '帮我排查代码中的潜在边界缺陷'
-]
+const quickSuggestions = computed(() => [1, 2, 3, 4].map(n => t(`aiDrawer.suggestion${n}`)))
 
 // 滚动到底部
 const scrollToBottom = async () => {
@@ -142,12 +139,12 @@ const handleSend = async () => {
   } catch (err: any) {
     if (activeRequest !== request) return
     const interrupted = request.signal.aborted
-    if (!interrupted) message.error(err?.message || 'AI 回复生成中断')
+    if (!interrupted) message.error(err?.message || t('aiDrawer.interrupted'))
     const aiMsg = messages.value.find(m => m.id === aiMsgId)
     if (aiMsg) {
       aiMsg.status = interrupted ? 'stopped' : 'error'
       aiMsg.loading = false
-      if (!aiMsg.content) aiMsg.content = interrupted ? '已停止生成' : `[生成出错: ${err?.message || '网络异常'}]`
+      if (!aiMsg.content) aiMsg.content = interrupted ? t('aiDrawer.stopped') : t('aiDrawer.generationError', { error: err?.message || t('aiDrawer.networkError') })
     }
   } finally {
     if (activeRequest === request) {
@@ -168,9 +165,9 @@ const applySuggestion = (suggestion: string) => {
 const copyContent = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
-    message.success('已复制到剪贴板')
+    message.success(t('aiDrawer.copied'))
   } catch {
-    message.error('复制失败')
+    message.error(t('aiDrawer.copyFailed'))
   }
 }
 
@@ -216,9 +213,9 @@ watch(() => props.visible, (val) => {
             </div>
             <div>
               <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                AI 知识助理
+                {{ t('aiDrawer.title') }}
               </h3>
-              <p class="text-[11px] text-gray-400">智能创作、内容问答与代码辅导</p>
+              <p class="text-[11px] text-gray-400">{{ t('aiDrawer.subtitle') }}</p>
             </div>
           </div>
 
@@ -229,14 +226,14 @@ watch(() => props.visible, (val) => {
               :disabled="isGenerating"
               @change="selectModel(($event.target as HTMLSelectElement).value)"
               class="text-xs font-medium bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg px-2.5 py-1.5 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[150px] truncate shadow-sm"
-              title="切换当前使用的大模型"
+              :title="t('aiDrawer.switchModel')"
             >
               <option
                 v-for="model in activeModels"
                 :key="model.id"
                 :value="model.id"
               >
-                {{ model.name }}{{ model.isDefault ? ' (默认)' : '' }}
+                {{ model.name }}{{ model.isDefault ? ` (${t('aiDrawer.default')})` : '' }}
               </option>
             </select>
 
@@ -245,7 +242,7 @@ watch(() => props.visible, (val) => {
               @click="clearHistory"
               :disabled="isGenerating"
               class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              title="清空对话"
+              :title="t('aiDrawer.clearChat')"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -273,9 +270,9 @@ watch(() => props.visible, (val) => {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
-            <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">您好！我是您的智能文档助手</h4>
+            <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('aiDrawer.greeting') }}</h4>
             <p class="text-xs text-gray-400 max-w-xs mx-auto mb-6">
-              已为您加载 <span class="font-medium text-blue-600 dark:text-blue-400">{{ selectedModel?.name || '默认大模型' }}</span>，您可以直接提问或选用以下快捷功能：
+              {{ t('aiDrawer.ready', { model: selectedModel?.name || t('aiDrawer.defaultModel') }) }}
             </p>
 
             <div class="grid grid-cols-1 gap-2 text-left">
@@ -302,7 +299,7 @@ watch(() => props.visible, (val) => {
           >
             <!-- 角色与模型标识 -->
             <div class="text-[11px] text-gray-400 mb-1 px-1 flex items-center gap-1.5">
-              <span>{{ msg.role === 'user' ? '您' : (msg.modelName || 'AI 助手') }}</span>
+              <span>{{ msg.role === 'user' ? t('aiDrawer.you') : (msg.modelName || t('aiDrawer.title')) }}</span>
             </div>
 
             <!-- 消息气泡 -->
@@ -341,7 +338,7 @@ watch(() => props.visible, (val) => {
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
                   </svg>
-                  复制
+                  {{ t('aiDrawer.copy') }}
                 </button>
                 <button
                   v-if="msg.status === 'complete'"
@@ -352,7 +349,7 @@ watch(() => props.visible, (val) => {
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>
                   </svg>
-                  插入文档
+                  {{ t('aiDrawer.insert') }}
                 </button>
               </div>
             </div>
@@ -368,12 +365,12 @@ watch(() => props.visible, (val) => {
               rows="3"
               :disabled="isGenerating"
               @keydown.enter.exact.prevent="handleSend"
-              placeholder="输入问题或指令，Enter 发送，Shift+Enter 换行..."
+              :placeholder="t('aiDrawer.placeholder')"
               class="w-full bg-transparent text-xs text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none resize-none px-1 py-1"
             ></textarea>
             <div class="flex items-center justify-between pt-1 px-1">
-              <span class="text-[10px] text-gray-400">当前模型: {{ selectedModel?.name || '默认模型' }}</span>
-              <button v-if="isGenerating" @click="stopGeneration" class="text-xs text-red-600 px-3 py-1.5">停止生成</button>
+              <span class="text-[10px] text-gray-400">{{ t('aiDrawer.currentModel', { model: selectedModel?.name || t('aiDrawer.defaultModel') }) }}</span>
+              <button v-if="isGenerating" @click="stopGeneration" class="text-xs text-red-600 px-3 py-1.5">{{ t('aiDrawer.stop') }}</button>
               <button v-else
                 @click="handleSend"
                 :disabled="!inputPrompt.trim() || isGenerating"
@@ -386,7 +383,7 @@ watch(() => props.visible, (val) => {
                 <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
-                {{ isGenerating ? '思考中...' : '发送' }}
+                {{ isGenerating ? t('aiDrawer.thinking') : t('aiDrawer.send') }}
               </button>
             </div>
           </div>

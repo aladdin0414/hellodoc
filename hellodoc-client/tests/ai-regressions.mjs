@@ -37,6 +37,14 @@ async function send(root,text){
  const input=root.querySelector('textarea');input.value=text;input.dispatchEvent(new window.Event('input',{bubbles:true}));await nextTick()
  input.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));await tick()
 }
+test('model settings messages interpolate in both languages',()=>{
+ const previous=i18n.global.locale.value
+ try{for(const locale of ['en-US','zh-CN']){i18n.global.locale.value=locale;const result=i18n.global.t('aiModelExtra.cardSuccess',{name:'Test Model',ms:123});assert.match(result,/Test Model/);assert.match(result,/123/);assert.doesNotMatch(result,/\{(?:name|ms)\}/)}}finally{i18n.global.locale.value=previous}
+})
+test('assistant labels update when the language changes',async()=>{
+ const previous=i18n.global.locale.value; const c=await mount()
+ try{i18n.global.locale.value='en-US';await nextTick();assert.match(c.root.textContent,/AI knowledge assistant/);i18n.global.locale.value='zh-CN';await nextTick();assert.match(c.root.textContent,/AI 知识助理/)}finally{i18n.global.locale.value=previous;c.close()}
+})
 test('AI HTML strips active content while preserving KaTeX',()=>{
  const html=renderMarkdownToHtml('<img src="x" onerror="alert(1)"><script>alert(1)</script><a href="javascript:alert(1)">link</a>\n\n$x^2$')
  assert.doesNotMatch(html,/onerror|<script|javascript:/i);assert.match(html,/katex/)
@@ -52,7 +60,7 @@ test('document switches abort requests and clear history',async()=>{
 })
 test('Stop aborts generation and restores input',async()=>{
  let signal;stalledFetch(s=>signal=s);const c=await mount()
- try{await send(c.root,'question');const stop=[...c.root.querySelectorAll('button')].find(b=>b.textContent.includes('停止生成'));assert.ok(stop);stop.click();await tick();assert.equal(signal.aborted,true);assert.equal(c.root.querySelector('textarea').disabled,false)}finally{c.close()}
+ try{await send(c.root,'question');const stop=[...c.root.querySelectorAll('button')].find(b=>b.textContent.includes(i18n.global.t('aiDrawer.stop')));assert.ok(stop);stop.click();await tick();assert.equal(signal.aborted,true);assert.equal(c.root.querySelector('textarea').disabled,false)}finally{c.close()}
 })
 test('timeouts abort unresponsive requests',async()=>{
  globalThis.fetch=(_url,o)=>new Promise((_resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('request was not aborted')),40);o.signal?.addEventListener('abort',()=>{clearTimeout(timer);reject(o.signal.reason)})});await assert.rejects(aiCompletionStream({context:'',prompt:'q'},{onChunk(){}},{timeoutMs:10}),/超时|timeout/i)
@@ -69,7 +77,7 @@ test('unmounting the drawer aborts its request',async()=>{
 })
 test('stopped replies are excluded from subsequent model history',async()=>{
  stalledFetch(()=>{});const c=await mount()
- try{await send(c.root,'interrupted');[...c.root.querySelectorAll('button')].find(b=>b.textContent.includes('停止生成')).click();await tick()
+ try{await send(c.root,'interrupted');[...c.root.querySelectorAll('button')].find(b=>b.textContent.includes(i18n.global.t('aiDrawer.stop'))).click();await tick()
  let sent;globalThis.fetch=async(_url,o)=>{sent=JSON.parse(o.body);return response(sse('complete'))};await send(c.root,'new question');assert.deepEqual(sent.history,[])
  }finally{c.close()}
 })

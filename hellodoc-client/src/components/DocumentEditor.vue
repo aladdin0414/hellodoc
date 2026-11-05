@@ -35,7 +35,7 @@ import { useTheme } from '../composables/useTheme'
 import { useI18n } from 'vue-i18n'
 
 const { isDark } = useTheme()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const props = defineProps<{
     kbId: number
@@ -867,7 +867,7 @@ const handleContextMenu = (e: MouseEvent, doc: DocListItem) => {
 
 
 
-watch([() => currentDoc.value?.name, () => kbDetail.value?.title], ([docName, kbTitle]) => {
+watch([() => currentDoc.value?.name, () => kbDetail.value?.title, locale], ([docName, kbTitle]) => {
     if (docName && kbTitle) {
         document.title = t('editor.editDocTitleWithDoc', { docName, kbTitle })
     } else if (kbTitle) {
@@ -1066,7 +1066,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
         v-if="!isVisualPreviewMode && currentDoc?.type === 'file'"
         @click="showAiDrawer = !showAiDrawer"
         class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center transition-all duration-200 active:scale-95 focus:outline-none ring-2 ring-white dark:ring-gray-800"
-        title="AI 知识助理"
+        :title="t('aiDrawer.title')"
     >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />

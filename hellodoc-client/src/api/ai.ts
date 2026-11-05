@@ -1,6 +1,7 @@
 import request from '../utils/request'
 import { buildCommonRequestHeaders } from '../utils/requestHeaders'
 import axios from 'axios'
+import { i18n } from '../i18n'
 
 export interface AiChatMessage {
     role: 'user' | 'assistant'
@@ -85,7 +86,7 @@ export const aiCompletionStream = async (data: AiCompletionReq, handlers: AiComp
     const abort = () => controller.abort(options.signal?.reason)
     if (options.signal?.aborted) abort()
     else options.signal?.addEventListener('abort', abort, { once: true })
-    const timeout = setTimeout(() => controller.abort(new DOMException('AI 请求超时，请重试', 'TimeoutError')), options.timeoutMs ?? 120000)
+    const timeout = setTimeout(() => controller.abort(new DOMException(i18n.global.t('aiDrawer.timeout'), 'TimeoutError')), options.timeoutMs ?? 120000)
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
     try {
         const createHeaders = () =>
@@ -186,7 +187,7 @@ export const aiCompletionStream = async (data: AiCompletionReq, handlers: AiComp
             }
             if (done) {
                 if (!completed && buffer.trim()) processEvent(buffer)
-                if (!completed) throw new Error('AI 响应中断，未收到完整结果，请重试')
+                if (!completed) throw new Error(i18n.global.t('aiDrawer.incomplete'))
             }
         }
     } catch (error) {

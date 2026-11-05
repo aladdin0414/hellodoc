@@ -22,7 +22,7 @@ import { setLocaleModeLocal } from '../composables/useLocale'
 
 const router = useRouter()
 const route = useRoute()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 interface KbSummary {
     id: number
@@ -411,6 +411,13 @@ const handleUnfavorite = async (docId: number) => {
 const handleFavoriteClick = (fav: any) => {
     router.push({ name: 'PublicView', params: { kbId: fav.kbId, docId: fav.id } })
 }
+
+watch(locale, () => {
+    const key = activeTab.value === 'favorites' ? 'kb.titleFavorites'
+        : activeTab.value === 'recent' ? 'kb.titleRecent'
+        : activeTab.value === 'shared' ? 'kb.titleShared' : 'kb.titleMy'
+    document.title = `Hellodoc - ${t(key)}`
+})
 
 watch(activeTab, (newTab, oldTab) => {
     if (newTab === 'favorites') {
