@@ -23,6 +23,8 @@ public interface RevisionService {
 
     void restoreRevision(Long docId, Integer version, Long userId, Integer expectedVersion);
 
+    void restoreRevision(Long docId, Integer version, Long userId, Integer expectedVersion, String collabSessionId);
+
     String compareRevisions(Long docId, Integer v1, Integer v2);
 
     void cleanupAndArchiveRevisions();

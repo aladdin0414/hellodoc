@@ -349,6 +349,8 @@ const {
     isMobile,
     showDiffModal,
     showRevisions,
+    getCollabSessionId: () => isCollabFeatureEnabled.value ? selfSessionId.value : null,
+    canSave: () => !isReadOnlyByCollab.value,
     navigateToDoc: (docId: number) => {
         if (props.docId === docId) return
         router.push({
@@ -410,7 +412,8 @@ const {
     currentDoc,
     loadDocumentById,
     showRevisions,
-    showDiffModal
+    showDiffModal,
+    getCollabSessionId: () => isCollabFeatureEnabled.value ? selfSessionId.value : null
 })
 
 watch(
@@ -444,6 +447,7 @@ const handleSave = () => {
 const isCollabFeatureEnabled = ref(false)
 const {
     collabState,
+    selfSessionId,
     activeEditors,
     docLock,
     isLockedByMe,
@@ -882,6 +886,8 @@ useDocumentEditorLifecycle({
     currentDoc: currentDoc as any,
     hasUnsavedChanges,
     versionConflict,
+    getCollabSessionId: () => isCollabFeatureEnabled.value ? selfSessionId.value : null,
+    canSave: () => !isReadOnlyByCollab.value,
     saveDraftToLocal: (doc) => saveDraftToLocal(doc as any),
     flushSaveAndDraft,
     closeCollab,

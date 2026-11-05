@@ -24,6 +24,7 @@ permit-paths:
   - /api/assets/**
   - /api/storage/public
   - /api/public/**
+  - /ws/doc/**
   - /api/system/info
   - /login
   - /register

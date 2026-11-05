@@ -51,6 +51,9 @@ public class DocumentServiceImpl implements DocumentService {
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.nopkg.hellodoc.services.DocumentWriteLockGuard writeLockGuard;
+
     private final KbDocumentRepository documentRepository;
     private final KbDocumentContentRepository contentRepository;
     private final KbService kbService;
@@ -163,6 +166,7 @@ public class DocumentServiceImpl implements DocumentService {
             throw new BusinessException(ApiResponse.Code.RESOURCE_NOT_FOUND, "Document not found in kb");
         }
 
+        if (dto.getContent() != null) writeLockGuard.check(docId, userId, dto.getCollabSessionId());
         if (dto.getContent() != null && dto.getExpectedVersion() == null) {
             throw new BusinessException(ApiResponse.Code.VERSION_REQUIRED);
         }
@@ -529,7 +533,7 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     @Transactional
     @Auditable(targetType = AuditTargetType.DOCUMENT, action = AuditAction.UPDATE, targetIdExpression = "#docId")
-    public KbDocumentRevision createRevision(Long userId, Long kbId, Long docId, String content, String message, Integer expectedVersion) {
+    public KbDocumentRevision createRevision(Long userId, Long kbId, Long docId, String content, String message, Integer expectedVersion, String collabSessionId) {
         if (docId == null) {
             throw new BusinessException(ApiResponse.Code.PARAM_ERROR, "docId is required");
         }
@@ -537,6 +541,7 @@ public class DocumentServiceImpl implements DocumentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
         entityManager.refresh(doc, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
         permissionChecker.checkDocRole(userId, docId, com.nopkg.hellodoc.enums.DocRole.EDITOR);
+        writeLockGuard.check(docId, userId, collabSessionId);
         if (expectedVersion == null) throw new BusinessException(ApiResponse.Code.VERSION_REQUIRED);
         if (!expectedVersion.equals(doc.getCurrentVersion() == null ? 0 : doc.getCurrentVersion()))
             throw new BusinessException(ApiResponse.Code.VERSION_CONFLICT);

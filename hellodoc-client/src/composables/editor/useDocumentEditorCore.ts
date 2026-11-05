@@ -46,6 +46,8 @@ interface UseDocumentEditorCoreOptions {
     isMobile: Ref<boolean>
     showDiffModal: Ref<boolean>
     showRevisions: Ref<boolean>
+    getCollabSessionId?: () => string | null
+    canSave?: () => boolean
     navigateToDoc: (docId: number) => void
 }
 
@@ -162,6 +164,11 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
         const doc = options.currentDoc.value
         if (!doc) return false
         if (docLoading.value) return false
+        if (options.canSave && !options.canSave()) {
+            if (hasUnsavedChanges.value) saveDraftToLocal(doc)
+            if (!silent) message.warning(i18n.global.t('editor.collabNotReady'))
+            return false
+        }
         if (conflictedDocId.value === doc.id) {
             saveDraftToLocal(doc)
             if (!silent) message.error(i18n.global.t('error.versionConflict'))
@@ -193,6 +200,7 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
         try {
             const saved: any = await updateDocument(options.kbId.value, snapshot.id, {
                 expectedVersion: snapshot.version,
+                collabSessionId: options.getCollabSessionId?.() || undefined,
                 name: snapshot.name,
                 content: snapshot.content,
                 type: snapshot.type,
@@ -242,6 +250,9 @@ export const useDocumentEditorCore = (options: UseDocumentEditorCoreOptions) => 
                     conflictedBaseVersion = snapshot.version
                     pendingSaveReason = null
                     message.warning(i18n.global.t('error.versionConflict'))
+                } else if ((error as { code?: number })?.code === 1016) {
+                    pendingSaveReason = null
+                    message.warning(i18n.global.t('editor.collabNotReady'))
                 } else if (!disposed) {
                     if (autoSaveTimer) clearTimeout(autoSaveTimer)
                     autoSaveTimer = setTimeout(() => {

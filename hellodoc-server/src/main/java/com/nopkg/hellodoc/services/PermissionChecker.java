@@ -59,6 +59,7 @@ public class PermissionChecker {
         return false;
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public void checkDocRole(Long userId, Long docId, DocRole requiredRole) {
         if (hasDocRole(userId, docId, requiredRole))
             return;

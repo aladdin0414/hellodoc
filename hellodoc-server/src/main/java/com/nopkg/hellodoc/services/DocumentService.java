@@ -40,7 +40,7 @@ public interface DocumentService {
     List<com.nopkg.hellodoc.entities.KbDocumentRevision> listRevisions(Long userId, Long kbId, Long docId);
 
     com.nopkg.hellodoc.entities.KbDocumentRevision createRevision(Long userId, Long kbId, Long docId, String content,
-            String message, Integer expectedVersion);
+            String message, Integer expectedVersion, String collabSessionId);
 
     KbDocument duplicate(Long userId, Long kbId, Long docId);
 

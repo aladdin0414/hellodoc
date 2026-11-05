@@ -16,6 +16,8 @@ interface UseDocumentEditorLifecycleOptions {
     currentDoc: Ref<LifecycleDoc | null>
     hasUnsavedChanges: Ref<boolean>
     versionConflict: Ref<boolean>
+    getCollabSessionId?: () => string | null
+    canSave?: () => boolean
     saveDraftToLocal: (doc?: LifecycleDoc | null) => void
     flushSaveAndDraft: () => void
     closeCollab: () => void
@@ -50,11 +52,12 @@ export const useDocumentEditorLifecycle = (options: UseDocumentEditorLifecycleOp
             options.saveDraftToLocal(options.currentDoc.value)
 
             try {
-                if (options.versionConflict.value) { options.closeCollab(); return }
+                if (options.versionConflict.value || (options.canSave && !options.canSave())) { options.closeCollab(); return }
                 const snapshot = {
                     name: options.currentDoc.value.name,
                     content: options.currentDoc.value.content,
                     expectedVersion: options.currentDoc.value.version,
+                    collabSessionId: options.getCollabSessionId?.() || undefined,
                     type: options.currentDoc.value.type,
                     paperBgColor: options.currentDoc.value.paperBgColor,
                     paperBgImage: options.currentDoc.value.paperBgImage

@@ -130,3 +130,29 @@ test('typing during conflict reload preserves the newer draft', async () => {
  core.clearSaveTimers()
 })
 await rm(output, { force: true })
+test('a lost collaboration lock preserves the draft without retrying', async () => {
+ drafts.clear()
+ const currentDoc = ref({ id: 17, name: 'doc', content: 'unsaved', type: 'file', version: 2 })
+ const core = useDocumentEditorCore({ currentDoc, kbId: ref(1), documents: ref([]), getCollabSessionId: () => 'session' })
+ let submitted
+ globalThis.updateDocument = async (_kb, _id, body) => { submitted = body; throw Object.assign(new Error('locked'), { code: 1016 }) }
+ const oldTimeout = globalThis.setTimeout; let retries = 0
+ globalThis.setTimeout = () => { retries++; return 1 }
+ try {
+  assert.equal(await core.saveDocument({ silent: true }), false)
+  assert.equal(submitted.collabSessionId, 'session')
+  assert.equal(JSON.parse(drafts.get('hellodoc:editor-draft:1:17')).content, 'unsaved')
+  assert.equal(retries, 0)
+ } finally { globalThis.setTimeout = oldTimeout; core.clearSaveTimers() }
+})
+test('a disconnected collaborator retains the draft without sending a save', async () => {
+ drafts.clear()
+ const currentDoc = ref({ id: 18, name: 'doc', content: 'unsaved', type: 'file', version: 2 })
+ const core = useDocumentEditorCore({ currentDoc, kbId: ref(1), documents: ref([]), canSave: () => false })
+ let calls = 0
+ globalThis.updateDocument = async () => { calls++; return { version: 3 } }
+ assert.equal(await core.saveDocument({ silent: true }), false)
+ assert.equal(calls, 0)
+ assert.equal(JSON.parse(drafts.get('hellodoc:editor-draft:1:18')).content, 'unsaved')
+ core.clearSaveTimers()
+})

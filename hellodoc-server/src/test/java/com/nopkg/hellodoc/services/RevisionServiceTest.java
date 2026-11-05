@@ -44,6 +44,8 @@ public class RevisionServiceTest {
     private KbDocumentContentRepository contentRepository;
     @Mock
     private SearchService searchService;
+    @Mock
+    private DocumentWriteLockGuard writeLockGuard;
 
     @InjectMocks
     private RevisionServiceImpl revisionService;
@@ -54,6 +56,7 @@ public class RevisionServiceTest {
     @BeforeEach
     public void setup() {
         org.springframework.test.util.ReflectionTestUtils.setField(revisionService, "entityManager", entityManager);
+        org.springframework.test.util.ReflectionTestUtils.setField(revisionService, "writeLockGuard", writeLockGuard);
     }
 
     @Test

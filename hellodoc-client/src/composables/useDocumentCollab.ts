@@ -30,7 +30,7 @@ interface UseDocumentCollabOptions {
     currentDoc: Ref<CollabDoc | null>
     isCollabFeatureEnabled: Ref<boolean>
     onSaveBeforeUnlock: () => Promise<boolean>
-    onSyncFromServer: () => Promise<unknown>
+    onSyncFromServer: () => Promise<boolean>
 }
 
 const normalizeNotificationParams = (params: unknown): Record<string, unknown> => {
@@ -137,7 +137,7 @@ export const useDocumentCollab = (options: UseDocumentCollabOptions) => {
         }
     }
 
-    const closeCollab = () => {
+    const closeCollab = (preserveRetries = false) => {
         stopCollabTimers()
         collabWsSeq.value += 1
         const ws = collabWs.value
@@ -161,7 +161,7 @@ export const useDocumentCollab = (options: UseDocumentCollabOptions) => {
         selfSessionId.value = null
         activeEditors.value = []
         locks.value = []
-        collabReconnectAttempts.value = 0
+        if (!preserveRetries) collabReconnectAttempts.value = 0
     }
 
     const buildCollabWsUrl = (docId: number) => {
@@ -179,7 +179,7 @@ export const useDocumentCollab = (options: UseDocumentCollabOptions) => {
             }
         }
 
-        closeCollab()
+        closeCollab(true)
         const token = localStorage.getItem('accessToken')
         if (!token) {
             collabState.value = 'error'
@@ -331,14 +331,26 @@ export const useDocumentCollab = (options: UseDocumentCollabOptions) => {
         }
     })
 
+    const syncAcquiredLock = async () => {
+        lockSyncing.value = true
+        const sessionId = selfSessionId.value
+        try {
+            if (await options.onSyncFromServer() && sessionId === selfSessionId.value && isLockedByMe.value) {
+                lockSyncing.value = false
+                return
+            }
+        } catch {
+            // Keep the editor read-only and release the lock so the user can retry.
+        }
+        if (sessionId === selfSessionId.value && isLockedByMe.value) {
+            message.warning(i18n.global.t('editor.syncFailed'))
+            sendCollab({ type: 'unlock', data: { lockType: 'DOCUMENT' } })
+        }
+    }
+
     watch(isLockedByMe, async (val, oldVal) => {
         if (val && !oldVal) {
-            lockSyncing.value = true
-            try {
-                await options.onSyncFromServer()
-            } finally {
-                lockSyncing.value = false
-            }
+            await syncAcquiredLock()
         }
     })
 
@@ -374,6 +386,7 @@ export const useDocumentCollab = (options: UseDocumentCollabOptions) => {
 
     return {
         collabState,
+        selfSessionId,
         activeEditors,
         docLock,
         isLockedByMe,

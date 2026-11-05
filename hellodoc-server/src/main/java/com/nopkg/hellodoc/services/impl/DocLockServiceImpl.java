@@ -3,6 +3,7 @@ package com.nopkg.hellodoc.services.impl;
 import com.nopkg.hellodoc.entities.DocLock;
 import com.nopkg.hellodoc.enums.LockType;
 import com.nopkg.hellodoc.repositories.DocLockRepository;
+import com.nopkg.hellodoc.repositories.KbDocumentRepository;
 import com.nopkg.hellodoc.services.DocLockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,11 +19,13 @@ import java.util.Optional;
 public class DocLockServiceImpl implements DocLockService {
 
     private final DocLockRepository lockRepository;
+    private final KbDocumentRepository documentRepository;
     private static final int LOCK_TTL_SECONDS = 30;
 
     @Override
     @Transactional
     public boolean acquireLock(Long docId, Long userId, String sessionId, LockType lockType, String blockId) {
+        if (documentRepository.findByIdForUpdate(docId).isEmpty()) return false;
         Optional<DocLock> existing = findExistingLock(docId, lockType, blockId);
 
         if (existing.isPresent()) {

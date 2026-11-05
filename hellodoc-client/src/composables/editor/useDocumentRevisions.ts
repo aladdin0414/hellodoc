@@ -6,6 +6,7 @@ import { i18n } from '../../i18n'
 interface UseDocumentRevisionsOptions<TDoc extends { id: number; content?: string; version: number }> {
     currentDoc: Ref<TDoc | null>
     loadDocumentById: (docId: number, options?: { navigate?: boolean; optimisticActive?: boolean }) => Promise<any>
+    getCollabSessionId?: () => string | null
     showRevisions: Ref<boolean>
     showDiffModal: Ref<boolean>
 }
@@ -85,7 +86,7 @@ export const useDocumentRevisions = <TDoc extends { id: number; content?: string
     const handleRestoreRevision = async () => {
         if (!options.currentDoc.value || !selectedRevision.value) return
         try {
-            await restoreRevision(options.currentDoc.value.id, selectedRevision.value.version, options.currentDoc.value.version)
+            await restoreRevision(options.currentDoc.value.id, selectedRevision.value.version, options.currentDoc.value.version, options.getCollabSessionId?.())
             message.success(i18n.global.t('editor.restoredVersion', { version: selectedRevision.value.version }))
             showDiffModal.value = false
             showRevisions.value = false

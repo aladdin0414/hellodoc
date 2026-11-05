@@ -3,6 +3,8 @@ package com.nopkg.hellodoc.services;
 import com.nopkg.hellodoc.entities.DocLock;
 import com.nopkg.hellodoc.enums.LockType;
 import com.nopkg.hellodoc.repositories.DocLockRepository;
+import com.nopkg.hellodoc.repositories.KbDocumentRepository;
+import com.nopkg.hellodoc.entities.KbDocument;
 import com.nopkg.hellodoc.services.impl.DocLockServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,12 +24,24 @@ public class DocLockServiceTest {
     @Mock
     private DocLockRepository lockRepository;
 
+    @Mock
+    private KbDocumentRepository documentRepository;
+
     @InjectMocks
     private DocLockServiceImpl lockService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(documentRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(new KbDocument()));
+    }
+
+    @Test
+    void serializesLockAcquisitionOnDocumentRow() {
+        assertTrue(lockService.acquireLock(1L, 100L, "session1", LockType.DOCUMENT, null));
+        var ordered = inOrder(documentRepository, lockRepository);
+        ordered.verify(documentRepository).findByIdForUpdate(1L);
+        ordered.verify(lockRepository).findByDocIdAndLockType(1L, LockType.DOCUMENT);
     }
 
     @Test

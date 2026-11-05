@@ -24,6 +24,8 @@ class RealApiFullE2ETest {
     @Autowired UserAuthRepository auths;
     @Autowired PasswordEncoder encoder;
     @Autowired ObjectMapper mapper;
+    @Autowired com.nopkg.hellodoc.services.DocLockService locks;
+    @Autowired com.nopkg.hellodoc.services.ConfigService configs;
     private final RestTemplate http = new RestTemplate();
 
     @Test void realHttpRegistrationDocumentVersionAndRevisionFlow() throws Exception {
@@ -51,8 +53,48 @@ class RealApiFullE2ETest {
                 Map.of("name", "E2E Doc", "type", "file", "content", "Initial Content"));
         assertEquals(0, created.path("code").asInt(), created.toString());
         long docId = created.path("data").path("id").asLong();
+        var collabConfig = new com.nopkg.hellodoc.entities.SysConfig();
+        collabConfig.setConfigKey("app.collab.enabled"); collabConfig.setConfigName("collaboration");
+        collabConfig.setConfigValue("true"); collabConfig.setIsFrontend(true); collabConfig.setIsSystem(false); collabConfig.setStatus((short) 0);
+        configs.createConfig(collabConfig);
+        assertThrows(java.util.concurrent.CompletionException.class, () ->
+                java.net.http.HttpClient.newHttpClient().newWebSocketBuilder()
+                        .buildAsync(java.net.URI.create("ws://127.0.0.1:" + port + "/ws/doc/" + docId),
+                                new java.net.http.WebSocket.Listener() {}).join());
+        var sync = new java.util.concurrent.CompletableFuture<String>();
+        var socket = java.net.http.HttpClient.newHttpClient().newWebSocketBuilder()
+                .buildAsync(java.net.URI.create("ws://127.0.0.1:" + port + "/ws/doc/" + docId + "?token=" + token),
+                        new java.net.http.WebSocket.Listener() {
+                            @Override public java.util.concurrent.CompletionStage<?> onText(java.net.http.WebSocket ws, CharSequence data, boolean last) {
+                                sync.complete(data.toString()); ws.request(1); return null;
+                            }
+                        }).join();
+        assertTrue(sync.get(3, java.util.concurrent.TimeUnit.SECONDS).contains("\"sync\""));
+        socket.sendClose(java.net.http.WebSocket.NORMAL_CLOSURE, "done").join();
         int version = created.path("data").path("version").asInt();
         String doc = "/api/kb/" + kbId + "/documents/" + docId;
+        long userId = auths.findByIdentifierAndIdentityType(username, "PASSWORD").orElseThrow().getUser().getId();
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        var first = pool.submit(() -> { start.await(); return locks.acquireLock(docId, userId, "one", com.nopkg.hellodoc.enums.LockType.DOCUMENT, null); });
+        var second = pool.submit(() -> { start.await(); return locks.acquireLock(docId, userId, "two", com.nopkg.hellodoc.enums.LockType.DOCUMENT, null); });
+        start.countDown();
+        boolean a = first.get(); boolean b = second.get(); pool.shutdown();
+        assertNotEquals(a, b, "only one simultaneous lock acquisition may succeed");
+        String owner = a ? "one" : "two";
+        JsonNode rejected = request(HttpMethod.PUT, doc, token, Map.of("content", "Intruder", "expectedVersion", version));
+        assertEquals(1016, rejected.path("code").asInt(), rejected.toString());
+        JsonNode rejectedRevision = request(HttpMethod.POST, doc + "/revisions", token,
+                Map.of("content", "Intruder revision", "message", "test", "expectedVersion", version));
+        assertEquals(1016, rejectedRevision.path("code").asInt(), rejectedRevision.toString());
+        JsonNode rejectedRestore = request(HttpMethod.POST, "/api/docs/" + docId + "/revisions/1/restore?expectedVersion=" + version, token, null);
+        assertEquals(1016, rejectedRestore.path("code").asInt(), rejectedRestore.toString());
+        JsonNode accepted = request(HttpMethod.PUT, doc, token, Map.of("content", "Owner", "expectedVersion", version, "collabSessionId", owner));
+        assertEquals(0, accepted.path("code").asInt(), accepted.toString());
+        version = accepted.path("data").path("version").asInt();
+        locks.releaseLock(docId, owner, com.nopkg.hellodoc.enums.LockType.DOCUMENT, null);
+        JsonNode staleLock = request(HttpMethod.PUT, doc, token, Map.of("content", "Stale owner", "expectedVersion", version, "collabSessionId", owner));
+        assertEquals(1016, staleLock.path("code").asInt(), staleLock.toString());
         JsonNode missingVersion = request(HttpMethod.PUT, doc, token, Map.of("content", "Unversioned"));
         assertEquals(1015, missingVersion.path("code").asInt(), missingVersion.toString());
         JsonNode updated = request(HttpMethod.PUT, doc, token, Map.of("content", "Updated Content", "expectedVersion", version));

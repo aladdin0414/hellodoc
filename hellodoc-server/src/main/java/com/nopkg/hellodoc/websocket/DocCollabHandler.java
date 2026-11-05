@@ -55,6 +55,7 @@ public class DocCollabHandler extends TextWebSocketHandler {
         try {
             permissionChecker.checkDocRole(userId, docId, DocRole.VIEWER);
         } catch (Exception e) {
+            log.warn("Unable to authorize WebSocket session for user {} and document {}", userId, docId, e);
             session.close(CloseStatus.POLICY_VIOLATION);
             return;
         }

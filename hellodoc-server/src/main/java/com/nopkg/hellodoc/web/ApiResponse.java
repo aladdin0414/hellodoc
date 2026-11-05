@@ -79,6 +79,7 @@ public class ApiResponse<T> {
         UPLOAD_AVATAR_FAILED(1013, "Failed to upload avatar"),
         VERSION_CONFLICT(1014, "Document changed; reload before saving"),
         VERSION_REQUIRED(1015, "Client upgrade required: document version is missing"),
+        DOCUMENT_LOCKED(1016, "Document is locked by another editing session"),
         UNAUTHORIZED(401, "Unauthorized or session expired"),
         NO_PERMISSION(403, "No permission"),
         SYSTEM_ERROR(9999, "System error");

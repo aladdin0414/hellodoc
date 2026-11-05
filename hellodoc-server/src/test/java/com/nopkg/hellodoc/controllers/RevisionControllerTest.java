@@ -113,7 +113,7 @@ public class RevisionControllerTest {
         mockMvc.perform(post("/api/docs/{docId}/revisions/{version}/restore", docId, version))
                 .andExpect(status().isOk());
 
-        verify(revisionService).restoreRevision(eq(docId), eq(version), eq(100L), org.mockito.ArgumentMatchers.isNull());
+        verify(revisionService).restoreRevision(eq(docId), eq(version), eq(100L), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.isNull());
     }
 
     @Test

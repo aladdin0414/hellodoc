@@ -14,6 +14,7 @@ public class DocUpdateDTO {
     private DocStatus status;
     private String content;
     private Integer expectedVersion;
+    private String collabSessionId;
     private Boolean isOpen;
     private Boolean isCover;
     private String slug;

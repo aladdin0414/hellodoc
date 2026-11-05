@@ -33,6 +33,8 @@ import java.util.List;
 public class RevisionServiceImpl implements RevisionService {
     @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.nopkg.hellodoc.services.DocumentWriteLockGuard writeLockGuard;
     private final KbDocumentRevisionRepository revisionRepository;
     private final KbDocumentRepository documentRepository;
     private final KbDocumentContentRepository contentRepository;
@@ -126,9 +128,16 @@ public class RevisionServiceImpl implements RevisionService {
     @Override
     @Transactional
     public void restoreRevision(Long docId, Integer version, Long userId, Integer expectedVersion) {
+        restoreRevision(docId, version, userId, expectedVersion, null);
+    }
+
+    @Override
+    @Transactional
+    public void restoreRevision(Long docId, Integer version, Long userId, Integer expectedVersion, String collabSessionId) {
         KbDocument locked = documentRepository.findByIdForUpdate(docId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", docId));
         entityManager.refresh(locked, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        writeLockGuard.check(docId, userId, collabSessionId);
         if (expectedVersion == null) throw new BusinessException(ApiResponse.Code.VERSION_REQUIRED);
         if (!expectedVersion.equals(locked.getCurrentVersion() == null ? 0 : locked.getCurrentVersion()))
             throw new BusinessException(ApiResponse.Code.VERSION_CONFLICT);
