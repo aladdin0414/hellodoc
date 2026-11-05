@@ -1,12 +1,12 @@
 // 本文件由 scripts/release.js 自动生成，请勿手动修改
-export const APP_VERSION = '3.5.2';
-export const BUILD_TIME = '2026/11/05 09:11:47';
-export const GIT_COMMIT = 'c2709cb';
+export const APP_VERSION = '3.5.3';
+export const BUILD_TIME = '2026/11/05 15:30:58';
+export const GIT_COMMIT = 'b5b3f16';
 export const RELEASE_NOTES: string[] = [
-  "fix: 完善 AI 助手、模型配置、错误提示和移动端创建知识库的中英文显示，修复缺失词条。",
-  "fix: 修复移动端语言偏好保存与跨端同步，并使页面标题和日期格式跟随语言切换。",
-  "fix: 修复服务端消息、通知和 AI 流式错误的语言选择，补齐文档版本冲突等提示。",
-  "chore: 增加前后端国际化词条、语言切换和错误处理检查，并将客户端国际化检查加入镜像发布流程。"
+  "fix: 修复文档协作 WebSocket 连接及权限校验，恢复多人会话的连接与锁状态同步。",
+  "fix: 串行化文档抢锁，并在保存、MCP 写入及版本恢复时校验有效编辑锁，防止其他会话绕过持锁者写入。",
+  "fix: 修复协作同步失败和断线重连处理；编辑器在失去编辑权时保持只读并保留本地草稿。",
+  "chore: 自定义客户端在持锁编辑时，更新正文或创建版本需提交 `collabSessionId`，恢复版本时需提供同名参数；部署时请同时升级前后端。"
 ];
 
 export default {

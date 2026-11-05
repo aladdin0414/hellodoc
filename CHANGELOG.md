@@ -1,5 +1,21 @@
 # Changelog
 
+## [v3.5.3] - 2026-11-05
+
+### 更新说明
+
+- fix: 修复文档协作 WebSocket 连接及权限校验，恢复多人会话的连接与锁状态同步。
+- fix: 串行化文档抢锁，并在保存、MCP 写入及版本恢复时校验有效编辑锁，防止其他会话绕过持锁者写入。
+- fix: 修复协作同步失败和断线重连处理；编辑器在失去编辑权时保持只读并保留本地草稿。
+- chore: 自定义客户端在持锁编辑时，更新正文或创建版本需提交 `collabSessionId`，恢复版本时需提供同名参数；部署时请同时升级前后端。
+
+### Changelog
+
+- fix: restore collaborative WebSocket connections, permission checks, and synchronization of session lock state.
+- fix: serialize document lock acquisition and validate active edit locks during saves, MCP writes, and revision restores to prevent other sessions from bypassing the lock owner.
+- fix: handle collaboration synchronization failures and reconnection correctly; keep the editor read-only and preserve local drafts when edit access is lost.
+- chore: custom clients editing with a lock must provide `collabSessionId` when updating content or creating a revision, and the parameter of the same name when restoring a revision; upgrade the frontend and backend together.
+
 ## [v3.5.2] - 2026-11-05
 
 ### 更新说明
