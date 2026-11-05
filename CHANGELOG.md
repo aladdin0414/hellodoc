@@ -1,5 +1,17 @@
 # Changelog
 
+## [v3.6.2] - 2026-11-05
+
+### 更新说明
+
+- fix: 统一富文本编辑、Markdown 源码预览和发布阅读页的正文排版样式，修复表格、标题和段落显示不一致的问题。
+- fix: 保留 Markdown 表格的列对齐设置，统一亮色和暗色主题下的表格行高与边框样式。
+
+### Changelog
+
+- fix: Unify document typography across the visual editor, Markdown source preview, and published reading view, fixing inconsistent tables, headings, and paragraphs.
+- fix: Preserve Markdown table column alignment and unify row heights and borders in light and dark themes.
+
 ## [v3.6.1] - 2026-11-05
 
 ### 更新说明
