@@ -1,5 +1,23 @@
 # Changelog
 
+## [v3.6.0] - 2026-11-05
+
+### 更新说明
+
+- feat: 新增知识库所有权转让功能，支持所有者安全交接管理权并更新成员身份。
+- feat: 新增知识库访客留言开关配置，配套数据库 V6 迁移脚本，支持按库启用或禁用留言板。
+- feat: 新增知识库设置中的 MCP Token 快捷管理入口，优化 Token 交互体验。
+- fix: 强化知识库及私有文档的成员鉴权逻辑，修复未发布文档在特定公开场景下的越权风险。
+- docs: 补充全面的 API 接口文档，更新项目说明与 MCP 使用指南。
+
+### Changelog
+
+- feat: add knowledge base ownership transfer to allow owners to safely hand over administration and update membership.
+- feat: add guestbook toggle for knowledge bases with V6 database migrations to enable or disable guestbooks per base.
+- feat: add shortcut modal for MCP token management in knowledge base settings to streamline token interaction.
+- fix: strengthen member authorization for knowledge bases and private documents to prevent unauthorized access to unpublished documents.
+- docs: add comprehensive API documentation and update project guides and MCP documentation.
+
 ## [v3.5.3] - 2026-11-05
 
 ### 更新说明
