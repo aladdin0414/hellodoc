@@ -69,36 +69,23 @@ html.theme-transition *::after {
 }
 
 /* 修复 Tailwind preflight 重置列表样式导致预览列表渲染异常 */
-.md-editor-preview ol,
-.md-editor-preview-wrapper ol,
-.v-md-editor-preview ol,
-div.github-theme ol {
+.v-md-editor-preview ol {
     list-style-type: decimal !important;
     padding-inline-start: 2em !important;
     margin: 0.6em 0 !important;
 }
 
-.md-editor-preview ul,
-.md-editor-preview-wrapper ul,
-.v-md-editor-preview ul,
-div.github-theme ul {
+.v-md-editor-preview ul {
     list-style-type: disc !important;
     padding-inline-start: 2em !important;
     margin: 0.6em 0 !important;
 }
 
-.md-editor-preview li,
-.md-editor-preview-wrapper li,
-.v-md-editor-preview li,
-div.github-theme li {
+.v-md-editor-preview li {
     display: list-item !important;
 }
 
-/* 消除 li 内部 p 标签的多余 margin，防止内容被推到列表标记下方 */
-.md-editor-preview li > p,
-.md-editor-preview-wrapper li > p,
-.v-md-editor-preview li > p,
-div.github-theme li > p {
+.v-md-editor-preview li > p {
     display: inline !important;
 }
 
@@ -265,8 +252,7 @@ div.github-theme li > p {
 }
 
 /* 极简表格样式覆盖 */
-.v-md-editor-preview table,
-.md-editor-preview table {
+.v-md-editor-preview table {
     border: 1px solid #e2e8f0 !important;
     border-radius: 8px !important;
     border-collapse: separate !important;
@@ -281,16 +267,13 @@ div.github-theme li > p {
 
 /* 覆盖可能导致宽度受限的 max-width 限制 */
 .v-md-editor-preview .v-md-editor__preview-wrapper,
-.v-md-editor-preview .github-markdown-body,
-.md-editor-preview table {
+.v-md-editor-preview .github-markdown-body {
     max-width: none !important;
     width: 100% !important;
 }
 
 .v-md-editor-preview table th,
-.v-md-editor-preview table td,
-.md-editor-preview table th,
-.md-editor-preview table td {
+.v-md-editor-preview table td {
     border: none !important;
     border-bottom: 1px solid #f1f5f9 !important;
     /* 极细水平线 */
@@ -302,13 +285,11 @@ div.github-theme li > p {
 }
 
 /* 移除最后一行底边框 */
-.v-md-editor-preview table tr:last-child td,
-.md-editor-preview table tr:last-child td {
+.v-md-editor-preview table tr:last-child td {
     border-bottom: none !important;
 }
 
-.v-md-editor-preview table th,
-.md-editor-preview table th {
+.v-md-editor-preview table th {
     background-color: transparent !important;
     font-weight: 600 !important;
     color: #1e293b !important;
@@ -322,47 +303,32 @@ div.github-theme li > p {
 .v-md-editor-preview table thead,
 .v-md-editor-preview table tr:first-child,
 .v-md-editor-preview table tr:first-child th,
-.v-md-editor-preview table tr:first-child td,
-.md-editor-preview table thead,
-.md-editor-preview table tr,
-.md-editor-preview table tr:nth-child(2n),
-.md-editor-preview table tr:first-child,
-.md-editor-preview table tr:first-child th,
-.md-editor-preview table tr:first-child td {
+.v-md-editor-preview table tr:first-child td {
     border-top: none !important;
     background-color: transparent !important;
 }
 
 /* 暗黑模式适配 */
-.dark .v-md-editor-preview table,
-.dark .md-editor-preview table {
+.dark .v-md-editor-preview table {
     border-color: #374151 !important;
 }
 
 .dark .v-md-editor-preview table th,
-.dark .v-md-editor-preview table td,
-.dark .md-editor-preview table th,
-.dark .md-editor-preview table td {
+.dark .v-md-editor-preview table td {
     border-bottom-color: #374151 !important;
     color: #e5e7eb !important;
     background-color: transparent !important;
 }
 
-.dark .v-md-editor-preview table th,
-.dark .md-editor-preview table th {
+.dark .v-md-editor-preview table th {
     color: #f3f4f6 !important;
     border-bottom-color: #4b5563 !important;
 }
 
-.dark .v-md-editor-preview table tr:last-child td,
-.dark .md-editor-preview table tr:last-child td {
+.dark .v-md-editor-preview table tr:last-child td {
     border-bottom: none !important;
 }
 
-.dark .md-editor-preview table tr,
-.dark .md-editor-preview table tr:nth-child(2n) {
-    background-color: transparent !important;
-}
 
 /* 极简分割线 */
 .v-md-editor-preview hr {

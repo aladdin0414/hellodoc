@@ -1,28 +1,5 @@
 /* Markdown 渲染共享样式：DocumentEditor.vue / KnowledgeBaseView.vue */
 
-/* 列表 */
-:deep(.md-editor-preview) ul,
-:deep(.md-editor-preview) ol {
-    padding-left: 1.5em !important;
-    margin: 1em 0 !important;
-    display: block !important;
-    list-style-position: outside !important;
-}
-
-:deep(.md-editor-preview) ul {
-    list-style-type: disc !important;
-}
-
-:deep(.md-editor-preview) ol {
-    list-style-type: decimal !important;
-}
-
-:deep(.md-editor-preview) li {
-    display: list-item !important;
-    margin: 0.25em 0 !important;
-    list-style: inherit !important;
-}
-
 :deep(.md-editor-preview) ul.contains-task-list {
     padding-left: 1.5em !important;
 }
@@ -33,34 +10,6 @@
 
 :deep(.md-editor-preview) li.task-list-item > input[type='checkbox'] {
     margin-right: 0.5em !important;
-}
-
-/* 表格 */
-:deep(.md-editor-preview) table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    border-spacing: 0 !important;
-    margin: 1rem 0 !important;
-    background-color: transparent !important;
-    font-size: 0.875em !important;
-}
-
-:deep(.md-editor-preview) thead th {
-    font-weight: 600 !important;
-    text-align: left !important;
-    padding: 0.75rem 0.875rem !important;
-    border-bottom: 1px solid #e5e7eb !important;
-    white-space: nowrap;
-}
-
-:deep(.md-editor-preview) tbody td {
-    padding: 0.75rem 0.875rem !important;
-    border-bottom: 1px solid #f1f5f9 !important;
-    vertical-align: middle !important;
-}
-
-:deep(.md-editor-preview) tbody tr:last-child td {
-    border-bottom: 0 !important;
 }
 
 /* 图片/视频/媒体块 */
@@ -156,12 +105,4 @@
 .dark :deep(.md-editor-preview) blockquote {
     border-left-color: #475569 !important;
     color: #94a3b8 !important;
-}
-
-.dark :deep(.md-editor-preview) thead th {
-    border-bottom-color: #334155 !important;
-}
-
-.dark :deep(.md-editor-preview) tbody td {
-    border-bottom-color: #1f2937 !important;
 }

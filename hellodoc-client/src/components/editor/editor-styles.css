@@ -1,27 +1,34 @@
-.ProseMirror {
-    @apply outline-none min-h-[400px] w-full max-w-none text-[16px] leading-[1.75];
+:is(.ProseMirror, .md-editor-preview.github-theme) {
+    @apply outline-none w-full max-w-none text-[16px] leading-[1.75];
+    color: #1e293b;
 }
 
-.ProseMirror > *:first-child {
+.ProseMirror { min-height: 400px; }
+
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) {
+    color: #cbd5e1;
+}
+
+:is(.ProseMirror, .md-editor-preview.github-theme) > *:first-child {
     margin-top: 0;
 }
 
 /* ===== Tiptap 排版样式 ===== */
-.ProseMirror p {
+:is(.ProseMirror, .md-editor-preview.github-theme) p {
     margin: 1.25em 0;
     line-height: 1.8;
     letter-spacing: 0.005em;
     color: #1e293b;
 }
-.dark .ProseMirror p {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) p {
     color: #cbd5e1;
 }
 
-.ProseMirror .resizable-image-wrapper {
+:is(.ProseMirror, .md-editor-preview.github-theme) .resizable-image-wrapper {
     margin: 1.25em 0;
 }
 
-.ProseMirror video {
+:is(.ProseMirror, .md-editor-preview.github-theme) video {
     display: block;
     max-width: 100%;
     height: auto;
@@ -29,159 +36,164 @@
     border-radius: 0.5rem;
 }
 
-.ProseMirror ul,
-.ProseMirror ol {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul,
+:is(.ProseMirror, .md-editor-preview.github-theme) ol {
     margin: 0.85em 0;
     padding-left: 1.6em;
 }
 
-.ProseMirror li > ul,
-.ProseMirror li > ol {
+:is(.ProseMirror, .md-editor-preview.github-theme) li > ul,
+:is(.ProseMirror, .md-editor-preview.github-theme) li > ol {
     margin: 0.25em 0 0.35em;
 }
 
-.ProseMirror ul {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul {
     list-style-type: disc;
 }
 
-.ProseMirror ul ul {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul ul {
     list-style-type: circle;
 }
 
-.ProseMirror ul ul ul {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul ul ul {
     list-style-type: square;
 }
 
-.ProseMirror ol {
+:is(.ProseMirror, .md-editor-preview.github-theme) ol {
     list-style-type: decimal;
 }
 
 /* 有序列表序号颜色 */
-.ProseMirror ol > li::marker {
+:is(.ProseMirror, .md-editor-preview.github-theme) ol > li::marker {
     color: #64748b;
     font-weight: 500;
 }
 
 /* 嵌套有序列表使用右括号区分层级。 */
-.ProseMirror ol ol > li::marker {
+:is(.ProseMirror, .md-editor-preview.github-theme) ol ol > li::marker {
     content: counter(list-item) ") ";
 }
 
-.dark .ProseMirror ol > li::marker {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) ol > li::marker {
     color: #94a3b8;
 }
 
 /* 无序列表圆点颜色 (优雅中性浅灰，如 • ◦) */
-.ProseMirror ul > li::marker {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul > li::marker {
     color: #94a3b8;
 }
 
-.dark .ProseMirror ul > li::marker {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) ul > li::marker {
     color: #64748b;
 }
 
-.ProseMirror li {
+:is(.ProseMirror, .md-editor-preview.github-theme) li {
     margin: 0.3em 0;
     line-height: 1.75;
     letter-spacing: 0.005em;
 }
 
-.ProseMirror li p {
+:is(.ProseMirror, .md-editor-preview.github-theme) li p {
     margin: 0.15em 0;
     line-height: 1.75;
 }
 
-.ProseMirror h1,
-.ProseMirror h2,
-.ProseMirror h3,
-.ProseMirror h4,
-.ProseMirror h5,
-.ProseMirror h6 {
+:is(.ProseMirror, .md-editor-preview.github-theme) h1,
+:is(.ProseMirror, .md-editor-preview.github-theme) h2,
+:is(.ProseMirror, .md-editor-preview.github-theme) h3,
+:is(.ProseMirror, .md-editor-preview.github-theme) h4,
+:is(.ProseMirror, .md-editor-preview.github-theme) h5,
+:is(.ProseMirror, .md-editor-preview.github-theme) h6 {
     color: #0f172a;
     font-weight: 700;
     letter-spacing: -0.015em;
+    padding: 0;
+    border: 0;
 }
-.dark .ProseMirror h1,
-.dark .ProseMirror h2,
-.dark .ProseMirror h3,
-.dark .ProseMirror h4,
-.dark .ProseMirror h5,
-.dark .ProseMirror h6 {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) h1,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) h2,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) h3,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) h4,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) h5,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) h6 {
     color: #f8fafc;
 }
 
-.ProseMirror h1 {
+:is(.ProseMirror, .md-editor-preview.github-theme) h1 {
     font-size: 1.75em;
     line-height: 1.35;
     margin-top: 1.8em;
     margin-bottom: 0.85em;
 }
-.ProseMirror h1:first-child {
+:is(.ProseMirror, .md-editor-preview.github-theme) h1:first-child {
     margin-top: 0.25em;
     margin-bottom: 1.1em;
 }
 
-.ProseMirror h2 {
+:is(.ProseMirror, .md-editor-preview.github-theme) h2 {
     font-size: 1.4em;
     line-height: 1.4;
     margin-top: 1.8em;
     margin-bottom: 0.75em;
 }
 
-.ProseMirror h3 {
+:is(.ProseMirror, .md-editor-preview.github-theme) h3 {
     font-size: 1.18em;
     line-height: 1.45;
     margin-top: 1.5em;
     margin-bottom: 0.6em;
 }
 
-.ProseMirror h4 {
+:is(.ProseMirror, .md-editor-preview.github-theme) h4 {
     font-size: 1.05em;
     line-height: 1.45;
     margin-top: 1.35em;
     margin-bottom: 0.5em;
 }
 
-.ProseMirror h5 {
+:is(.ProseMirror, .md-editor-preview.github-theme) h5 {
     font-size: 0.95em;
     line-height: 1.45;
     margin-top: 1.2em;
     margin-bottom: 0.45em;
 }
 
-.ProseMirror h6 {
+:is(.ProseMirror, .md-editor-preview.github-theme) h6 {
     font-size: 0.9em;
     line-height: 1.45;
     margin-top: 1.1em;
     margin-bottom: 0.4em;
 }
 
-.ProseMirror code {
+:is(.ProseMirror, .md-editor-preview.github-theme) code {
     background: #f1f5f9;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     color: #0f172a;
     font-size: 0.92em;
+    line-height: inherit;
     padding: 0.12em 0.4em;
 }
-.dark .ProseMirror mark {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) mark {
     background: #854d0e;
     color: #fef9c3;
 }
-.ProseMirror mark {
+:is(.ProseMirror, .md-editor-preview.github-theme) mark {
     background: #fef08a;
     color: #713f12;
     border-radius: 3px;
     padding: 0 2px;
 }
-.dark .ProseMirror code {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) code {
     background: #1e293b;
     border-color: #334155;
     color: #e2e8f0;
 }
 
-.ProseMirror pre {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre {
     position: relative;
+    font-size: 16px;
+    line-height: 1.75;
     margin: 1em 0;
     background: #f8fafc;
     color: #334155;
@@ -190,107 +202,108 @@
     padding: 12px 42px 12px 14px;
     overflow-x: auto;
 }
-.dark .ProseMirror pre {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre {
     background: #0f172a;
     color: #e2e8f0;
     border-color: #1e293b;
 }
 
-.ProseMirror pre code {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre code {
     background: none !important;
     color: inherit !important;
     font-size: 0.8rem !important;
+    line-height: 1.75;
     padding: 0 !important;
     border-radius: 0 !important;
     border: none !important;
 }
 
 /* ===== 语法高亮 - 白天模式 (Light Theme) ===== */
-.ProseMirror pre .hljs-comment,
-.ProseMirror pre .hljs-quote {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-comment,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-quote {
     color: #64748b;
     font-style: italic;
 }
-.ProseMirror pre .hljs-variable,
-.ProseMirror pre .hljs-template-variable,
-.ProseMirror pre .hljs-attribute,
-.ProseMirror pre .hljs-tag,
-.ProseMirror pre .hljs-name,
-.ProseMirror pre .hljs-regexp,
-.ProseMirror pre .hljs-link,
-.ProseMirror pre .hljs-selector-id,
-.ProseMirror pre .hljs-selector-class {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-variable,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-template-variable,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-attribute,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-tag,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-name,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-regexp,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-link,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-selector-id,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-selector-class {
     color: #9333ea; /* Purple */
 }
-.ProseMirror pre .hljs-number,
-.ProseMirror pre .hljs-meta,
-.ProseMirror pre .hljs-built_in,
-.ProseMirror pre .hljs-builtin-name,
-.ProseMirror pre .hljs-literal,
-.ProseMirror pre .hljs-type,
-.ProseMirror pre .hljs-params {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-number,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-meta,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-built_in,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-builtin-name,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-literal,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-type,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-params {
     color: #ea580c; /* Orange */
 }
-.ProseMirror pre .hljs-string,
-.ProseMirror pre .hljs-symbol,
-.ProseMirror pre .hljs-bullet {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-string,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-symbol,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-bullet {
     color: #16a34a; /* Green */
 }
-.ProseMirror pre .hljs-title,
-.ProseMirror pre .hljs-section {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-title,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-section {
     color: #2563eb; /* Blue */
 }
-.ProseMirror pre .hljs-keyword,
-.ProseMirror pre .hljs-selector-tag {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-keyword,
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-selector-tag {
     color: #dc2626; /* Red */
 }
-.ProseMirror pre .hljs-emphasis {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-emphasis {
     font-style: italic;
 }
-.ProseMirror pre .hljs-strong {
+:is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-strong {
     font-weight: 700;
 }
 
 /* ===== 语法高亮 - 暗色模式 (Dark Theme) ===== */
-.dark .ProseMirror pre .hljs-comment,
-.dark .ProseMirror pre .hljs-quote {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-comment,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-quote {
     color: #94a3b8;
 }
-.dark .ProseMirror pre .hljs-variable,
-.dark .ProseMirror pre .hljs-template-variable,
-.dark .ProseMirror pre .hljs-attribute,
-.dark .ProseMirror pre .hljs-tag,
-.dark .ProseMirror pre .hljs-name,
-.dark .ProseMirror pre .hljs-regexp,
-.dark .ProseMirror pre .hljs-link,
-.dark .ProseMirror pre .hljs-selector-id,
-.dark .ProseMirror pre .hljs-selector-class {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-variable,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-template-variable,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-attribute,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-tag,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-name,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-regexp,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-link,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-selector-id,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-selector-class {
     color: #fca5a5;
 }
-.dark .ProseMirror pre .hljs-number,
-.dark .ProseMirror pre .hljs-meta,
-.dark .ProseMirror pre .hljs-built_in,
-.dark .ProseMirror pre .hljs-builtin-name,
-.dark .ProseMirror pre .hljs-literal,
-.dark .ProseMirror pre .hljs-type,
-.dark .ProseMirror pre .hljs-params {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-number,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-meta,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-built_in,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-builtin-name,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-literal,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-type,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-params {
     color: #fdba74;
 }
-.dark .ProseMirror pre .hljs-string,
-.dark .ProseMirror pre .hljs-symbol,
-.dark .ProseMirror pre .hljs-bullet {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-string,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-symbol,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-bullet {
     color: #86efac;
 }
-.dark .ProseMirror pre .hljs-title,
-.dark .ProseMirror pre .hljs-section {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-title,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-section {
     color: #fde68a;
 }
-.dark .ProseMirror pre .hljs-keyword,
-.dark .ProseMirror pre .hljs-selector-tag {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-keyword,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) pre .hljs-selector-tag {
     color: #7dd3fc;
 }
 
-.ProseMirror blockquote {
+:is(.ProseMirror, .md-editor-preview.github-theme) blockquote {
     margin: 1em 0;
     padding: 0.25em 0 0.25em 0.9em;
     border-left: 3px solid #94a3b8;
@@ -298,42 +311,43 @@
     background: #f8fafc;
     border-radius: 0 8px 8px 0;
 }
-.dark .ProseMirror blockquote {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) blockquote {
     border-left-color: #64748b;
     color: #cbd5e1;
     background: #1e293b;
 }
 
-.ProseMirror hr {
+:is(.ProseMirror, .md-editor-preview.github-theme) hr {
     border: none;
     @apply border-t border-gray-200 dark:border-gray-700;
     margin: 2rem 0;
 }
 
-.ProseMirror a {
+:is(.ProseMirror, .md-editor-preview.github-theme) a {
     color: #2563eb;
     text-decoration: underline;
     text-decoration-color: rgba(37, 99, 235, 0.45);
     text-underline-offset: 2px;
     cursor: pointer;
 }
-.ProseMirror a:hover {
+:is(.ProseMirror, .md-editor-preview.github-theme) a:hover {
     color: #1d4ed8;
 }
-.dark .ProseMirror a {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) a {
     color: #60a5fa;
     text-decoration-color: rgba(96, 165, 250, 0.5);
 }
-.dark .ProseMirror a:hover {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) a:hover {
     color: #93c5fd;
 }
 
-.ProseMirror p.is-editor-empty:first-child::before {
+:is(.ProseMirror, .md-editor-preview.github-theme) p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     @apply float-left text-gray-400 pointer-events-none h-0;
 }
-.ProseMirror table {
+:is(.ProseMirror, .md-editor-preview.github-theme) table {
     border-collapse: collapse;
+    display: table;
     margin: 1.1em 0;
     overflow: hidden;
     table-layout: fixed;
@@ -341,40 +355,49 @@
     border-radius: 0;
     border: 1px solid #cbd5e1;
 }
-.dark .ProseMirror table {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) table {
     border-color: #475569;
 }
 
-.ProseMirror td, .ProseMirror th {
+:is(.ProseMirror, .md-editor-preview.github-theme) table tr,
+:is(.ProseMirror, .md-editor-preview.github-theme) table tr:nth-child(2n) {
+    background: transparent;
+    border: 0;
+}
+
+:is(.ProseMirror, .md-editor-preview.github-theme) td,
+:is(.ProseMirror, .md-editor-preview.github-theme) th {
     border: 1px solid #cbd5e1;
+    text-align: start;
     box-sizing: border-box;
     min-width: 1em;
     padding: 4px 8px;
     position: relative;
     vertical-align: top;
     font-size: 15px;
+    line-height: 1.8;
 }
-.dark .ProseMirror td, .dark .ProseMirror th {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) td, .dark :is(.ProseMirror, .md-editor-preview.github-theme) th {
     border-color: #475569;
 }
 
-.ProseMirror td > *, .ProseMirror th > * {
+:is(.ProseMirror, .md-editor-preview.github-theme) td > *, :is(.ProseMirror, .md-editor-preview.github-theme) th > * {
     margin-bottom: 0;
 }
-.ProseMirror td > *:first-child, .ProseMirror th > *:first-child {
+:is(.ProseMirror, .md-editor-preview.github-theme) td > *:first-child, :is(.ProseMirror, .md-editor-preview.github-theme) th > *:first-child {
     margin-top: 0;
 }
 
-.ProseMirror th {
+:is(.ProseMirror, .md-editor-preview.github-theme) th {
     background: #f8fafc;
     font-weight: 600;
     text-align: left;
 }
-.dark .ProseMirror th {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) th {
     background: #1e293b;
 }
 
-.ProseMirror .selectedCell:after {
+:is(.ProseMirror, .md-editor-preview.github-theme) .selectedCell:after {
     background: rgba(200, 200, 255, 0.4);
     content: '';
     left: 0;
@@ -386,7 +409,7 @@
     z-index: 2;
 }
 
-.ProseMirror .column-resize-handle {
+:is(.ProseMirror, .md-editor-preview.github-theme) .column-resize-handle {
     background-color: #a855f7; /* purple-500 */
     bottom: -2px;
     pointer-events: none;
@@ -406,28 +429,28 @@
     cursor: col-resize;
 }
 
-.ProseMirror ul[data-type="taskList"] {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul[data-type="taskList"] {
     @apply list-none pl-0;
 }
-.ProseMirror ul[data-type="taskList"] li {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul[data-type="taskList"] li {
     @apply flex items-start mb-1;
 }
-.ProseMirror ul[data-type="taskList"] li > label {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul[data-type="taskList"] li > label {
     @apply flex-none mr-2 flex items-center justify-center pt-1.5;
 }
-.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul[data-type="taskList"] li > label input[type="checkbox"] {
     @apply m-0 w-4 h-4 cursor-pointer;
 }
-.ProseMirror ul[data-type="taskList"] li > div {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul[data-type="taskList"] li > div {
     @apply flex-1;
 }
-.ProseMirror ul[data-type="taskList"] li > div > p {
+:is(.ProseMirror, .md-editor-preview.github-theme) ul[data-type="taskList"] li > div > p {
     @apply mt-0 mb-1;
 }
 
 /* ===== 数学公式排版与背景块样式 (参考 AI 知识助理对话渲染) ===== */
-.ProseMirror div[data-type="block-math"],
-.ProseMirror .tiptap-mathematics-render[data-type="block-math"] {
+:is(.ProseMirror, .md-editor-preview.github-theme) div[data-type="block-math"],
+:is(.ProseMirror, .md-editor-preview.github-theme) .tiptap-mathematics-render[data-type="block-math"] {
     margin: 0.75rem 0;
     padding: 0.5rem 0.8rem;
     background-color: rgba(156, 163, 175, 0.08);
@@ -439,42 +462,42 @@
     transition: background-color 0.2s ease, outline-color 0.2s ease;
 }
 
-.dark .ProseMirror div[data-type="block-math"],
-.dark .ProseMirror .tiptap-mathematics-render[data-type="block-math"] {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) div[data-type="block-math"],
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) .tiptap-mathematics-render[data-type="block-math"] {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.ProseMirror div[data-type="block-math"]:hover,
-.ProseMirror .tiptap-mathematics-render[data-type="block-math"]:hover {
+:is(.ProseMirror, .md-editor-preview.github-theme) div[data-type="block-math"]:hover,
+:is(.ProseMirror, .md-editor-preview.github-theme) .tiptap-mathematics-render[data-type="block-math"]:hover {
     background-color: rgba(156, 163, 175, 0.14);
 }
 
-.dark .ProseMirror div[data-type="block-math"]:hover,
-.dark .ProseMirror .tiptap-mathematics-render[data-type="block-math"]:hover {
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) div[data-type="block-math"]:hover,
+.dark :is(.ProseMirror, .md-editor-preview.github-theme) .tiptap-mathematics-render[data-type="block-math"]:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
-.ProseMirror div[data-type="block-math"].ProseMirror-selectednode,
-.ProseMirror .tiptap-mathematics-render[data-type="block-math"].ProseMirror-selectednode {
+:is(.ProseMirror, .md-editor-preview.github-theme) div[data-type="block-math"]:is(.ProseMirror, .md-editor-preview.github-theme)-selectednode,
+:is(.ProseMirror, .md-editor-preview.github-theme) .tiptap-mathematics-render[data-type="block-math"]:is(.ProseMirror, .md-editor-preview.github-theme)-selectednode {
     outline: 2px solid #6366f1;
     outline-offset: 1px;
 }
 
-.ProseMirror div[data-type="block-math"] .block-math-inner,
-.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .block-math-inner {
+:is(.ProseMirror, .md-editor-preview.github-theme) div[data-type="block-math"] .block-math-inner,
+:is(.ProseMirror, .md-editor-preview.github-theme) .tiptap-mathematics-render[data-type="block-math"] .block-math-inner {
     display: inline-block;
     max-width: 100%;
 }
 
-.ProseMirror div[data-type="block-math"] .katex-display,
-.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .katex-display {
+:is(.ProseMirror, .md-editor-preview.github-theme) div[data-type="block-math"] .katex-display,
+:is(.ProseMirror, .md-editor-preview.github-theme) .tiptap-mathematics-render[data-type="block-math"] .katex-display {
     margin: 0.2rem 0;
     overflow-x: auto;
     overflow-y: hidden;
 }
 
-.ProseMirror div[data-type="block-math"] .katex,
-.ProseMirror .tiptap-mathematics-render[data-type="block-math"] .katex {
+:is(.ProseMirror, .md-editor-preview.github-theme) div[data-type="block-math"] .katex,
+:is(.ProseMirror, .md-editor-preview.github-theme) .tiptap-mathematics-render[data-type="block-math"] .katex {
     font-size: 1.05em;
     text-rendering: auto;
 }
