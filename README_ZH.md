@@ -2,15 +2,24 @@
 
 [English](README.md) | 简体中文
 
-HelloDoc 是一个可自行部署的知识库和文档协作系统，提供 Web、移动端页面和 Electron 桌面客户端，并支持通过 MCP 让 AI 客户端访问有权限的知识库。
+**AI Native 自部署知识库，让文档和 AI 工具在同一个知识体系中协作。**
 
-## 功能
+把个人笔记和团队文档整理到自己的知识库中。通过 MCP 连接兼容的 AI 客户端，在账号权限范围内检索、读取文档，辅助汇总信息，并将结果保存回知识库。
 
-- 知识库与文档：多层目录、文档和文件夹管理、同级排序、搜索与权限控制。
-- 文档编辑：富文本和 Markdown 编辑，支持表格、代码、数学公式及图表等内容。
-- AI 助手：配置模型后进行对话与文档辅助编辑。
-- MCP：通过远程 Streamable HTTP 连接，浏览、搜索、读取和更新文档，创建或移动文档与文件夹，并对同级子项排序。操作受账号权限控制。
-- 多端访问：响应式 Web、移动端页面和 Electron 桌面客户端，支持中文和英文界面。
+[使用 Docker 部署](#使用-docker-镜像) · [连接 MCP 客户端](#mcp-接入) · [查看版本](https://github.com/aladdin0414/hellodoc/releases) · [English](README.md)
+
+![HelloDoc 知识库首页，展示个人笔记、产品设计、项目协作和技术文档等知识库](docs/images/knowledge-bases-zh.jpg)
+
+## 从零散笔记到可用知识
+
+- **收集与分类：**创建知识库，用多级文件夹组织文档，通过搜索查找资料，并使用账号权限控制访问范围。
+- **写作与协作：**使用富文本或 Markdown 编写笔记和项目文档，支持表格、代码、公式及图表，并可与协作成员共享知识库。
+- **连接 AI 工具：**通过 MCP 让兼容客户端浏览、搜索、读取、创建和更新有权限的文档，以及整理文件夹。例如，让客户端查找相关笔记、汇总讨论内容，并将结果保存到合适的目录。
+- **自主部署与多端访问：**使用 Docker 部署 HelloDoc，通过 Web、移动端页面或 Electron 桌面客户端访问，界面支持中英文。
+
+![HelloDoc 文档阅读界面，展示目录、表格、列表和代码块](docs/images/document-zh.jpg)
+
+HelloDoc 可以部署在自己的电脑或服务器上。内置 AI 助手需要配置模型；模型服务单独配置，因此自部署 HelloDoc 并不意味着模型一定在本地运行。MCP 操作受账号权限控制，具体 AI 工作流还取决于所连接的客户端和模型。
 
 ## 技术栈与项目结构
 
@@ -59,6 +68,52 @@ docker compose -f docker-compose.hub.yml up -d
 可用 `docker compose -f docker-compose.hub.yml ps` 查看状态，使用 `docker compose -f docker-compose.hub.yml logs -f` 查看日志。若 8080 端口被占用，在 `.env` 中修改 `SERVER_PORT`。可用 `openssl rand -hex 64` 生成随机 JWT 密钥。
 
 升级前请备份数据库和数据目录；服务启动时会执行相应数据库迁移。镜像及版本见 [Docker Hub](https://hub.docker.com/r/aladdin0414/hellodoc) 和 [GitHub Releases](https://github.com/aladdin0414/hellodoc/releases)。
+
+### 使用 `docker run` 直接部署
+
+不使用 Compose 时，可以直接运行 PostgreSQL 和 HelloDoc 容器。以下命令适用于全新部署，需要 Docker 和 OpenSSL；在新目录中执行，以保存配置和数据：
+
+```bash
+mkdir hellodoc && cd hellodoc
+mkdir -p postgres-data data logs
+cat > .env <<EOF
+DB_USERNAME=postgres
+DB_PASSWORD=$(openssl rand -hex 24)
+JWT_SECRET=$(openssl rand -hex 64)
+ADMIN_PASSWORD=$(openssl rand -hex 16)
+EOF
+chmod 600 .env
+```
+
+`.env` 包含数据库密码、JWT 密钥和初始管理员密码，请妥善保存。创建专用网络并启动数据库：
+
+```bash
+docker network create hellodoc-net
+docker run -d --name hellodoc-db --restart unless-stopped \
+  --network hellodoc-net --network-alias hellodoc-db \
+  --env-file .env -e POSTGRES_DB=hellodoc \
+  -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD="$(grep '^DB_PASSWORD=' .env | cut -d= -f2-)" \
+  -v "$(pwd)/postgres-data:/var/lib/postgresql/data" postgres:15-alpine
+```
+
+等待数据库就绪；如果命令提示尚未就绪，稍等后重新执行：
+
+```bash
+docker exec hellodoc-db pg_isready -U postgres -d hellodoc
+```
+
+启动应用：
+
+```bash
+docker run -d --name hellodoc --restart unless-stopped \
+  --network hellodoc-net --env-file .env \
+  -e DB_URL=jdbc:postgresql://hellodoc-db:5432/hellodoc \
+  -e FILE_UPLOAD_DIR=/app/data \
+  -p 8080:8080 -v "$(pwd)/data:/app/data" -v "$(pwd)/logs:/app/logs" \
+  aladdin0414/hellodoc:latest
+```
+
+访问 `http://localhost:8080`，使用用户名 `admin` 和 `.env` 中的 `ADMIN_PASSWORD` 登录；可用 `grep '^ADMIN_PASSWORD=' .env` 查看初始密码。远程访问时将 `localhost` 替换为服务器地址；如需修改宿主机端口，请调整 `-p 8080:8080` 的第一个端口。数据库、上传文件和日志分别保存在当前目录的 `postgres-data`、`data` 和 `logs` 中。容器名称或网络已存在时，请先检查现有部署，避免覆盖数据。下面的备份和恢复命令使用 Compose；直接运行的容器需要用 `docker exec` 执行相应的 `pg_dump` 和 `pg_restore`。
 
 ### 备份、恢复与失败首装修复
 

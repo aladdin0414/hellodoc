@@ -2,15 +2,24 @@
 
 English | [简体中文](README_ZH.md)
 
-HelloDoc is a self-hosted knowledge base and document collaboration system with web, mobile web, and Electron desktop clients. AI clients can access authorized knowledge bases through MCP.
+**An AI-native, self-hosted knowledge base for your documents and the AI tools you use.**
 
-## Features
+Organize notes and team documentation in one place. Connect a compatible AI client through MCP to search and read authorized documents, help summarize information, and save results back into your knowledge base.
 
-- Knowledge bases and documents: nested folders, document and folder management, sibling ordering, search, and permissions.
-- Editing: rich text and Markdown, including tables, code, mathematical formulas, and diagrams.
-- AI assistant: chat and document editing assistance with a configured model.
-- MCP: connect over Streamable HTTP to browse, search, read, and update documents, create or move documents and folders, and reorder siblings. Operations respect account permissions.
-- Multiple clients: responsive web and mobile pages, an Electron desktop client, and Chinese and English interfaces.
+[Get started with Docker](#run-with-docker) · [Connect an MCP client](#connect-an-mcp-client) · [View releases](https://github.com/aladdin0414/hellodoc/releases) · [中文文档](README_ZH.md)
+
+![HelloDoc knowledge base home showing separate spaces for engineering, teams, product design, and personal notes](docs/images/knowledge-bases-en.jpg)
+
+## From scattered notes to usable knowledge
+
+- **Collect and organize:** create knowledge bases, arrange documents in nested folders, and find them with search. Control access with account permissions.
+- **Write and collaborate:** use rich text or Markdown for notes, project documentation, tables, code, formulas, and diagrams. Share knowledge bases with collaborators.
+- **Connect your AI tools:** use MCP with a compatible client to browse, search, read, create, and update authorized documents and organize folders. For example, ask your client to find related notes, summarize a discussion, and save the result in an appropriate folder.
+- **Run it your way:** deploy HelloDoc with Docker and access it through the web, mobile web, or Electron desktop client. The interface supports English and Chinese.
+
+![HelloDoc rich-text editor showing the document tree, formatting toolbar, and a sample team document](docs/images/editor-en.jpg)
+
+HelloDoc can run on your own machine or server. Its built-in AI assistant requires a configured model; the model service is configured separately, so self-hosting HelloDoc does not by itself mean the model runs locally. MCP operations respect the account's permissions; available AI workflows depend on the connected client and model.
 
 ## Technology and repository layout
 
@@ -59,6 +68,52 @@ Open `http://localhost:8080`. The initial administrator username is `admin` and 
 To inspect startup, run `docker compose -f docker-compose.hub.yml ps` and `docker compose -f docker-compose.hub.yml logs -f`. If port 8080 is occupied, set `SERVER_PORT` in `.env`. Generate a random JWT secret with `openssl rand -hex 64`.
 
 Back up the database and data directories before upgrading. The server runs applicable database migrations at startup. See [Docker Hub](https://hub.docker.com/r/aladdin0414/hellodoc) and [GitHub Releases](https://github.com/aladdin0414/hellodoc/releases) for images and versions.
+
+### Deploy directly with `docker run`
+
+To run PostgreSQL and HelloDoc without Compose, use the following commands for a new deployment. Docker and OpenSSL are required. Run them in a new directory to keep configuration and data together:
+
+```bash
+mkdir hellodoc && cd hellodoc
+mkdir -p postgres-data data logs
+cat > .env <<EOF
+DB_USERNAME=postgres
+DB_PASSWORD=$(openssl rand -hex 24)
+JWT_SECRET=$(openssl rand -hex 64)
+ADMIN_PASSWORD=$(openssl rand -hex 16)
+EOF
+chmod 600 .env
+```
+
+Keep `.env` secure: it contains the database password, JWT secret, and initial administrator password. Create a dedicated network and start PostgreSQL:
+
+```bash
+docker network create hellodoc-net
+docker run -d --name hellodoc-db --restart unless-stopped \
+  --network hellodoc-net --network-alias hellodoc-db \
+  --env-file .env -e POSTGRES_DB=hellodoc \
+  -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD="$(grep '^DB_PASSWORD=' .env | cut -d= -f2-)" \
+  -v "$(pwd)/postgres-data:/var/lib/postgresql/data" postgres:15-alpine
+```
+
+Wait until the database is ready. If this command reports that it is not ready, wait and run it again:
+
+```bash
+docker exec hellodoc-db pg_isready -U postgres -d hellodoc
+```
+
+Start the application:
+
+```bash
+docker run -d --name hellodoc --restart unless-stopped \
+  --network hellodoc-net --env-file .env \
+  -e DB_URL=jdbc:postgresql://hellodoc-db:5432/hellodoc \
+  -e FILE_UPLOAD_DIR=/app/data \
+  -p 8080:8080 -v "$(pwd)/data:/app/data" -v "$(pwd)/logs:/app/logs" \
+  aladdin0414/hellodoc:latest
+```
+
+Open `http://localhost:8080` and sign in as `admin` with the `ADMIN_PASSWORD` from `.env`; use `grep '^ADMIN_PASSWORD=' .env` to view the initial password. For remote access, replace `localhost` with the server address. To change the host port, adjust the first port in `-p 8080:8080`. The database, uploads, and logs persist in `postgres-data`, `data`, and `logs` in the current directory. If the container names or network already exist, inspect the existing deployment before proceeding to avoid overwriting data. The backup and restore commands below use Compose; for containers started directly, use `docker exec` to run the corresponding `pg_dump` and `pg_restore` commands.
 
 ### Backup, restore, and failed first installs
 
