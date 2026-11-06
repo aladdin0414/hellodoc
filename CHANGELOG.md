@@ -1,5 +1,23 @@
 # Changelog
 
+## [v3.6.3] - 2026-11-06
+
+### 更新说明
+
+- style: 统一编辑页与发布页的知识库侧栏、目录层级轨道、状态标记及顶部导航，优化笔记编辑界面的视觉层级。
+- style: 统一桌面和移动端弹窗的遮罩、圆角及操作样式，优化知识库设置、切换器和右键菜单。
+- fix: 修复右键菜单在窗口边缘被裁切，以及目录自定义颜色遮挡图标内部线条的问题。
+- fix: 修复批量删除、复制和创建副本时父子项目重复处理及部分失败反馈不清的问题，并保留失败操作的重试能力。
+- fix: 复制或创建文件夹副本时逐项校验子项权限；跨知识库复制至公开知识库时提示副本保留发布状态。
+
+### Changelog
+
+- style: Align the knowledge base sidebar, directory hierarchy guides, status markers, and top navigation across the editor and published view, improving visual hierarchy while editing notes.
+- style: Unify overlays, corner radii, and action styles in desktop and mobile dialogs, and refine knowledge base settings, the switcher, and context menus.
+- fix: Prevent context menus from being clipped at viewport edges and preserve internal icon lines when custom directory colors are applied.
+- fix: Avoid processing selected parent and child items twice during batch deletion, copying, and duplication; clarify partial failures and retain retry support for failed operations.
+- fix: Check permissions for each descendant when copying or duplicating folders, and warn that publication status is retained when copying to a public knowledge base.
+
 ## [v3.6.2] - 2026-11-05
 
 ### 更新说明
