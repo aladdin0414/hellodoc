@@ -14,12 +14,16 @@ const props = withDefaults(defineProps<{
     doc: TreeNodeLike
     expanded: boolean
     showPublishedBadge?: boolean
+    mutedPublished?: boolean
+    publishedLabel?: string
     folderChevronClass?: string
     folderIconClass?: string
     fileIconClass?: string
     filePlaceholderClass?: string
 }>(), {
     showPublishedBadge: true,
+    mutedPublished: false,
+    publishedLabel: '',
     folderChevronClass: 'mr-1.5 text-slate-400 shrink-0 flex items-center justify-center',
     folderIconClass: 'mr-2 shrink-0 text-blue-500 dark:text-blue-400',
     fileIconClass: 'mr-2 shrink-0 text-slate-400',
@@ -30,7 +34,7 @@ const getFileIconClass = (doc: TreeNodeLike) => {
     if (doc.isCover) {
         return 'shrink-0 text-yellow-500 dark:text-yellow-400'
     }
-    if (doc.status === 'published') {
+    if (doc.status === 'published' && !props.mutedPublished) {
         return 'shrink-0 text-emerald-600 dark:text-emerald-400'
     }
     return props.fileIconClass
@@ -41,7 +45,7 @@ const getIconColor = (doc: TreeNodeLike) => doc.extraMeta?.iconColor
 const getFolderIconStyle = (doc: TreeNodeLike) => {
     const color = getIconColor(doc)
     if (color) {
-        return { color, fill: color }
+        return { color }
     }
     return undefined
 }
@@ -49,7 +53,7 @@ const getFolderIconStyle = (doc: TreeNodeLike) => {
 const getFileIconStyle = (doc: TreeNodeLike) => {
     const color = getIconColor(doc)
     if (color) {
-        return { color, fill: color }
+        return { color }
     }
     return undefined
 }
@@ -78,7 +82,7 @@ const isPublishedFile = (doc: TreeNodeLike) => doc.type === 'file' && doc.status
                 <FileText :size="16"
                     :class="getFileIconClass(doc)"
                     :style="getFileIconStyle(doc)" />
-                <span v-if="showPublishedBadge && isPublishedFile(doc)"
+                <span v-if="showPublishedBadge && !mutedPublished && isPublishedFile(doc)" :title="publishedLabel || undefined" :aria-label="publishedLabel || undefined" role="img"
                     class="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-emerald-500 text-white ring-1 ring-white dark:ring-slate-900">
                     <Check :size="8" class="stroke-[3]" />
                 </span>
@@ -90,5 +94,7 @@ const isPublishedFile = (doc: TreeNodeLike) => doc.type === 'file' && doc.status
                 <span class="block truncate">{{ doc.name }}</span>
             </slot>
         </div>
+        <span v-if="showPublishedBadge && mutedPublished && isPublishedFile(doc)" :title="publishedLabel || undefined"
+            :aria-label="publishedLabel || undefined" role="img" class="ml-2 mr-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" />
     </div>
 </template>

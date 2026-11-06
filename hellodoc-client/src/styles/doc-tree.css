@@ -1,0 +1,45 @@
+.doc-tree-guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #dbe3eb;
+    pointer-events: none;
+}
+
+.doc-tree-row--selected::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: max(0px, calc((var(--tree-depth) - 1) * 16px + 19px));
+    width: 2px;
+    background: #7895aa;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.doc-tree-row--selected::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: max(0px, calc((var(--tree-depth) - 1) * 16px + 19px));
+    right: 0;
+    border-radius: 0.375rem;
+    background: #f1f5f9;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.doc-tree-row--selected {
+    isolation: isolate;
+}
+
+.dark .doc-tree-row--selected::after {
+    background: rgba(51, 65, 85, 0.6);
+}
+
+.dark .doc-tree-guide {
+    background: #475569;
+}

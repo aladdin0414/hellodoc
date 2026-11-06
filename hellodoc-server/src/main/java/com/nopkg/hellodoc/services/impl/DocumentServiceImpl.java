@@ -600,6 +600,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     private KbDocument recursiveDuplicate(Long userId, KbDocument source, KbKnowledgeBase kb, KbDocument targetParent,
             String targetName, Integer targetOrderNum) {
+        permissionChecker.checkDocRole(userId, source.getId(), com.nopkg.hellodoc.enums.DocRole.EDITOR);
         KbDocument copy = new KbDocument();
         copy.setKb(kb);
         copy.setName(targetName);
@@ -674,6 +675,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     private KbDocument recursiveCopy(Long userId, KbDocument source, KbKnowledgeBase targetKb, KbDocument targetParent,
             String sourceKbTitle, boolean preserveSourceOrderNum) {
+        permissionChecker.checkDocRole(userId, source.getId(), com.nopkg.hellodoc.enums.DocRole.VIEWER);
         KbDocument copy = new KbDocument();
         copy.setKb(targetKb);
         copy.setName(source.getName());

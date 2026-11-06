@@ -22,6 +22,7 @@ import type { SearchResult } from './SearchResultList.vue'
 import { message } from '../utils/message'
 import { formatChineseMarkdown } from '../utils/markdown'
 import { expandAncestorFolders } from '../utils/documentTree'
+import { topLevelSelection, summarizeBatch } from '../utils/batchDocuments'
 import { useDocumentCollab } from '../composables/useDocumentCollab'
 import { useDocumentEditorMedia } from '../composables/useDocumentEditorMedia'
 import { useDocumentEditorCore } from '../composables/editor/useDocumentEditorCore'
@@ -692,8 +693,10 @@ const handleDelete = (doc: DocListItem) => {
 
 const handleConfirmDelete = async () => {
     const ok = await handleConfirmDeleteAction(deletingDoc.value as any)
-    if (ok) showDeleteModal.value = false
-    deletingDoc.value = null
+    if (ok) {
+        showDeleteModal.value = false
+        deletingDoc.value = null
+    }
 }
 
 const handleDuplicate = async (doc: DocListItem) => {
@@ -726,18 +729,23 @@ const confirmCopyToKb = async () => {
 
     let targetDocs: DocListItem[] = []
     if (selectedDocIds.value.has(contextTargetDoc.value.id) && selectedDocIds.value.size > 1) {
-        targetDocs = documents.value.filter(d => selectedDocIds.value.has(d.id))
+        targetDocs = topLevelSelection(documents.value, selectedDocIds.value)
     } else {
         targetDocs = [contextTargetDoc.value]
     }
 
     copyLoading.value = true
     try {
-        await Promise.all(
+        const results = await Promise.allSettled(
             targetDocs.map(doc => copyDocumentToKb(props.kbId, doc.id, selectedKbForCopy.value.id))
         )
-        message.success(t('editor.copySuccess'))
-        showKbCopyDialog.value = false
+        const summary = summarizeBatch(targetDocs, results)
+        if (summary.failed.length) {
+            message.warning(t('editor.batchOperationPartial', { success: summary.success, failed: summary.failed.length, names: summary.failed.join(', ') }))
+        } else {
+            message.success(t('editor.copySuccess'))
+        }
+        if (summary.success > 0) showKbCopyDialog.value = false
     } catch (error) {
         console.error('Copy to KB failed:', error)
         message.error(t('editor.copyFailed'))
@@ -837,35 +845,15 @@ const availableFolders = computed(() => {
 const handleConfirmMove = async () => {
     if (!movingDoc.value) return
 
-    await handleConfirmMoveAction(movingDoc.value as any, selectedTargetFolderId.value)
-    showMoveModal.value = false
+    const ok = await handleConfirmMoveAction(movingDoc.value as any, selectedTargetFolderId.value)
+    if (ok) showMoveModal.value = false
 }
 
 const handleContextMenu = (e: MouseEvent, doc: DocListItem) => {
     showContextMenu.value = true
     contextTargetDoc.value = doc
     
-    // 动态调整菜单位置以防止被遮挡
-    const x = e.clientX
-    const y = e.clientY
-    
-    // 估算菜单宽高 (min-w 160px + padding/border)
-    const menuWidth = 180
-    const menuHeight = doc.type === 'folder' ? 320 : 260 // 包含子项的菜单更高
-    
-    let finalX = x
-    let finalY = y
-    
-    // 如果右边超出，则向左偏移
-    if (x + menuWidth > window.innerWidth) {
-        finalX = Math.max(8, x - menuWidth)
-    }
-    // 如果底部超出，则向上偏移
-    if (y + menuHeight > window.innerHeight) {
-        finalY = Math.max(8, y - menuHeight)
-    }
-    
-    menuPosition.value = { x: finalX, y: finalY }
+    menuPosition.value = { x: e.clientX, y: e.clientY }
 }
 
 
@@ -1030,7 +1018,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
             </div>
         </div>
 
-        <DocumentEditorOverlays v-if="!isVisualPreviewMode" :show-context-menu="showContextMenu" :menu-position="menuPosition"
+        <DocumentEditorOverlays v-if="!isVisualPreviewMode" :show-context-menu="showContextMenu" :menu-position="menuPosition" :documents="documents"
             :context-target-doc="contextTargetDoc" :show-create-modal="showCreateModal" :create-type="createType"
             :new-name="newName" :creating="creating" :show-move-modal="showMoveModal"
             :selected-target-folder-id="selectedTargetFolderId" :available-folders="availableFolders"
@@ -1071,7 +1059,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
     <button
         v-if="!isVisualPreviewMode && currentDoc?.type === 'file'"
         @click="showAiDrawer = !showAiDrawer"
-        class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center transition-all duration-200 active:scale-95 focus:outline-none ring-2 ring-white dark:ring-gray-800"
+        class="fixed bottom-6 right-6 z-40 w-10 h-10 rounded-full bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-sm hover:shadow-md flex items-center justify-center transition-colors duration-200 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
         :title="t('aiDrawer.title')"
     >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

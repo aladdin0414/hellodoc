@@ -14,6 +14,28 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class DirectoryMutationTest {
+    @Test void copyingAFolderChecksEachChildPermission() {
+        var repository = mock(KbDocumentRepository.class);
+        var kbService = mock(KbService.class);
+        var revision = mock(DirectoryRevision.class);
+        var permissions = mock(PermissionChecker.class);
+        var sourceKb = new KbKnowledgeBase(); sourceKb.setId(10L);
+        var targetKb = new KbKnowledgeBase(); targetKb.setId(9L);
+        var folder = new KbDocument(); folder.setId(1L); folder.setKb(sourceKb); folder.setType(DocType.FOLDER); folder.setName("folder");
+        var child = new KbDocument(); child.setId(2L); child.setKb(sourceKb); child.setType(DocType.FILE); child.setName("private");
+        when(kbService.getKnowledgeBase(9L)).thenReturn(targetKb);
+        when(revision.lock(9)).thenReturn(targetKb); when(revision.lock(10)).thenReturn(sourceKb);
+        when(repository.findByIdAndDeletedAtIsNull(1L)).thenReturn(java.util.Optional.of(folder));
+        when(repository.findByKbIdAndParentIdAndDeletedAtIsNull(10L, 1L)).thenReturn(new java.util.ArrayList<>(java.util.List.of(child)));
+        when(repository.save(any(KbDocument.class))).thenAnswer(call -> { KbDocument d = call.getArgument(0); d.setId(3L); return d; });
+        doThrow(new IllegalStateException("denied")).when(permissions).checkDocRole(7L, 2L, com.nopkg.hellodoc.enums.DocRole.VIEWER);
+        var service = new DocumentServiceImpl(repository, mock(KbDocumentContentRepository.class), kbService,
+            permissions, mock(RevisionService.class), mock(SearchService.class), mock(ApplicationEventPublisher.class),
+            mock(KbDocRelationRepository.class), mock(PasswordEncoder.class), mock(AssetService.class), revision);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> service.copyToKb(7L, 1L, 9L));
+        verify(permissions).checkDocRole(7L, 2L, com.nopkg.hellodoc.enums.DocRole.VIEWER);
+        verify(revision, never()).bump(targetKb);
+    }
     @Test void movingUnderAFileIsRejected() {
         var repository = mock(KbDocumentRepository.class); var kbService = mock(KbService.class);
         var revision = mock(DirectoryRevision.class); var kb = new KbKnowledgeBase(); kb.setId(9L);

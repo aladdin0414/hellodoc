@@ -27,6 +27,7 @@ defineProps<{
     showContextMenu: boolean
     menuPosition: { x: number; y: number }
     contextTargetDoc: DocLike | null
+    documents: DocLike[]
     showCreateModal: boolean
     createType: 'file' | 'folder'
     newName: string
@@ -86,7 +87,7 @@ const emit = defineEmits<{
     <div v-if="showContextMenu" class="fixed inset-0 z-[90]" @click="emit('updateShowContextMenu', false)"></div>
 
     <DocumentContextMenu :visible="showContextMenu" :menu-position="menuPosition" :context-target-doc="contextTargetDoc"
-        :selected-doc-ids="selectedDocIds"
+        :selected-doc-ids="selectedDocIds" :documents="documents"
         @start-inline-create="(type: any, parentId?: any) => emit('startInlineCreate', type, parentId)"
         @folder-toggle-status="(doc: any, status: any) => emit('folderToggleStatus', doc, status)"
         @move-direction="(doc: any, direction: any) => emit('moveDirection', doc, direction)"

@@ -126,7 +126,7 @@ const logout = () => {
 </script>
 
 <template>
-    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
+    <nav class="bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 transition-colors duration-300">
         <div :class="navStyle === 'left' ? 'px-4 sm:px-6 lg:px-8' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'">
             <div class="flex justify-between h-16 items-center">
                 <div class="flex items-center space-x-4 min-w-0 flex-1">
@@ -137,37 +137,37 @@ const logout = () => {
                     <div :class="[navStyle === 'left' ? 'ml-0' : 'ml-2 sm:ml-6', { 'min-[975px]:hidden': navStyle === 'left' }]"
                         class="flex items-center min-w-0 flex-1 min-[975px]:flex-none">
                         <div
-                            class="flex items-center bg-gray-100 dark:bg-gray-700 p-1 rounded-xl overflow-x-auto max-w-full w-auto">
-                            <button @click="emit('navigate', 'my')"
-                                :class="activeTab === 'my' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
-                                class="inline-flex items-center flex-shrink-0 px-2.5 min-[975px]:px-4 py-1.5 text-sm rounded-lg transition-all duration-200">
+                            class="flex items-center gap-0.5 p-1 bg-slate-100 dark:bg-slate-700 rounded-md overflow-x-auto max-w-full w-auto">
+                            <button @click="emit('navigate', 'my')" :aria-current="activeTab === 'my' ? 'page' : undefined" :aria-label="t('nav.home')"
+                                :class="activeTab === 'my' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-slate-600/60 hover:text-slate-800 dark:hover:text-gray-200'"
+                                class="inline-flex items-center flex-shrink-0 px-2.5 min-[975px]:px-3 py-2 text-sm rounded-md transition-colors duration-200">
                                 <svg class="h-4 w-4 min-[975px]:mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                 </svg>
                                 <span class="hidden min-[975px]:inline">{{ t('nav.home') }}</span>
                             </button>
-                            <button @click="emit('navigate', 'shared')"
-                                :class="activeTab === 'shared' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
-                                class="inline-flex items-center flex-shrink-0 px-2.5 min-[975px]:px-4 py-1.5 text-sm rounded-lg transition-all duration-200">
+                            <button @click="emit('navigate', 'shared')" :aria-current="activeTab === 'shared' ? 'page' : undefined" :aria-label="t('nav.shared')"
+                                :class="activeTab === 'shared' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-slate-600/60 hover:text-slate-800 dark:hover:text-gray-200'"
+                                class="inline-flex items-center flex-shrink-0 px-2.5 min-[975px]:px-3 py-2 text-sm rounded-md transition-colors duration-200">
                                 <svg class="h-4 w-4 min-[975px]:mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                                 <span class="hidden min-[975px]:inline">{{ t('nav.shared') }}</span>
                             </button>
-                            <button @click="emit('navigate', 'favorites')"
-                                :class="activeTab === 'favorites' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
-                                class="inline-flex items-center flex-shrink-0 px-2.5 min-[975px]:px-4 py-1.5 text-sm rounded-lg transition-all duration-200">
+                            <button @click="emit('navigate', 'favorites')" :aria-current="activeTab === 'favorites' ? 'page' : undefined" :aria-label="t('nav.favorites')"
+                                :class="activeTab === 'favorites' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-slate-600/60 hover:text-slate-800 dark:hover:text-gray-200'"
+                                class="inline-flex items-center flex-shrink-0 px-2.5 min-[975px]:px-3 py-2 text-sm rounded-md transition-colors duration-200">
                                 <svg class="h-4 w-4 min-[975px]:mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.175 0l-3.976 2.888c-.783.57-1.837-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.382-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                 </svg>
                                 <span class="hidden min-[975px]:inline">{{ t('nav.favorites') }}</span>
                             </button>
-                            <button @click="emit('navigate', 'recent')"
-                                :class="activeTab === 'recent' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
-                                class="inline-flex items-center flex-shrink-0 px-2.5 min-[975px]:px-4 py-1.5 text-sm rounded-lg transition-all duration-200">
+                            <button @click="emit('navigate', 'recent')" :aria-current="activeTab === 'recent' ? 'page' : undefined" :aria-label="t('nav.recent')"
+                                :class="activeTab === 'recent' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-slate-600/60 hover:text-slate-800 dark:hover:text-gray-200'"
+                                class="inline-flex items-center flex-shrink-0 px-2.5 min-[975px]:px-3 py-2 text-sm rounded-md transition-colors duration-200">
                                 <svg class="h-4 w-4 min-[975px]:mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -192,7 +192,7 @@ const logout = () => {
                             <input type="text" name="search_keyword" :placeholder="`${searchPlaceholder} (${isMac ? '⌘K' : 'Ctrl+K'})`"
                                 v-model="searchQueryModel" autocomplete="new-password" readonly
                                 @click="emit('open-search-modal')"
-                                class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all w-64 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 cursor-pointer group-hover:border-gray-400 dark:group-hover:border-gray-500">
+                                class="pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors w-64 bg-white dark:bg-slate-800 text-slate-800 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 cursor-pointer group-hover:border-slate-300 dark:group-hover:border-slate-600">
                             <svg class="h-4 w-4 text-gray-400 absolute left-3 top-3" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -204,7 +204,7 @@ const logout = () => {
                         <button @click="toggleDropdown"
                             class="dropdown-toggle flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition focus:outline-none">
                             <div
-                                class="h-8 w-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 flex items-center justify-center">
+                                class="h-8 w-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
                                 <img v-if="avatar" :src="avatar" class="h-full w-full object-cover" />
                                 <span v-else class="text-xs font-bold text-gray-600">{{ nickname.charAt(0).toUpperCase()
                                 }}</span>

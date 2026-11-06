@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{
 }>(), {
     maxWidthClass: 'max-w-md',
     panelClass: '',
-    overlayClass: 'bg-slate-900/50 backdrop-blur-sm',
+    overlayClass: 'bg-slate-900/35',
     zIndexClass: 'z-[100]',
     closeOnOverlay: true
 })
@@ -60,7 +60,7 @@ const handleOverlayClick = () => {
     <div v-if="show" :class="['fixed inset-0 flex items-center justify-center p-4', zIndexClass]">
         <div :class="['absolute inset-0', overlayClass]" @click="handleOverlayClick"></div>
         <div ref="panel" role="dialog" aria-modal="true" tabindex="-1" @keydown="handleKeydown" :class="[
-            'relative w-full max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-gray-700',
+            'flat-dialog relative w-full max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-slate-200 dark:border-gray-700',
             maxWidthClass,
             panelClass
         ]">
@@ -68,3 +68,42 @@ const handleOverlayClick = () => {
         </div>
     </div>
 </template>
+
+<style>
+.flat-dialog h3 {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+}
+.flat-dialog :is(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), select, textarea) {
+    border-radius: 0.375rem;
+}
+.flat-dialog :is(button, div, label)[class~='rounded-lg'],
+.flat-dialog :is(button, div, label)[class~='rounded-xl'],
+.flat-dialog :is(button, div, label)[class~='rounded-2xl'],
+.flat-dialog :is(button, div, label)[class~='rounded-3xl'] {
+    border-radius: 0.375rem;
+}
+.flat-dialog :is(button, div, label)[class~='shadow-2xl'] {
+    box-shadow: 0 4px 12px rgb(15 23 42 / 0.08);
+}
+.flat-dialog :is(button, div, label):is([class~='bg-indigo-50'], [class~='bg-indigo-50/80'], [class~='bg-blue-50']) {
+    background-color: #f1f5f9;
+}
+.dark .flat-dialog :is(button, div, label):is([class~='bg-indigo-50'], [class~='bg-indigo-50/80'], [class~='bg-blue-50']) {
+    background-color: #1e293b;
+}
+.flat-dialog button:is([class~='bg-blue-600'], [class~='bg-indigo-600']) {
+    background-color: #1e293b;
+}
+.flat-dialog button:is([class~='bg-blue-600'], [class~='bg-indigo-600']):hover:not(:disabled) {
+    background-color: #334155;
+}
+.dark .flat-dialog button:is([class~='bg-blue-600'], [class~='bg-indigo-600']) {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}
+.dark .flat-dialog button:is([class~='bg-blue-600'], [class~='bg-indigo-600']):hover:not(:disabled) {
+    background-color: #fff;
+}
+</style>

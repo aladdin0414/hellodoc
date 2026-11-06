@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 import { getDocuments, updateDocument, deleteDocument, duplicateDocument } from '../../api/document'
 import { message } from '../../utils/message'
 import { expandAncestorFolders } from '../../utils/documentTree'
+import { topLevelSelection, summarizeBatch } from '../../utils/batchDocuments'
 import { i18n } from '../../i18n'
 
 export interface DocumentActionItem {
@@ -146,105 +147,51 @@ export const useDocumentActions = (options: UseDocumentActionsOptions) => {
         }
     }
 
+    const selectedTargets = (doc: DocumentActionItem) => {
+        const selected = options.selectedDocIds?.value
+        return selected?.has(doc.id) && selected.size > 1
+            ? topLevelSelection(options.documents.value, selected)
+            : [doc]
+    }
+
     const handleConfirmDelete = async (doc: DocumentActionItem | null) => {
         if (!doc) return false
         isDeleting.value = true
-
-        let targetDocs: DocumentActionItem[] = []
-        if (options.selectedDocIds?.value && options.selectedDocIds.value.has(doc.id) && options.selectedDocIds.value.size > 1) {
-            targetDocs = options.documents.value.filter(d => options.selectedDocIds!.value.has(d.id))
-        } else {
-            targetDocs = [doc]
-        }
-
-        const originalDocs = [...options.documents.value]
-        const removeIds = new Set<number>()
-        const collectIds = (id: number) => {
-            removeIds.add(id)
-            options.documents.value.filter(d => d.parentId === id).forEach(child => collectIds(child.id))
-        }
-
-        targetDocs.forEach(d => collectIds(d.id))
-        options.documents.value = options.documents.value.filter(d => !removeIds.has(d.id))
-
-        if (options.currentDoc.value && removeIds.has(options.currentDoc.value.id)) {
-            options.currentDoc.value = null
-            options.activeDocId.value = null
-            options.navigateToEditorBase()
-        }
-
         try {
-            await Promise.all(targetDocs.map(d => deleteDocument(options.kbId.value, d.id)))
-            if (options.selectedDocIds?.value) {
-                options.selectedDocIds.value.clear()
-            }
+            const targets = selectedTargets(doc)
+            const results = await Promise.allSettled(targets.map(d => deleteDocument(options.kbId.value, d.id)))
+            const summary = summarizeBatch(targets, results)
             await fetchDocuments(true)
+            if (options.currentDoc.value && !options.documents.value.some(d => d.id === options.currentDoc.value?.id)) {
+                options.currentDoc.value = null
+                options.activeDocId.value = null
+                options.navigateToEditorBase()
+            }
+            if (summary.failed.length) {
+                message.warning(i18n.global.t('editor.batchOperationPartial', { success: summary.success, failed: summary.failed.length, names: summary.failed.join(', ') }))
+                if (summary.success === 0) return false
+            }
+            options.selectedDocIds?.value.clear()
             return true
-        } catch (error) {
-            options.documents.value = originalDocs
-            console.error('Delete failed:', error)
-            message.error(i18n.global.t('editor.deleteFailed'))
-            fetchDocuments(true)
-            return false
         } finally {
             isDeleting.value = false
         }
     }
 
     const handleDuplicate = async (doc: DocumentActionItem) => {
-        let targetDocs: DocumentActionItem[] = []
-        if (options.selectedDocIds?.value && options.selectedDocIds.value.has(doc.id) && options.selectedDocIds.value.size > 1) {
-            targetDocs = options.documents.value.filter(d => options.selectedDocIds!.value.has(d.id))
-        } else {
-            targetDocs = [doc]
-        }
-
-        const originalDocs = [...options.documents.value]
-        const tempCopies: { targetDoc: DocumentActionItem; tempDoc: DocumentActionItem }[] = []
-
-        for (const targetDoc of targetDocs) {
-            const siblings = options.documents.value.filter(d => d.parentId === targetDoc.parentId)
-            const maxOrderNum = siblings.length > 0 ? Math.max(...siblings.map(d => d.orderNum || 0)) : -1
-            const nextOrderNum = maxOrderNum + ORDER_SPACING
-
-            const tempCopy: DocumentActionItem = {
-                ...targetDoc,
-                id: -Date.now() - Math.floor(Math.random() * 1000),
-                name: `${targetDoc.name} (${i18n.global.t('editor.copy')})`,
-                orderNum: nextOrderNum,
-                status: 'draft'
-            }
-
-            options.documents.value.push(tempCopy)
-            tempCopies.push({ targetDoc, tempDoc: tempCopy })
-        }
-
-        try {
-            await Promise.all(
-                tempCopies.map(({ targetDoc }) => duplicateDocument(options.kbId.value, targetDoc.id))
-            )
-
-            const newSet = new Set(options.expandedFolders.value)
-            let needExpand = false
-            targetDocs.forEach(targetDoc => {
-                if (targetDoc.parentId !== null) {
-                    newSet.add(targetDoc.parentId)
-                    needExpand = true
-                }
-            })
-            if (needExpand) {
-                options.expandedFolders.value = newSet
-            }
-
-            await fetchDocuments(true)
-            message.success(i18n.global.t('editor.createCopySuccess'))
-            return true
-        } catch (error) {
-            options.documents.value = originalDocs
-            console.error('Duplicate failed:', error)
-            message.error(i18n.global.t('editor.createCopyFailed'))
+        const targets = selectedTargets(doc)
+        const results = await Promise.allSettled(targets.map(target => duplicateDocument(options.kbId.value, target.id)))
+        const summary = summarizeBatch(targets, results)
+        const expanded = new Set(options.expandedFolders.value)
+        targets.forEach(target => { if (target.parentId !== null) expanded.add(target.parentId) })
+        options.expandedFolders.value = expanded
+        await fetchDocuments(true)
+        if (summary.failed.length) {
+            message.warning(i18n.global.t('editor.batchOperationPartial', { success: summary.success, failed: summary.failed.length, names: summary.failed.join(', ') }))
             return false
         }
+        message.success(i18n.global.t('editor.createCopySuccess'))
+        return true
     }
 
     const handleSetCover = async (doc: DocumentActionItem) => {

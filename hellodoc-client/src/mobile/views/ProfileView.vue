@@ -86,10 +86,10 @@
     </main>
 
     <!-- 语言选择 Action Sheet 模态框 -->
-    <div v-if="showLangModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4">
-      <div class="bg-white dark:bg-slate-800 rounded-t-3xl sm:rounded-2xl w-full max-w-md p-5 space-y-3 shadow-2xl border-t border-slate-200 dark:border-slate-700/80">
+    <div v-if="showLangModal" class="fixed inset-0 z-50 bg-slate-900/35 flex items-end justify-center sm:items-center p-0 sm:p-4">
+      <div class="bg-white dark:bg-slate-800 rounded-t-xl sm:rounded-lg w-full max-w-md p-5 space-y-3 shadow-lg border-t border-slate-200 dark:border-slate-700/80">
         <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
-          <h3 class="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Globe class="w-5 h-5 text-indigo-500" />
             {{ t('locale.title') }}
           </h3>
@@ -101,8 +101,8 @@
         <div class="space-y-2 py-1">
           <button
             @click="selectLocale('zh-CN')"
-            class="w-full px-4 py-3.5 rounded-xl flex items-center justify-between text-sm transition-all"
-            :class="[locale === 'zh-CN' ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300']"
+            class="w-full px-4 py-3.5 rounded-md flex items-center justify-between text-sm transition-all"
+            :class="[locale === 'zh-CN' ? 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-semibold' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300']"
           >
             <span class="flex items-center gap-2">
               <span>🇨🇳</span>
@@ -113,8 +113,8 @@
 
           <button
             @click="selectLocale('en-US')"
-            class="w-full px-4 py-3.5 rounded-xl flex items-center justify-between text-sm transition-all"
-            :class="[locale === 'en-US' ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300']"
+            class="w-full px-4 py-3.5 rounded-md flex items-center justify-between text-sm transition-all"
+            :class="[locale === 'en-US' ? 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-semibold' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300']"
           >
             <span class="flex items-center gap-2">
               <span>🇺🇸</span>

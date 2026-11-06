@@ -106,23 +106,23 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <BaseDialog :show="show" max-width-class="max-w-md" @close="show = false">
+    <BaseDialog :show="show" max-width-class="max-w-md" panel-class="!rounded-lg !shadow-lg" overlay-class="bg-slate-900/35" @close="show = false">
         <div class="p-6">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{{ modalTitle }}</h3>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-gray-100 mb-5">{{ modalTitle }}</h3>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('kb.upsertTitleLabel') }}</label>
                         <input ref="titleInput" v-model="kb.title" type="text"
-                            class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-gray-100"
                             :placeholder="mode === 'create' ? t('kb.upsertTitlePlaceholder') : ''" />
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('kb.upsertColorLabel') }}</label>
-                        <div class="flex flex-wrap gap-2 py-2">
+                        <div class="flex flex-wrap gap-2 py-1.5">
                             <button v-for="c in colors" :key="c.name" @click="kb.color = c.value"
-                                class="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
-                                :class="kb.color === c.value ? 'border-gray-900 dark:border-gray-100 scale-110' : 'border-transparent'"
-                                :style="{ backgroundColor: c.value }" :title="c.name"></button>
+                                type="button" class="h-6 w-6 rounded-full ring-offset-2 ring-offset-white dark:ring-offset-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-500"
+                                :class="kb.color === c.value ? 'ring-2 ring-slate-500 dark:ring-slate-300' : 'hover:ring-2 hover:ring-slate-300'"
+                                :style="{ backgroundColor: c.value }" :title="c.name" :aria-label="c.name" :aria-pressed="kb.color === c.value"></button>
                         </div>
                     </div>
                     <div>
@@ -131,8 +131,8 @@ onUnmounted(() => {
                         </label>
                         <div class="relative" ref="iconPickerRef">
                             <button type="button" @click.stop="toggleIconPicker"
-                                class="flex items-center space-x-2 px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-full">
-                                <div class="h-6 w-6 rounded-md flex items-center justify-center bg-gray-100 dark:bg-gray-600">
+                                class="flex items-center space-x-2 px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus:outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-gray-100 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors w-full">
+                                <div class="h-5 w-5 flex items-center justify-center">
                                     <component :is="(Icons as any)[kb.icon || 'Book']" class="w-4 h-4 text-gray-600 dark:text-gray-300" />
                                 </div>
                                 <span class="flex-1 text-left">{{ kb.icon || t('kb.upsertIconDefault') }}</span>
@@ -142,7 +142,7 @@ onUnmounted(() => {
                             </button>
 
                             <div v-if="showIconPicker"
-                                class="absolute z-[60] mt-2 p-3 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full grid grid-cols-6 gap-2 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in duration-200">
+                                class="absolute z-[60] mt-2 p-3 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-slate-200 dark:border-gray-700 w-full grid grid-cols-6 gap-2 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in duration-200">
                                 <button v-for="iconName in iconLibrary" :key="iconName" @click.stop="selectIcon(iconName)"
                                     class="flex items-center justify-center p-2 rounded-lg border-2 transition-all hover:bg-gray-50 dark:hover:bg-gray-700"
                                     :class="kb.icon === iconName ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'"
@@ -155,52 +155,36 @@ onUnmounted(() => {
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('kb.upsertDescriptionLabel') }}</label>
                         <textarea v-model="kb.description"
-                            class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-gray-100"
                             rows="3" :placeholder="mode === 'create' ? t('kb.upsertDescriptionPlaceholder') : ''"></textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('kb.upsertVisibilityLabel') }}</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button type="button" @click="kb.visibility = 'private'"
-                                class="flex flex-col items-center p-3 rounded-xl border-2 transition-all"
-                                :class="kb.visibility === 'private' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30' : 'border-gray-100 dark:border-gray-600 hover:border-gray-200 dark:hover:border-gray-500'">
-                                <svg class="h-6 w-6 mb-1"
-                                    :class="kb.visibility === 'private' ? 'text-blue-600' : 'text-gray-400'" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                </svg>
-                                <span class="text-sm font-bold"
-                                    :class="kb.visibility === 'private' ? 'text-blue-700' : 'text-gray-600'">{{ t('kb.visibilityPrivate') }}</span>
-                                <span class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ t('kb.upsertVisibilityPrivateDesc') }}</span>
-                            </button>
-                            <button type="button" @click="kb.visibility = 'public'"
-                                class="flex flex-col items-center p-3 rounded-xl border-2 transition-all"
-                                :class="kb.visibility === 'public' ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-100 dark:border-gray-600 hover:border-gray-200 dark:hover:border-gray-500'">
-                                <svg class="h-6 w-6 mb-1"
-                                    :class="kb.visibility === 'public' ? 'text-indigo-600' : 'text-gray-400'" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9s2.015-9 4.5-9m0 0a9.015 9.015 0 018.716 6.747M12 3a9.015 9.015 0 00-8.716 6.747M3.75 14.25h16.5" />
-                                </svg>
-                                <span class="text-sm font-bold"
-                                    :class="kb.visibility === 'public' ? 'text-indigo-700' : 'text-gray-600'">{{ t('kb.visibilityPublic') }}</span>
-                                <span class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ t('kb.upsertVisibilityPublicDesc') }}</span>
-                            </button>
+                        <div class="space-y-1" role="radiogroup" :aria-label="t('kb.upsertVisibilityLabel')">
+                            <label v-for="option in ['private', 'public']" :key="option"
+                                class="flex items-start gap-3 rounded-md px-3 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
+                                :class="kb.visibility === option ? 'bg-slate-100 dark:bg-slate-800' : ''">
+                                <input v-model="kb.visibility" type="radio" :value="option" name="kb-visibility"
+                                    class="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600" />
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-medium text-slate-800 dark:text-slate-100">{{ t(option === 'private' ? 'kb.visibilityPrivate' : 'kb.visibilityPublic') }}</span>
+                                    <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ t(option === 'private' ? 'kb.upsertVisibilityPrivateDesc' : 'kb.upsertVisibilityPublicDesc') }}</span>
+                                </span>
+                            </label>
                         </div>
                     </div>
                 </div>
-                <label class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <label class="mt-5 flex items-start justify-between gap-4 border-t border-slate-100 dark:border-slate-700 pt-4">
                     <span><span class="block text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('kb.guestbookLabel') }}</span><span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{{ t('kb.guestbookHint') }}</span></span>
                     <input v-model="kb.guestbookEnabled" type="checkbox" class="mt-1 h-4 w-4 accent-blue-600" />
                 </label>
                 <div class="mt-6 flex justify-end space-x-3">
                     <button @click="show = false" :disabled="submitting"
-                        class="px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all disabled:opacity-50">
+                        class="px-5 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all disabled:opacity-50">
                         {{ t('nav.cancel') }}
                     </button>
                     <button @click="emit('save')" :disabled="submitting"
-                        class="px-5 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                        class="px-5 py-2 text-sm font-semibold bg-slate-800 hover:bg-slate-700 dark:bg-slate-200 dark:hover:bg-white dark:text-slate-900 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
                         <svg v-if="submitting" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none"
                             viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">

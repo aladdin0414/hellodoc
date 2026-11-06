@@ -102,11 +102,11 @@
     <!-- 移动端 ActionSheet 操作弹出选择框 -->
     <div
       v-if="showActionSheet"
-      class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex flex-col justify-end transition-opacity"
+      class="fixed inset-0 z-50 bg-slate-900/35 flex flex-col justify-end transition-opacity"
       @click="showActionSheet = false"
     >
       <div
-        class="bg-white dark:bg-slate-800 rounded-t-3xl p-4 space-y-2 max-h-[90dvh] overflow-y-auto shadow-2xl transition-transform transform translate-y-0 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+        class="bg-white dark:bg-slate-800 rounded-t-xl p-4 space-y-2 max-h-[90dvh] overflow-y-auto shadow-lg transition-transform transform translate-y-0 pb-[calc(1rem+env(safe-area-inset-bottom))]"
         @click.stop
       >
         <!-- iOS 顶部 HandleBar 指示条 -->
@@ -117,7 +117,7 @@
           <div class="flex items-center gap-2 truncate pr-2">
             <Folder v-if="actionNode?.type === 'folder'" class="w-4 h-4 text-amber-500 shrink-0" />
             <FileText v-else class="w-4 h-4 text-blue-500 shrink-0" />
-            <span class="text-xs font-bold text-gray-700 dark:text-slate-300 truncate">
+            <span class="text-xs font-semibold text-gray-700 dark:text-slate-300 truncate">
               {{ actionNode?.title || actionNode?.name }}
             </span>
           </div>
@@ -130,63 +130,63 @@
         <template v-if="actionNode?.type === 'folder'">
           <button
             @click="handleActionSheetCreate('file')"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FilePlus class="w-4 h-4 text-blue-500" />
             <span>{{ t('editorMenu.newSubDoc') }}</span>
           </button>
           <button
             @click="handleActionSheetCreate('folder')"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FolderPlus class="w-4 h-4 text-amber-500" />
             <span>{{ t('editorMenu.newSubFolder') }}</span>
           </button>
           <button
             @click="handleActionSheetStartRename"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <Edit3 class="w-4 h-4 text-emerald-500" />
             <span>{{ t('editorMenu.renameFolder') }}</span>
           </button>
           <button
             @click="handleMoveDirection('up')"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <ArrowUp class="w-4 h-4 text-blue-500" />
             <span>{{ t('editorMenu.moveUp') }}</span>
           </button>
           <button
             @click="handleMoveDirection('down')"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <ArrowDown class="w-4 h-4 text-blue-500" />
             <span>{{ t('editorMenu.moveDown') }}</span>
           </button>
           <button
             @click="handleActionSheetDuplicate"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <Copy class="w-4 h-4 text-indigo-500" />
             <span>{{ t('editorMenu.duplicate') }}</span>
           </button>
           <button
             @click="handleActionSheetFolderStatus('published')"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FileCheck class="w-4 h-4 text-emerald-500" />
             <span>{{ t('editorMenu.batchPublish') }}</span>
           </button>
           <button
             @click="handleActionSheetFolderStatus('draft')"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FileX class="w-4 h-4 text-amber-500" />
             <span>{{ t('editorMenu.setAllDraft') }}</span>
           </button>
           <button
             @click="handleActionSheetDelete"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition-colors"
           >
             <Trash2 class="w-4 h-4 text-rose-500" />
             <span>{{ t('editorMenu.deleteFolder') }}</span>
@@ -197,49 +197,49 @@
         <template v-else>
           <button
             @click="handleActionSheetEdit"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <FileText class="w-4 h-4 text-blue-500" />
             <span>{{ t('editorMenu.editDoc') }}</span>
           </button>
           <button
             @click="handleActionSheetStartRename"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <Edit3 class="w-4 h-4 text-emerald-500" />
             <span>{{ t('editorMenu.renameDoc') }}</span>
           </button>
           <button
             @click="handleMoveDirection('up')"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <ArrowUp class="w-4 h-4 text-blue-500" />
             <span>{{ t('editorMenu.moveUp') }}</span>
           </button>
           <button
             @click="handleMoveDirection('down')"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <ArrowDown class="w-4 h-4 text-blue-500" />
             <span>{{ t('editorMenu.moveDown') }}</span>
           </button>
           <button
             @click="handleActionSheetDuplicate"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <Copy class="w-4 h-4 text-indigo-500" />
             <span>{{ t('editorMenu.duplicate') }}</span>
           </button>
           <button
             @click="handleActionSheetToggleDocStatus"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 active:bg-gray-100 dark:active:bg-slate-700 transition-colors"
           >
             <component :is="actionNode?.status === 'published' ? FileX : FileCheck" class="w-4 h-4 text-amber-500" />
             <span>{{ actionNode?.status === 'published' ? t('editorMenu.toDraft') : t('editorMenu.publishDoc') }}</span>
           </button>
           <button
             @click="handleActionSheetDelete"
-            class="w-full py-3 px-4 rounded-xl flex items-center gap-3 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition-colors"
+            class="w-full py-3 px-4 rounded-md flex items-center gap-3 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 active:bg-rose-100 dark:active:bg-rose-500/20 transition-colors"
           >
             <Trash2 class="w-4 h-4 text-rose-500" />
             <span>{{ t('editorMenu.deleteDoc') }}</span>
@@ -250,7 +250,7 @@
         <div class="pt-1">
           <button
             @click="showActionSheet = false"
-            class="w-full py-3 rounded-xl bg-gray-100 dark:bg-slate-700 text-sm font-bold text-gray-700 dark:text-slate-300 active:scale-[0.99] transition-all"
+            class="w-full py-3 rounded-md bg-gray-100 dark:bg-slate-700 text-sm font-semibold text-gray-700 dark:text-slate-300 active:scale-[0.99] transition-all"
           >
             {{ t('nav.cancel') }}
           </button>
@@ -259,9 +259,9 @@
     </div>
 
     <!-- 重命名模态框 -->
-    <div v-if="showRenameModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
-        <h3 class="text-base font-bold text-gray-900 dark:text-slate-100">
+    <div v-if="showRenameModal" class="fixed inset-0 z-50 bg-slate-900/35 flex items-center justify-center p-4">
+      <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg w-full max-w-sm p-5 space-y-4 shadow-lg">
+        <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">
             {{ renameTargetNode?.type === 'folder' ? t('mobile.kbDetail.renameFolderTitle') : t('mobile.kbDetail.renameDocTitle') }}
         </h3>
 
@@ -272,7 +272,7 @@
               v-model="renameTitle"
               type="text"
                 :placeholder="t('mobile.kbDetail.newNamePlaceholder')"
-              class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
         </div>
@@ -280,14 +280,14 @@
         <div class="flex items-center justify-end gap-2 pt-2">
           <button
             @click="showRenameModal = false"
-            class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
+            class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
           >
             {{ t('nav.cancel') }}
           </button>
           <button
             @click="handleConfirmRename"
             :disabled="submittingRename || !renameTitle.trim()"
-            class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl shadow-md active:scale-95 transition-all"
+            class="px-4 py-2 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 dark:bg-slate-200 dark:hover:bg-white dark:text-slate-900 disabled:opacity-50 rounded-md active:scale-95 transition-all"
           >
             {{ submittingRename ? t('editor.saving') : t('mobile.kbDetail.saveChanges') }}
           </button>
@@ -315,9 +315,9 @@
     </ConfirmDialog>
 
     <!-- 新建节点（文档或目录）模态框 -->
-    <div v-if="showCreateModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
-        <h3 class="text-base font-bold text-gray-900 dark:text-slate-100">
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 bg-slate-900/35 flex items-center justify-center p-4">
+      <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg w-full max-w-sm p-5 space-y-4 shadow-lg">
+        <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">
             {{ targetParentId ? t('mobile.kbDetail.createChildTitle') : t('mobile.kbDetail.createRootTitle') }}
         </h3>
 
@@ -327,16 +327,16 @@
             <div class="grid grid-cols-2 gap-2">
               <button
                 @click="newDocType = 'file'"
-                :class="[newDocType === 'file' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-slate-400']"
-                class="py-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                :class="[newDocType === 'file' ? 'bg-slate-800 text-white' : 'bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-slate-400']"
+                class="py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
               >
                 <FileText class="w-3.5 h-3.5" />
                 <span>{{ t('mobile.kbDetail.docType') }}</span>
               </button>
               <button
                 @click="newDocType = 'folder'"
-                :class="[newDocType === 'folder' ? 'bg-amber-600 text-white' : 'bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-slate-400']"
-                class="py-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                :class="[newDocType === 'folder' ? 'bg-slate-800 text-white' : 'bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-slate-400']"
+                class="py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Folder class="w-3.5 h-3.5" />
                 <span>{{ t('mobile.kbDetail.folderType') }}</span>
@@ -350,14 +350,14 @@
               v-model="newDocName"
               type="text"
               :placeholder="newDocType === 'folder' ? t('mobile.kbDetail.folderNamePlaceholder') : t('mobile.kbDetail.docNamePlaceholder')"
-              class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2">
           <button @click="showCreateModal = false" class="px-3 py-1.5 text-xs text-gray-500 dark:text-slate-400">{{ t('nav.cancel') }}</button>
-          <button @click="handleCreateNode" :disabled="submittingCreate || !newDocName.trim()" class="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-xl">{{ t('common.create') }}</button>
+          <button @click="handleCreateNode" :disabled="submittingCreate || !newDocName.trim()" class="px-4 py-1.5 bg-slate-800 text-white text-xs font-semibold rounded-md">{{ t('common.create') }}</button>
         </div>
       </div>
     </div>

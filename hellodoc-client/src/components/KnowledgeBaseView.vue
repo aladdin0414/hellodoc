@@ -961,7 +961,7 @@ watch(sharePopover, (newVal) => {
             <aside
                 v-if="!isStandalone"
                 :class="[
-                    'z-40 flex flex-col shrink-0 bg-slate-50/70 dark:bg-[#12141c]/90 border-r border-slate-200/80 dark:border-zinc-800/80 transition-all duration-200',
+                    'z-40 flex flex-col shrink-0 bg-white dark:bg-[#161b22] border-r border-slate-200 dark:border-slate-800 transition-all duration-200',
                     isMobile ? (isMobileDrawerOpen ? 'fixed top-0 bottom-0 left-0 w-80 shadow-2xl z-50 bg-white dark:bg-[#12141c]' : 'hidden') : (isSidebarCollapsed ? 'w-0 border-r-0 overflow-hidden' : 'relative')
                 ]"
                 :style="!isMobile && !isSidebarCollapsed ? { width: `${sidebarWidth}px` } : {}"
@@ -975,16 +975,16 @@ watch(sharePopover, (newVal) => {
                 ></div>
 
                 <!-- 侧边栏头部：Logo / 知识库名称 + 收起按钮 -->
-                <div class="h-14 px-4 border-b border-slate-200/70 dark:border-zinc-800/70 flex items-center justify-between shrink-0">
-                    <router-link to="/" class="flex items-center gap-2.5 min-w-0 group" :title="kbDetail?.title || 'Hellodoc'">
-                        <div class="kb-icon-shell kb-icon-shell--sm shrink-0 shadow-sm" :style="getIconBgStyle(kbDetail?.color)">
+                <div class="h-16 px-6 flex items-center gap-1 shrink-0">
+                    <router-link to="/" class="flex items-center gap-2 flex-1 min-w-0 px-3 py-2 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 transition-colors" :title="t('kbView.nav.homeTooltip')">
+                        <div class="kb-icon-shell kb-icon-shell--sm !w-6 !h-6" :style="getIconBgStyle(kbDetail?.color)">
                             <template v-if="getKbIcon(kbDetail?.icon)">
                                 <img v-if="getKbIcon(kbDetail?.icon)?.type === 'image'" :src="String(getKbIcon(kbDetail?.icon)?.value)" class="kb-icon-glyph kb-icon-glyph--sm object-cover rounded" alt="kb-icon" />
                                 <component v-else :is="getKbIcon(kbDetail?.icon)?.value" class="kb-icon-glyph kb-icon-glyph--sm" :style="getIconStyle(kbDetail?.color)" />
                             </template>
                             <component v-else :is="(Icons as any).Book" class="kb-icon-glyph kb-icon-glyph--sm" :style="getIconStyle(kbDetail?.color)" />
                         </div>
-                        <span class="font-semibold text-sm text-slate-800 dark:text-zinc-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        <span class="font-semibold text-sm text-slate-800 dark:text-gray-100 truncate">
                             {{ kbDetail?.title || t('kbView.doc.loadingTitle') }}
                         </span>
                     </router-link>
@@ -1008,7 +1008,7 @@ watch(sharePopover, (newVal) => {
                 </div>
 
                 <!-- 侧边栏搜索框 (SiliconFlow 胶囊/内嵌搜索样式) -->
-                <div class="p-3 pb-2 shrink-0">
+                <div class="px-6 pb-4 shrink-0">
                     <div class="relative flex items-center">
                         <Icons.Search class="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
                         <input
@@ -1016,7 +1016,7 @@ watch(sharePopover, (newVal) => {
                             v-model="searchQuery"
                             type="text"
                             :placeholder="t('kbView.nav.searchPlaceholder', { shortcut: isMac ? '⌘K' : 'Ctrl+K' })"
-                            class="w-full pl-9 pr-14 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-700/70 rounded-lg text-xs text-slate-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-2xs"
+                            class="w-full pl-9 pr-14 py-2 text-xs bg-transparent border border-transparent rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all text-slate-900 dark:text-slate-100"
                         />
                         <div v-if="!searchQuery.trim()" class="absolute right-2 flex items-center gap-0.5 pointer-events-none">
                             <kbd class="px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-zinc-500 bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded">
@@ -1046,33 +1046,32 @@ watch(sharePopover, (newVal) => {
                     />
 
                     <!-- 文档树（宽松舒适的现代文档导轨风格） -->
-                    <div v-else class="space-y-1 pb-4">
+                    <div v-else class="pb-4">
                         <div
                             v-for="doc in orderedDocuments"
                             :key="doc.id"
-                            :style="{ paddingLeft: `${doc.depth * 1.1 + 0.35}rem` }"
+                            :style="{ paddingLeft: (doc.depth * 16 + 8) + 'px', '--tree-depth': doc.depth }"
                             @click="selectDoc(doc)"
                             @contextmenu.prevent="handleContextMenu($event, doc)"
-                            class="relative flex items-center group px-2.5 py-2 cursor-pointer rounded-lg text-[13px] min-h-[36px] transition-all select-none"
+                            class="doc-tree-row relative flex items-center group px-2 py-1.5 cursor-pointer rounded-md text-sm transition-colors select-none"
                             :class="[
                                 doc.id === props.docId
-                                    ? 'bg-indigo-50/90 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-medium'
-                                    : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100/80 dark:hover:bg-zinc-800/60 hover:text-slate-900 dark:hover:text-zinc-100'
+                                    ? 'doc-tree-row--selected text-slate-800 dark:text-slate-100 font-semibold'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50',
+                                doc.depth === 0 && doc.type === 'folder' && 'font-semibold'
                             ]"
                         >
-                            <!-- 激活项左侧小高亮条（内嵌于卡片左侧） -->
-                            <div
-                                v-if="doc.id === props.docId"
-                                class="absolute left-1 top-2 bottom-2 w-0.5 bg-indigo-600 dark:bg-indigo-500 rounded-full"
-                            ></div>
+                            <span v-for="level in doc.depth" :key="level" aria-hidden="true"
+                                class="doc-tree-guide" :style="{ left: ((level - 1) * 16 + 19) + 'px' }" />
 
                             <DocumentTreeNodeLabel
                                 :show-published-badge="false"
+                                muted-published
                                 :doc="doc"
                                 :expanded="expandedFolders.has(doc.id) || !!searchQuery"
-                                folder-chevron-class="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"
-                                folder-icon-class="text-indigo-500 dark:text-indigo-400"
-                                file-icon-class="text-slate-400 dark:text-zinc-500"
+                                folder-chevron-class="mr-1.5 text-slate-400 flex items-center justify-center"
+                                folder-icon-class="mr-2 shrink-0 text-slate-400 dark:text-slate-500"
+                                file-icon-class="mr-2 shrink-0 text-slate-400" file-placeholder-class="w-5 flex-shrink-0"
                             />
 
                             <!-- 草稿状态标识 -->
@@ -1346,12 +1345,12 @@ watch(sharePopover, (newVal) => {
         <!-- 分享弹窗 Modal -->
         <div
             v-if="sharePopover"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/35"
             @click.self="sharePopover = false"
         >
             <div
                 @click.stop
-                class="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-zinc-800 p-5"
+                class="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-slate-200 dark:border-zinc-800 p-5"
             >
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-sm text-slate-900 dark:text-zinc-100">{{ t('kbView.share.title') }}</h3>
@@ -1368,18 +1367,18 @@ watch(sharePopover, (newVal) => {
                         </label>
                     </div>
 
-                    <div class="p-2.5 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-slate-100 dark:border-zinc-800 flex items-center gap-2">
+                    <div class="p-2.5 bg-slate-50 dark:bg-zinc-800/60 rounded-md border border-slate-100 dark:border-zinc-800 flex items-center gap-2">
                         <p class="flex-1 text-xs text-slate-600 dark:text-zinc-300 truncate font-mono text-left">{{ shareUrl }}</p>
                         <button
                             @click="copyLink"
                             class="px-2.5 py-1 rounded-lg text-xs font-medium text-white transition-colors"
-                            :class="copied ? 'bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-700'"
+                            :class="copied ? 'bg-emerald-600' : 'bg-slate-800 hover:bg-slate-700'"
                         >
                             {{ copied ? t('kbView.share.copied') : t('kbView.share.copy') }}
                         </button>
                     </div>
 
-                    <div class="flex flex-col items-center gap-2 bg-slate-50 dark:bg-zinc-800/60 p-4 rounded-xl border border-slate-100 dark:border-zinc-800">
+                    <div class="flex flex-col items-center gap-2 bg-slate-50 dark:bg-zinc-800/60 p-4 rounded-md border border-slate-100 dark:border-zinc-800">
                         <img :src="qrCodeUrl" class="w-28 h-28 rounded-lg border border-white shadow-xs" alt="QR Code" />
                         <span class="text-[11px] text-slate-500 dark:text-zinc-400">{{ t('kbView.share.scanMobile') }}</span>
                     </div>
@@ -1391,6 +1390,7 @@ watch(sharePopover, (newVal) => {
 
 <style scoped>
 @import '../styles/kb-icon.css';
+@import '../styles/doc-tree.css';
 
 /* 隐藏页面主内容与右侧目录原生滚动条 */
 .no-scrollbar::-webkit-scrollbar {

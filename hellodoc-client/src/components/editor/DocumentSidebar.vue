@@ -197,11 +197,12 @@ const getKbIcon = (iconName?: string | null) => {
         <div v-if="!isMobile"
             class="absolute top-0 right-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-300 z-50 transition-colors opacity-0 group-hover/sidebar:opacity-100"
             :class="{ 'bg-indigo-400 opacity-100': isResizingSidebar }" @mousedown.prevent.stop="emit('startResize')"></div>
-        <div class="h-16 px-6 border-b border-slate-200/50 dark:border-slate-800 flex items-center shrink-0 relative">
-            <div @click.stop="showKbDropdownModel = !showKbDropdownModel"
-                class="flex items-center flex-1 min-w-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-gray-700/50 -ml-2 px-2 py-1.5 rounded-xl transition-all group/kb-title">
+        <div class="h-16 px-6 flex items-center shrink-0 relative">
+            <button type="button" @click.stop="showKbDropdownModel = !showKbDropdownModel"
+                :aria-expanded="showKbDropdownModel"
+                class="flex items-center w-full min-w-0 text-left bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 px-3 py-2 rounded-md transition-colors group/kb-title">
                 <div
-                    class="kb-icon-shell kb-icon-shell--sm mr-3"
+                    class="kb-icon-shell kb-icon-shell--sm !w-6 !h-6 mr-2"
                     :style="getIconBgStyle(kbDetail?.color)">
                     <template v-if="getKbIcon(kbDetail?.icon)">
                         <img v-if="getKbIcon(kbDetail?.icon)?.type === 'image'" :src="String(getKbIcon(kbDetail?.icon)?.value)"
@@ -212,24 +213,25 @@ const getKbIcon = (iconName?: string | null) => {
                     <component v-else :is="(Icons as any).Book" class="kb-icon-glyph kb-icon-glyph--sm"
                         :style="getIconStyle(kbDetail?.color)" />
                 </div>
-                <h2 class="text-lg font-black text-slate-900 dark:text-gray-100 truncate tracking-tight pr-1">
+                <h2 class="text-sm font-semibold text-slate-800 dark:text-gray-100 truncate pr-2">
                     {{ kbDetail?.title || t('editor.docList') }}
                 </h2>
-                <svg class="h-4 w-4 text-slate-400 group-hover/kb-title:text-indigo-500 transition-all flex-shrink-0"
+                <svg class="h-4 w-4 ml-auto text-slate-400 transition-transform flex-shrink-0"
                     :class="{ 'rotate-180': showKbDropdownModel }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
                 </svg>
-            </div>
+            </button>
             <div v-if="showKbDropdownModel"
-                class="absolute top-full left-4 right-4 mt-1 bg-white dark:bg-[#161b22] border border-slate-200 dark:border-gray-700 rounded-2xl shadow-2xl z-[100] py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div class="px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider">
+                class="absolute top-full left-6 right-6 mt-1 bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-700 rounded-md shadow-[0_4px_12px_rgba(15,23,42,0.08)] z-[100] py-1">
+                <div class="px-3 py-2 text-xs font-medium text-slate-400 dark:text-slate-500">
                     {{ t('editor.switchKb') }}
                 </div>
                 <div class="max-h-[320px] overflow-y-auto scrollbar-subtle">
-                    <div v-for="kb in editableKbs" :key="kb.id" @click="emit('switchKb', kb)"
-                        class="px-4 py-2.5 flex items-center space-x-3 cursor-pointer select-none transition-all hover:bg-slate-50 dark:hover:bg-gray-700/50"
-                        :class="{ 'bg-indigo-50/50 dark:bg-indigo-900/20': kb.id === kbId }">
-                        <div class="kb-icon-shell kb-icon-shell--sm" :style="getIconBgStyle(kb.color)">
+                    <button v-for="kb in editableKbs" :key="kb.id" type="button" @click="emit('switchKb', kb)"
+                        class="w-full px-3 py-2 flex items-center gap-2.5 text-left cursor-pointer select-none transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                        :aria-current="kb.id === kbId ? 'true' : undefined"
+                        :class="{ 'bg-slate-100 dark:bg-slate-800/70': kb.id === kbId }">
+                        <div class="kb-icon-shell kb-icon-shell--sm !w-6 !h-6">
                             <template v-if="getKbIcon(kb.icon)">
                                 <img v-if="getKbIcon(kb.icon)?.type === 'image'" :src="String(getKbIcon(kb.icon)?.value)"
                                     class="kb-icon-glyph kb-icon-glyph--sm object-cover rounded" alt="kb-icon" />
@@ -240,24 +242,24 @@ const getKbIcon = (iconName?: string | null) => {
                                 :style="getIconStyle(kb.color)" />
                         </div>
                         <span class="text-sm font-medium truncate"
-                            :class="kb.id === kbId ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-gray-300'">
+                            :class="kb.id === kbId ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-300'">
                             {{ kb.title }}
                         </span>
                         <div v-if="kb.id === kbId" class="flex-1 flex justify-end">
-                            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                     d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div class="px-6 py-4 bg-white dark:bg-[#161b22]">
+        <div class="px-6 pb-4 bg-white dark:bg-[#161b22]">
             <div class="relative group">
                 <input v-model="sidebarSearchQueryModel" type="text"
-                    class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all text-slate-900 dark:text-slate-100"
+                    class="w-full pl-9 pr-3 py-2 text-xs bg-transparent border border-transparent rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all text-slate-900 dark:text-slate-100"
                     :placeholder="t('editor.searchCatalog')" />
                 <Search
                     class="h-4 w-4 text-slate-400 absolute left-3 top-2 group-focus-within:text-indigo-500 transition-colors" />
@@ -298,7 +300,7 @@ const getKbIcon = (iconName?: string | null) => {
                     </svg>
                 </div>
             </div>
-            <div v-else class="space-y-1.5">
+            <div v-else>
                 <SearchResultList v-if="sidebarSearchQueryModel.trim()" :results="searchResults" :loading="searchLoading"
                     :query="sidebarSearchQueryModel" @select="emit('searchSelect', $event)" />
                 <template v-else>
@@ -308,23 +310,27 @@ const getKbIcon = (iconName?: string | null) => {
                             :draggable="!isMobile && !sidebarSearchQueryModel.trim() ? true : undefined"
                             @dragstart="emit('dragStart', $event, doc)" @dragover.prevent.stop="emit('dragOver', $event, doc)"
                             @drop.prevent.stop="emit('drop', $event, doc)" @dragend="emit('dragEnd')"
-                            class="group w-full text-left px-2 py-2 rounded-xl text-sm transition-all flex items-center cursor-pointer select-none relative"
+                            class="doc-tree-row group w-full text-left px-2 py-1.5 rounded-md text-sm transition-colors flex items-center cursor-pointer select-none relative"
                             :class="[
                                 selectedDocIds.has(doc.id)
-                                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-black shadow-sm ring-1 ring-indigo-200 dark:ring-indigo-800'
-                                    : 'text-slate-600 dark:text-slate-400 active:bg-white/50 dark:active:bg-slate-800/50 sm:hover:bg-white/50 sm:dark:hover:bg-slate-800/50',
+                                    ? 'text-slate-800 dark:text-slate-100 font-semibold'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50',
+                                selectedDocIds.has(doc.id) && 'doc-tree-row--selected',
+                                doc.depth === 0 && doc.type === 'folder' && 'font-semibold',
                                 dragState.draggingDoc?.id === doc.id && 'opacity-40',
                                 dragState.draggingDoc && selectedDocIds.has(doc.id) && 'opacity-40',
                                 dragState.overDocId === doc.id && dragState.dropPosition === 'inside' && 'drag-drop-inside'
                             ]"
-                            :style="{ paddingLeft: (doc.depth * 16 + 8) + 'px' }">
+                            :style="{ paddingLeft: (doc.depth * 16 + 8) + 'px', '--tree-depth': doc.depth }">
+                            <span v-for="level in doc.depth" :key="level" aria-hidden="true"
+                                class="doc-tree-guide" :style="{ left: ((level - 1) * 16 + 19) + 'px' }" />
                             <div v-if="dragState.overDocId === doc.id && dragState.dropPosition === 'before'"
                                 class="absolute -top-1 left-2 right-2 h-0.5 bg-indigo-500 rounded-full pointer-events-none z-10" />
                             <div v-if="dragState.overDocId === doc.id && dragState.dropPosition === 'after'"
                                 class="absolute -bottom-1 left-2 right-2 h-0.5 bg-indigo-500 rounded-full pointer-events-none z-10" />
-                            <DocumentTreeNodeLabel :doc="doc" :expanded="expandedFolders.has(doc.id)"
+                            <DocumentTreeNodeLabel :doc="doc" :expanded="expandedFolders.has(doc.id)" muted-published :published-label="t('editor.publishedStatus')"
                                 folder-chevron-class="mr-1.5 text-slate-400 flex items-center justify-center"
-                                folder-icon-class="mr-2 shrink-0 text-blue-500 dark:text-blue-400"
+                                folder-icon-class="mr-2 shrink-0 text-slate-400 dark:text-slate-500"
                                 file-icon-class="mr-2 shrink-0 text-slate-400" file-placeholder-class="w-5 flex-shrink-0">
                                 <template #name>
                                     <div v-if="editingDocId === doc.id" class="flex-1 min-w-0" @click.stop>
@@ -337,7 +343,7 @@ const getKbIcon = (iconName?: string | null) => {
                                     <span v-else class="block truncate">{{ doc.name }}</span>
                                 </template>
                             </DocumentTreeNodeLabel>
-                            <div
+                            <div v-if="isMobile || doc.type === 'folder'"
                                 :class="[isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100', 'flex items-center gap-1 ml-2 shrink-0']">
                                 <template v-if="isMobile">
                                     <button @click.stop="emit('contextMenu', $event, doc)"
@@ -453,6 +459,8 @@ const getKbIcon = (iconName?: string | null) => {
 
 <style scoped>
 @import '../../styles/kb-icon.css';
+
+@import '../../styles/doc-tree.css';
 
 .drag-drop-inside {
     background-color: rgba(79, 70, 229, 0.1) !important;

@@ -113,9 +113,9 @@
     <TabBar />
 
     <!-- 新建知识库弹窗 -->
-    <div v-if="showCreateModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
-        <h3 class="text-base font-bold text-gray-900 dark:text-slate-100">{{ t('kb.upsertTitleCreate') }}</h3>
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 bg-slate-900/35 flex items-center justify-center p-4">
+      <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg w-full max-w-sm p-5 space-y-4 shadow-lg">
+        <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">{{ t('kb.upsertTitleCreate') }}</h3>
 
         <div class="space-y-3 text-sm">
           <div>
@@ -124,7 +124,7 @@
               v-model="newKbTitle"
               type="text"
               :placeholder="t('kb.upsertTitlePlaceholder')"
-              class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
         </div>
@@ -132,14 +132,14 @@
         <div class="flex items-center justify-end gap-2 pt-2">
           <button
             @click="showCreateModal = false"
-            class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
+            class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
           >
             {{ t('nav.cancel') }}
           </button>
           <button
             @click="handleCreateKb"
             :disabled="creating || !newKbTitle.trim()"
-            class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl shadow-md active:scale-95 transition-all"
+            class="px-4 py-2 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 dark:bg-slate-200 dark:hover:bg-white dark:text-slate-900 disabled:opacity-50 rounded-md active:scale-95 transition-all"
           >
             {{ creating ? t('common.loading') : t('common.confirm') }}
           </button>

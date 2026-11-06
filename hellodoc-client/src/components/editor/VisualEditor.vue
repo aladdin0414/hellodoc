@@ -756,7 +756,7 @@ defineExpose({
 
 <style scoped>
 .page-container {
-    @apply mx-auto my-8 bg-white dark:bg-[#161b22] shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.2)] 
+    @apply mx-auto my-6 bg-white dark:bg-[#161b22] shadow-[0_2px_10px_rgba(0,0,0,0.035)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.15)]
            min-h-[1050px] w-full p-[60px_80px] border-none transition-all duration-300;
 }
 

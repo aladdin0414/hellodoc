@@ -243,7 +243,7 @@ defineExpose({ closeDropdowns })
         <!-- Hidden File Input -->
         <input type="file" ref="fileInputRef" class="hidden" accept="image/*" multiple @change="handleFileChange" />
 
-        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-slate-100 dark:border-slate-800">
             <button @click="togglePlainTextMode" :class="{ 'is-active': isPlainTextMode }" :title="t('editor.toolbar.togglePlainTextMode')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--box" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2"/>
@@ -267,7 +267,7 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
         <template v-if="!isPlainTextMode">
-        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-slate-100 dark:border-slate-800">
             <button @click="toggleBold" :class="{ 'is-active': editor.isActive('bold') }" :title="t('editor.toolbar.bold')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
             </button>
@@ -285,7 +285,7 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
 
-        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-slate-100 dark:border-slate-800">
             <select
                 v-if="useBlockTypeDropdown"
                 class="toolbar-select"
@@ -312,7 +312,7 @@ defineExpose({ closeDropdowns })
             </template>
         </div>
 
-        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-slate-100 dark:border-slate-800">
             <button @click="setAlignLeft" :class="{ 'is-active': editor.isActive({ textAlign: 'left' }) }" :title="t('editor.toolbar.alignLeft')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="15" y1="12" y2="12"/><line x1="3" x2="19" y1="18" y2="18"/></svg>
             </button>
@@ -324,7 +324,7 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
 
-        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-slate-100 dark:border-slate-800">
             <button @click="toggleBulletList" :class="{ 'is-active': editor.isActive('bulletList') }" :title="t('editor.toolbar.bulletList')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
             </button>
@@ -344,7 +344,7 @@ defineExpose({ closeDropdowns })
             </button>
         </div>
 
-        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-slate-100 dark:border-slate-800">
             <button @click="toggleBlockquote" :class="{ 'is-active': editor.isActive('blockquote') }" :title="t('editor.toolbar.blockquote')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H3"/><path d="M21 12H8"/><path d="M21 18H8"/><path d="M3 12v6"/></svg>
             </button>
@@ -388,7 +388,7 @@ defineExpose({ closeDropdowns })
             </div>
         </div>
 
-        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-gray-200 dark:border-gray-700">
+        <div class="toolbar-group flex shrink-0 gap-0.5 px-2 border-r border-slate-100 dark:border-slate-800">
             <button @click="undo" :title="t('editor.toolbar.undo')" class="toolbar-btn">
                 <svg viewBox="0 0 24 24" class="toolbar-icon toolbar-icon--lean" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
             </button>
@@ -504,7 +504,7 @@ defineExpose({ closeDropdowns })
 }
 
 .toolbar-btn {
-    @apply h-8 w-8 inline-flex items-center justify-center p-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200 font-bold text-xs leading-none;
+    @apply h-8 w-8 inline-flex items-center justify-center p-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-slate-500 dark:text-slate-400 transition-colors duration-200 font-bold text-xs leading-none;
 }
 .list-format-select {
     appearance: none;

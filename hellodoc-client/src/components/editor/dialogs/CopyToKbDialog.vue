@@ -89,6 +89,7 @@ const { t } = useI18n()
             </div>
             <div
                 class="p-4 bg-slate-50 dark:bg-gray-900/50 border-t border-slate-100 dark:border-gray-800 flex items-center justify-between">
+                <p v-if="selectedKbForCopy?.visibility?.toLowerCase() === 'public'" class="text-xs text-amber-700 dark:text-amber-400 mr-3">{{ t('editor.copyPublicWarning') }}</p>
                 <button @click="emit('close')"
                     class="px-5 py-2 text-sm font-medium text-slate-700 dark:text-gray-300 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-700 transition-all">
                     {{ t('nav.cancel') }}
