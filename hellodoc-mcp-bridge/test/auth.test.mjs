@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { HelloDocAuth } from '../auth.mjs';
+import { HelloDocAuth, HelloDocTokenAuth } from '../auth.mjs';
+
+test('HelloDocTokenAuth directly returns static token and satisfies refresh contract', async () => {
+  const auth = new HelloDocTokenAuth('hdmcp_sample_token');
+  assert.equal(await auth.accessToken(), 'hdmcp_sample_token');
+  assert.equal(await auth.refresh('hdmcp_sample_token'), 'hdmcp_sample_token');
+  assert.throws(() => new HelloDocTokenAuth(''), /Token is required/);
+  assert.throws(() => new HelloDocTokenAuth(null), /Token is required/);
+});
 
 test('logs in once for concurrent callers and refreshes after an expired access token', async () => {
   const calls = [];

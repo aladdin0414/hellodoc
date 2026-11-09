@@ -1,3 +1,17 @@
+export class HelloDocTokenAuth {
+  #token;
+  constructor(token) {
+    if (!token || typeof token !== 'string') throw new Error('Token is required.');
+    this.#token = token;
+  }
+  async accessToken() {
+    return this.#token;
+  }
+  async refresh() {
+    return this.#token;
+  }
+}
+
 export class HelloDocAuth {
   #access;
   #refresh;

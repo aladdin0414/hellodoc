@@ -6,7 +6,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { HelloDocAuth } from './auth.mjs';
+import { HelloDocAuth, HelloDocTokenAuth } from './auth.mjs';
 import { RecoveringClient } from './reconnect.mjs';
 import { authenticatedFetch } from './transport.mjs';
 import { scopeTool, exposedTools, prepareToolArguments, addSourceUrls } from './scope.mjs';
@@ -21,17 +21,23 @@ async function main() {
   }
   const kb = Number(process.env.HELLODOC_KB_ID);
   if (!Number.isSafeInteger(kb) || kb <= 0) throw new Error('HELLODOC_KB_ID must be a positive integer.');
-  const username = process.env.HELLODOC_USERNAME;
-  if (!username) throw new Error('HELLODOC_USERNAME is required.');
-  const passwordProvider = async () => {
-    if (process.env.HELLODOC_PASSWORD) return process.env.HELLODOC_PASSWORD;
-    if (process.platform !== 'darwin') throw new Error('Set HELLODOC_PASSWORD through your client secret mechanism.');
-    try {
-      const { stdout } = await execute('/usr/bin/security', ['find-generic-password', '-s', 'hellodoc-mcp', '-a', username, '-w']);
-      return stdout.replace(/\r?\n$/, '');
-    } catch { throw new Error('HelloDoc password not found in macOS Keychain.'); }
-  };
-  const auth = new HelloDocAuth(base.href.replace(/\/$/, ''), username, passwordProvider);
+  let auth;
+  const token = process.env.HELLODOC_MCP_TOKEN;
+  if (token) {
+    auth = new HelloDocTokenAuth(token);
+  } else {
+    const username = process.env.HELLODOC_USERNAME;
+    if (!username) throw new Error('HELLODOC_MCP_TOKEN or HELLODOC_USERNAME is required.');
+    const passwordProvider = async () => {
+      if (process.env.HELLODOC_PASSWORD) return process.env.HELLODOC_PASSWORD;
+      if (process.platform !== 'darwin') throw new Error('Set HELLODOC_PASSWORD through your client secret mechanism.');
+      try {
+        const { stdout } = await execute('/usr/bin/security', ['find-generic-password', '-s', 'hellodoc-mcp', '-a', username, '-w']);
+        return stdout.replace(/\r?\n$/, '');
+      } catch { throw new Error('HelloDoc password not found in macOS Keychain.'); }
+    };
+    auth = new HelloDocAuth(base.href.replace(/\/$/, ''), username, passwordProvider);
+  }
   const remote = new RecoveringClient(async () => {
     const client = new Client({ name: 'hellodoc-local-bridge', version: '0.1.0' });
     const transport = new StreamableHTTPClientTransport(new URL('api/mcp', base.href.endsWith('/') ? base : new URL(base.href + '/')), {
