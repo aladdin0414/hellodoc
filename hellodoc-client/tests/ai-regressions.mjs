@@ -15,6 +15,7 @@ await build({
  stdin:{contents:`export {default as Drawer} from './src/components/ai/AiAssistantDrawer.vue'; export {aiCompletionStream} from './src/api/ai.ts'; export {renderMarkdownToHtml} from './src/utils/markdown.ts'; export {i18n} from './src/i18n/index.ts'; export {testModelState} from './src/composables/useAiModels.ts'`,resolveDir:new URL('..',import.meta.url).pathname},
  bundle:true,format:'esm',platform:'node',outfile:output.pathname,external:Object.keys(dependencies),
  plugins:[{name:'vue',setup(b){
+  b.onLoad({filter:/\/utils\/request\.ts$/},()=>({contents:`export default {get: async (url)=>globalThis.__conversationStore?.[url] ?? [], put: async (url, data)=>{globalThis.__conversationStore ??= {}; globalThis.__conversationStore[url]=structuredClone(data)}}`}))
   b.onResolve({filter:/\.css$/},()=>({path:'empty',namespace:'empty-css'}))
   b.onLoad({filter:/.*/,namespace:'empty-css'},()=>({contents:''}))
   b.onLoad({filter:/\/useAiModels\.ts$/},()=>({contents:`import {ref} from 'vue'; export const testModelState={activeModels:ref([{id:'test',name:'test'}]),currentModelId:ref('test'),selectedModel:ref({id:'test',name:'test'}),loading:ref(false),loadError:ref(false),async fetchActiveModels(){},selectModel(){}}; export const useAiModels=()=>testModelState`}))
@@ -27,11 +28,12 @@ const{createApp,h,reactive,nextTick}=await import('vue')
 const tick=()=>new Promise(resolve=>setTimeout(resolve,5))
 const sse=text=>`event: chunk\ndata: ${JSON.stringify(text)}\n\nevent: done\ndata: ok\n\n`
 const response=text=>new Response(text,{headers:{'Content-Type':'text/event-stream'}})
-async function mount(){
+async function mount(preserve=false){
+ if(!preserve)globalThis.__conversationStore={}
  const props=reactive({visible:false,docId:1,documentContext:'doc A'})
  const root=document.createElement('div');document.body.append(root)
  const app=createApp({render:()=>h(Drawer,{...props,'onUpdate:visible':v=>props.visible=v})})
- app.use(i18n).mount(root);props.visible=true;await nextTick()
+ app.use(i18n).mount(root);props.visible=true;await nextTick();await tick()
  return{props,root,close(){app.unmount();root.remove()}}
 }
 async function send(root,text){
@@ -101,3 +103,9 @@ test('conversation history stays within the server message limit',async()=>{
  }finally{c.close()}
 })
 await rm(output,{force:true})
+
+test('conversation is restored after remount and kept per document',async()=>{
+ globalThis.__conversationStore={};globalThis.fetch=async()=>response(sse('saved answer'));
+ const first=await mount();await tick();await send(first.root,'saved question');await tick();first.close();
+ const second=await mount(true);try{await tick();assert.match(second.root.textContent,/saved question/);assert.match(second.root.textContent,/saved answer/);second.props.docId=2;await tick();assert.doesNotMatch(second.root.textContent,/saved question/);second.props.docId=1;await tick();assert.match(second.root.textContent,/saved answer/)}finally{second.close()}
+})

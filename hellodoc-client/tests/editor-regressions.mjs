@@ -210,3 +210,79 @@ test('formatted ordered list inside a bullet survives serialization', async () =
         assert.deepEqual(context.editor.getJSON(), before, saved)
     } finally { context.close() }
 })
+
+test('mobile layout does not overwrite the saved desktop page width', async () => {
+    const oldWidth = window.innerWidth
+    localStorage.setItem('hellodoc_editor_page_mode', 'landscape')
+    Object.defineProperty(window, 'innerWidth', { value: 600, configurable: true })
+    const context = await mount('test')
+    try {
+        await nextTick()
+        assert.equal(localStorage.getItem('hellodoc_editor_page_mode'), 'landscape')
+        assert.equal(context.root.querySelector('.landscape-container'), null)
+    } finally {
+        context.close()
+        Object.defineProperty(window, 'innerWidth', { value: oldWidth, configurable: true })
+        localStorage.removeItem('hellodoc_editor_page_mode')
+    }
+})
+
+test('HTML tables with line breaks and code pipes survive saving and reopening', async () => {
+    const html = '<table><tr><th>A</th><th>B</th></tr><tr><td>x<br>y</td><td><code>p | q</code></td></tr></table>'
+    const context = await mount()
+    let reopened
+    try {
+        context.editor.view.pasteHTML(html, { clipboardData: { files: [], items: [], getData: () => '' }, preventDefault() {} })
+        const before = context.editor.getJSON().content[0].toJSON?.() ?? context.editor.getJSON().content[0]
+        reopened = await mount(context.editor.storage.markdown.getMarkdown())
+        assert.deepEqual(reopened.editor.getJSON().content[0], before)
+    } finally { context.close(); reopened?.close() }
+})
+
+test('HTML with embedded base64 image retains surrounding text and uploads image', async () => {
+    let uploaded
+    const context = await mount('', { onUploadImg: (files, cb) => { uploaded = files; cb(['/api/test/image.png']) } })
+    try {
+        const html = '<p>before</p><img src="data:image/png;base64,eA=="><p>after</p>'
+        const handled = context.editor.options.editorProps.handlePaste(context.editor.view, { clipboardData: { files: [], items: [], getData: type => type === 'text/html' ? html : '' }, preventDefault() {} })
+        assert.equal(handled, true)
+        await nextTick()
+        assert.equal(uploaded?.length, 1)
+        assert.match(context.editor.getHTML(), /before/)
+        assert.match(context.editor.getHTML(), /after/)
+        assert.match(context.editor.getHTML(), /\/api\/test\/image.png/)
+    } finally { context.close() }
+})
+
+test('HTML and an image file preserve surrounding text on paste', async () => {
+    const context = await mount('', { onUploadImg: (_files, cb) => cb(['/api/test/image.png']) })
+    try {
+        const html = '<p>before<img src="file:///clipboard.png">after</p>'
+        const handled = context.editor.options.editorProps.handlePaste(context.editor.view, { clipboardData: { files: [new window.File(['x'], 'clipboard.png', { type: 'image/png' })], items: [], getData: type => type === 'text/html' ? html : '' }, preventDefault() {} })
+        assert.equal(handled, true)
+        await nextTick()
+        assert.match(context.editor.getHTML(), /before/)
+        assert.match(context.editor.getHTML(), /after/)
+        assert.match(context.editor.getHTML(), /\/api\/test\/image.png/)
+    } finally { context.close() }
+})
+
+test('base64 image with matching clipboard file is inserted once', async () => {
+    const context = await mount('', { onUploadImg: (_files, cb) => cb(['/api/test/image.png']) })
+    try {
+        const html = '<p>before</p><img src="data:image/png;base64,eA=="><p>after</p>'
+        context.editor.options.editorProps.handlePaste(context.editor.view, { clipboardData: { files: [new window.File(['x'], 'image.png', { type: 'image/png' })], items: [], getData: type => type === 'text/html' ? html : '' }, preventDefault() {} })
+        await nextTick()
+        assert.equal((context.editor.getHTML().match(/<img/g) || []).length, 1)
+    } finally { context.close() }
+})
+
+test('HTML text without an image survives paste with a clipboard file', async () => {
+    const context = await mount('', { onUploadImg: (_files, cb) => cb(['/api/test/image.png']) })
+    try {
+        context.editor.options.editorProps.handlePaste(context.editor.view, { clipboardData: { files: [new window.File(['x'], 'image.png', { type: 'image/png' })], items: [], getData: type => type === 'text/html' ? '<p><strong>Important</strong> text</p>' : '' }, preventDefault() {} })
+        await nextTick()
+        assert.match(context.editor.getHTML(), /Important/)
+        assert.match(context.editor.getHTML(), /image.png/)
+    } finally { context.close() }
+})

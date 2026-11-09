@@ -52,6 +52,8 @@ export const useDocumentEditorMedia = (options: UseDocumentEditorMediaOptions) =
     }
 
     const onUploadImg = async (files: File[], callback: (urls: string[]) => void) => {
+        const kbId = options.getKbId()
+        const docId = options.currentDoc.value?.id || 0
         try {
             const urls = await withUploadIndicator(() =>
                 Promise.all(
@@ -60,7 +62,7 @@ export const useDocumentEditorMedia = (options: UseDocumentEditorMediaOptions) =
                             const formData = new FormData()
                             formData.append('file', file)
                             try {
-                                const res: any = await uploadAsset(options.getKbId(), options.currentDoc.value?.id || 0, formData)
+                                const res: any = await uploadAsset(kbId, docId, formData)
                                 resolve(res.rawUrl)
                             } catch (error) {
                                 reject(error)
@@ -78,12 +80,14 @@ export const useDocumentEditorMedia = (options: UseDocumentEditorMediaOptions) =
     }
 
     const onUploadImgFromUrl = async (urlsToUpload: string[], callback: (urls: string[]) => void) => {
+        const kbId = options.getKbId()
+        const docId = options.currentDoc.value?.id || 0
         try {
             const urls = await withUploadIndicator(async () => {
                 const results: string[] = []
                 for (const url of urlsToUpload) {
                     try {
-                        const res: any = await uploadAssetFromUrl(options.getKbId(), options.currentDoc.value?.id || 0, url)
+                        const res: any = await uploadAssetFromUrl(kbId, docId, url)
                         results.push(res.rawUrl)
                     } catch (error) {
                         console.warn('转存单张图片失败:', url, error)

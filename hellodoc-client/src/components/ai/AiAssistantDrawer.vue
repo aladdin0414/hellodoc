@@ -5,7 +5,7 @@ import 'katex/dist/katex.min.css'
 import { message } from '../../utils/message'
 import { useAiModels } from '../../composables/useAiModels'
 import { getAiModelStatus } from '../../api/aiModel'
-import { aiCompletionStream, type AiChatMessage } from '../../api/ai'
+import { aiCompletionStream, loadAiConversation, saveAiConversation, type AiChatMessage } from '../../api/ai'
 import { renderMarkdownToHtml, formatChineseMarkdown } from '../../utils/markdown'
 
 const props = defineProps<{
@@ -33,7 +33,7 @@ const modelState = computed(() => {
   if (fallbackConfigured.value === false) return 'empty'
   return 'loading'
 })
-const canSend = computed(() => modelState.value === 'ready' || modelState.value === 'fallback')
+const canSend = computed(() => !!props.docId && !historyLoading.value && !historyLoadFailed.value && (modelState.value === 'ready' || modelState.value === 'fallback'))
 const statusText = computed(() => {
   if (modelState.value === 'loading') return t('aiDrawer.loadingModels')
   if (modelState.value === 'error') return t('aiDrawer.modelsLoadError')
@@ -69,21 +69,65 @@ interface ChatMessage {
 }
 
 const messages = ref<ChatMessage[]>([])
+const historyLoading = ref(false)
+const historyLoadFailed = ref(false)
+let historySequence = 0
+let saveQueue: Promise<void> = Promise.resolve()
+const persist = (docId = props.docId) => {
+  if (!docId || historyLoading.value || historyLoadFailed.value) return
+  const snapshot = messages.value.map(({ loading, ...entry }) => ({ ...entry, ...(entry.role === 'assistant' && !entry.status ? { status: 'stopped' as const } : {}) }))
+  saveQueue = saveQueue.catch(() => {}).then(() => saveAiConversation(docId, snapshot)).catch(() => {
+    message.error(t('aiDrawer.historySaveFailed'))
+  })
+}
+const loadHistory = async () => {
+  const docId = props.docId
+  const sequence = ++historySequence
+  if (!docId) return
+  historyLoading.value = true
+  historyLoadFailed.value = false
+  try {
+    await saveQueue
+    const saved = await loadAiConversation(docId)
+    if (sequence !== historySequence) return
+    messages.value = saved
+    messageSequence = Math.max(0, ...saved.map(m => Number(m.id) || 0))
+    await scrollToBottom()
+  } catch {
+    if (sequence === historySequence) {
+      historyLoadFailed.value = true
+      message.error(t('aiDrawer.historyLoadFailed'))
+    }
+  } finally {
+    if (sequence === historySequence) historyLoading.value = false
+  }
+}
+
 const inputPrompt = ref('')
 const isGenerating = ref(false)
 const messagesContainerRef = ref<HTMLDivElement | null>(null)
 let activeRequest: AbortController | null = null
 let messageSequence = 0
-const stopGeneration = () => activeRequest?.abort()
-const resetConversation = () => {
-  stopGeneration()
+const stopGeneration = (docId = props.docId) => {
+  if (!activeRequest) return
+  const pending = [...messages.value].reverse().find(m => m.role === 'assistant' && m.loading !== undefined && !m.status)
+  if (pending) {
+    pending.status = 'stopped'
+    pending.loading = false
+    if (!pending.content) pending.content = t('aiDrawer.stopped')
+  }
+  persist(docId)
+  activeRequest.abort()
+}
+const resetConversation = (oldDocId?: number) => {
+  stopGeneration(oldDocId)
   activeRequest = null
   isGenerating.value = false
   messages.value = []
   inputPrompt.value = ''
 }
-onBeforeUnmount(stopGeneration)
-watch(() => props.docId, resetConversation, { flush: 'sync' })
+onBeforeUnmount(() => stopGeneration())
+watch(() => props.docId, (_newDocId, oldDocId) => { resetConversation(oldDocId); void loadHistory() }, { flush: 'sync' })
 
 // 快捷开场白提问建议
 const quickSuggestions = computed(() => [1, 2, 3, 4].map(n => t(`aiDrawer.suggestion${n}`)))
@@ -102,8 +146,9 @@ const handleClose = () => {
 }
 
 const clearHistory = () => {
-  if (isGenerating.value) return
+  if (isGenerating.value || historyLoading.value || historyLoadFailed.value) return
   messages.value = []
+  persist()
 }
 
 // 发送消息
@@ -144,6 +189,7 @@ const handleSend = async () => {
     loading: true
   })
   isGenerating.value = true
+  persist()
   await scrollToBottom()
 
   try {
@@ -187,6 +233,7 @@ const handleSend = async () => {
     if (activeRequest === request) {
       activeRequest = null
       isGenerating.value = false
+      persist()
       await scrollToBottom()
     }
   }
@@ -218,6 +265,7 @@ const insertToDoc = (text: string) => {
 watch(() => props.visible, (val) => {
   if (val) {
     void refreshModels()
+    void loadHistory()
     scrollToBottom()
   } else {
     stopGeneration()
@@ -280,7 +328,7 @@ watch(() => props.visible, (val) => {
             <!-- 清空历史 -->
             <button
               @click="clearHistory"
-              :disabled="isGenerating"
+              :disabled="isGenerating || historyLoading || historyLoadFailed"
               class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               :title="t('aiDrawer.clearChat')"
             >
@@ -413,7 +461,7 @@ watch(() => props.visible, (val) => {
             ></textarea>
             <div class="flex items-center justify-between pt-1 px-1">
               <span class="text-[10px] text-gray-400">{{ canSend ? t('aiDrawer.currentModel', { model: selectedModel?.name || t('aiDrawer.defaultModel') }) : '' }}</span>
-              <button v-if="isGenerating" @click="stopGeneration" class="text-xs text-red-600 px-3 py-1.5">{{ t('aiDrawer.stop') }}</button>
+              <button v-if="isGenerating" @click="stopGeneration()" class="text-xs text-red-600 px-3 py-1.5">{{ t('aiDrawer.stop') }}</button>
               <button v-else
                 @click="handleSend"
                 :disabled="!inputPrompt.trim() || isGenerating || !canSend"

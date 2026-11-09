@@ -203,3 +203,13 @@ export const aiCompletionStream = async (data: AiCompletionReq, handlers: AiComp
         controller.abort()
     }
 }
+
+export interface SavedAiMessage {
+    id: string
+    role: 'user' | 'assistant'
+    content: string
+    modelName?: string
+    status?: 'complete' | 'stopped' | 'error'
+}
+export const loadAiConversation = (docId: number): Promise<SavedAiMessage[]> => request.get(`/api/docs/${docId}/ai-conversation`)
+export const saveAiConversation = (docId: number, messages: SavedAiMessage[]): Promise<void> => request.put(`/api/docs/${docId}/ai-conversation`, messages)

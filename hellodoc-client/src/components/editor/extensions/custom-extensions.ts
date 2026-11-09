@@ -353,7 +353,12 @@ function isMarkdownSerializable(node: any) {
     const isComplex = (n: any) => {
         if (n.childCount > 1) return true;
         if (n.firstChild && n.firstChild.type.name !== 'paragraph') return true;
-        return false;
+        let unsafe = false;
+        n.descendants((child: any) => {
+            if (child.type.name === 'hardBreak' || (child.isText && child.marks.some((mark: any) => mark.type.name === 'code') && child.text?.includes('|'))) unsafe = true;
+            return !unsafe;
+        });
+        return unsafe;
     };
 
     const hasCustomWidth = (n: any) => n.attrs.colwidth && n.attrs.colwidth.some((w: number) => w > 0);

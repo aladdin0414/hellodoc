@@ -92,7 +92,7 @@ const safeDocAction = (handler: (doc: DocLike) => void, doc: DocLike | null) => 
 <template>
     <div v-if="visible" ref="menuElement"
         class="fixed z-[100] bg-white dark:bg-[#161b22] rounded-xl shadow-xl border border-slate-100 dark:border-gray-700 py-1.5 min-w-[165px] max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto"
-        :style="{ left: adjustedPosition.x + 'px', top: adjustedPosition.y + 'px' }" @click.stop>
+        :style="{ left: adjustedPosition.x + 'px', top: adjustedPosition.y + 'px' }" @click.stop @contextmenu.prevent.stop>
         <div v-if="isMultiSelected" class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">{{ t('editorMenu.selectedCount', { count: selectedDocIds?.size }) }}</div>
         <!-- macOS 风格颜色标记面板 -->
         <div v-if="!isMultiSelected && contextTargetDoc" class="px-3 py-1.5 border-b border-slate-100 dark:border-gray-700/80 mb-1">

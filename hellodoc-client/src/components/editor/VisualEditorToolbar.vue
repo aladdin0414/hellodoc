@@ -512,10 +512,11 @@ defineExpose({ closeDropdowns })
     color: transparent;
     font-size: 0;
     background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 16px no-repeat;
-    text-align: center;
+    text-align: left;
     cursor: pointer;
 }
 .list-format-select option {
+    text-align: left;
     color: #1e293b;
     font-size: 14px;
 }

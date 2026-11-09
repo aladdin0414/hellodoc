@@ -46,6 +46,8 @@ export default {
         deleteConfirm: "确定删除",
     },
     aiDrawer: {
+        historyLoadFailed: '加载对话历史失败，请重新打开助理重试',
+        historySaveFailed: '保存对话历史失败，请检查网络',
         loadingModels: "正在加载模型",
         modelsLoadError: "模型列表加载失败",
         usingDefaultConfig: "使用默认配置",

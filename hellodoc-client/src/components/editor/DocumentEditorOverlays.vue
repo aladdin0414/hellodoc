@@ -84,7 +84,8 @@ const emit = defineEmits<{
 
 <template>
     <!-- Context Menu Overlay for clicking outside to close -->
-    <div v-if="showContextMenu" class="fixed inset-0 z-[90]" @click="emit('updateShowContextMenu', false)"></div>
+    <div v-if="showContextMenu" class="fixed inset-0 z-[90]" @click="emit('updateShowContextMenu', false)"
+        @contextmenu.prevent="emit('updateShowContextMenu', false)"></div>
 
     <DocumentContextMenu :visible="showContextMenu" :menu-position="menuPosition" :context-target-doc="contextTargetDoc"
         :selected-doc-ids="selectedDocIds" :documents="documents"

@@ -239,55 +239,107 @@ const editor = useEditor({
                 }
             })
 
+            const htmlData = clipboardData.getData('text/html')
+            if (htmlData && (files.length > 0 || /<img\b/i.test(htmlData))) {
+                const fragmentMatch = htmlData.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)
+                const doc = new DOMParser().parseFromString(fragmentMatch?.[1] || htmlData, 'text/html')
+                const images = Array.from(doc.querySelectorAll('img'))
+                const localImages: HTMLImageElement[] = []
+                const localFiles: File[] = []
+                let fileIndex = 0
+                for (const img of images) {
+                    const src = img.getAttribute('src') || ''
+                    if (/^data:image\/[a-z0-9.+-]+;base64,/i.test(src)) {
+                        if (files[fileIndex]?.type.startsWith('image/')) {
+                            localImages.push(img)
+                            localFiles.push(files[fileIndex++]!)
+                            continue
+                        }
+                        try {
+                            const match = src.match(/^data:(image\/[a-z0-9.+-]+);base64,([\s\S]*)$/i)!
+                            const binary = atob(match[2]!.replace(/\s/g, ''))
+                            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0))
+                            localImages.push(img)
+                            localFiles.push(new File([bytes], `pasted-image-${localFiles.length + 1}`, { type: match[1] }))
+                            continue
+                        } catch { /* Leave invalid data to the editor's normal parser. */ }
+                    }
+                    if (/^(?:file:|cid:|blob:)/i.test(src) && files[fileIndex]) {
+                        localImages.push(img)
+                        localFiles.push(files[fileIndex++]!)
+                    }
+                }
+                // Some applications provide a file and an HTML image with an unrelated URL.
+                // Use the supplied file for a single image when no other image was matched.
+                if (files.length === 1 && files[0]?.type.startsWith('image/') && images.length === 1 && localFiles.length === 0) {
+                    localImages.push(images[0]!)
+                    localFiles.push(files[0]!)
+                    fileIndex = 1
+                }
+                const externalImgs = images.filter(img => {
+                    if (localImages.includes(img)) return false
+                    const src = img.getAttribute('src') || ''
+                    if (!/^https?:\/\//i.test(src)) return false
+                    try { return new URL(src).host !== window.location.host } catch { return false }
+                })
+                if (localFiles.length || externalImgs.length || files.length) {
+                    event.preventDefault()
+                    if (!editor.value) return true
+                    const insert = createUploadInsertion(editor.value)
+                    const pasteDocId = props.docId
+                    const finish = () => {
+                        if (props.docId !== pasteDocId) return
+                        const remainingFiles = files.slice(fileIndex)
+                        if (remainingFiles.length) {
+                            emit('uploadImg', remainingFiles, urls => {
+                                for (const [index, url] of urls.entries()) {
+                                    const file = remainingFiles[index]
+                                    if (file?.type?.startsWith('image/')) {
+                                        const image = doc.createElement('img')
+                                        image.setAttribute('src', url)
+                                        image.setAttribute('alt', file.name)
+                                        doc.body.appendChild(image)
+                                    } else {
+                                        const paragraph = doc.createElement('p')
+                                        const link = doc.createElement('a')
+                                        link.setAttribute('href', url)
+                                        link.textContent = file?.name || url
+                                        paragraph.appendChild(link)
+                                        doc.body.appendChild(paragraph)
+                                    }
+                                }
+                                insert(doc.body.innerHTML)
+                            })
+                        } else insert(doc.body.innerHTML)
+                    }
+                    const uploadExternal = () => {
+                        if (props.docId !== pasteDocId) return
+                        if (!externalImgs.length) return finish()
+                        emit('uploadImgFromUrl', externalImgs.map(img => img.getAttribute('src')!), urls => {
+                            externalImgs.forEach((img, index) => { if (urls[index]) img.setAttribute('src', urls[index]!) })
+                            finish()
+                        })
+                    }
+                    if (localFiles.length) {
+                        emit('uploadImg', localFiles, urls => {
+                            localImages.forEach((img, index) => { if (urls[index]) img.setAttribute('src', urls[index]!) })
+                            uploadExternal()
+                        })
+                    } else uploadExternal()
+                    return true
+                }
+            }
             if (files.length > 0) {
                 event.preventDefault()
                 if (!editor.value) return true
                 const insert = createUploadInsertion(editor.value)
-                emit('uploadImg', files, urls => insert(uploadedAssets(files, urls)))
-                return true
-            }
-
-            // 拦截富文本粘贴中的外部图片并转存
-            const htmlData = clipboardData.getData('text/html')
-            if (htmlData && /<img\s/i.test(htmlData)) {
-                const parser = new DOMParser()
-                // 提取 StartFragment 内容（如果存在）
-                const fragmentMatch = htmlData.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)
-                const htmlToParse = fragmentMatch ? fragmentMatch[1] || htmlData : htmlData
-                const doc = parser.parseFromString(htmlToParse, 'text/html')
-                const imgs = Array.from(doc.querySelectorAll('img'))
-                const currentHost = window.location.host
-
-                // 筛选外部图片：http(s) 开头且非本站域名
-                const externalImgs = imgs.filter(img => {
-                    const src = img.getAttribute('src') || ''
-                    if (!src.startsWith('http://') && !src.startsWith('https://')) return false
-                    try {
-                        const imgHost = new URL(src).host
-                        return imgHost !== currentHost
-                    } catch {
-                        return false
-                    }
+                const text = clipboardData.getData('text/plain')
+                emit('uploadImg', files, urls => {
+                    const assets = uploadedAssets(files, urls)
+                    if (text) assets.unshift({ type: 'paragraph', content: [{ type: 'text', text }] })
+                    insert(assets)
                 })
-
-                if (externalImgs.length > 0) {
-                    event.preventDefault()
-                    const externalUrls = externalImgs.map(img => img.getAttribute('src')!)
-
-                    if (!editor.value) return true
-                    const insert = createUploadInsertion(editor.value)
-                    emit('uploadImgFromUrl', externalUrls, (newUrls) => {
-                        // 将转存成功的 URL 替换回 DOM
-                        externalImgs.forEach((img, index) => {
-                            if (newUrls[index]) {
-                                img.setAttribute('src', newUrls[index])
-                            }
-                        })
-                        // 将处理后的 HTML 插入编辑器
-                        insert(doc.body.innerHTML)
-                    })
-                    return true
-                }
+                return true
             }
 
             return false
@@ -343,7 +395,9 @@ onBeforeUnmount(() => {
     editor.value?.destroy()
 })
 
-const pageMode = ref(localStorage.getItem('hellodoc_editor_page_mode') || 'portrait')
+const savedPageMode = () => localStorage.getItem('hellodoc_editor_page_mode') || 'portrait'
+const isNarrowPage = ref(window.innerWidth < 768)
+const pageMode = ref(isNarrowPage.value ? 'full' : savedPageMode())
 const isPlainTextMode = ref(false)
 const isPreviewMode = ref(false)
 const isExportingWord = ref(false)
@@ -363,16 +417,17 @@ const getPaperStyle = () => {
     return style
 }
 
-onMounted(() => {
-    // 如果是移动端（宽度小于 768px），强制开启全宽模式
-    if (window.innerWidth < 768) {
-        pageMode.value = 'full'
-    }
-})
-
+const updatePageViewport = () => {
+    const narrow = window.innerWidth < 768
+    if (narrow === isNarrowPage.value) return
+    isNarrowPage.value = narrow
+    pageMode.value = narrow ? 'full' : savedPageMode()
+}
+onMounted(() => window.addEventListener('resize', updatePageViewport))
+onBeforeUnmount(() => window.removeEventListener('resize', updatePageViewport))
 watch(pageMode, (newVal) => {
-    localStorage.setItem('hellodoc_editor_page_mode', newVal)
-})
+    if (!isNarrowPage.value) localStorage.setItem('hellodoc_editor_page_mode', newVal)
+}, { flush: 'sync' })
 
 // Image Preview State
 const showImagePreview = ref(false)

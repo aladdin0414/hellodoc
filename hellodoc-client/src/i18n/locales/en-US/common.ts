@@ -46,6 +46,8 @@ export default {
         deleteConfirm: "Delete",
     },
     aiDrawer: {
+        historyLoadFailed: 'Failed to load conversation history. Reopen the assistant to retry.',
+        historySaveFailed: 'Failed to save conversation history. Check your connection.',
         loadingModels: "Loading models",
         modelsLoadError: "Failed to load models",
         usingDefaultConfig: "Using default configuration",

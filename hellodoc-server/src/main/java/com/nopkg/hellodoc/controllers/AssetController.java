@@ -23,10 +23,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URLConnection;
-import java.io.ByteArrayOutputStream;
 import com.nopkg.hellodoc.utils.ByteArrayMultipartFile;
 
 @RestController
@@ -94,66 +90,10 @@ public class AssetController {
         }
 
         try {
-            URI uri = URI.create(url.trim());
-            String scheme = uri.getScheme();
-            if (scheme == null || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
-                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Unsupported URL protocol");
-            }
-
-            String host = uri.getHost();
-            if (host == null || host.isBlank()) {
-                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Invalid hostname");
-            }
-
-            InetAddress address = InetAddress.getByName(host);
-            if (address.isAnyLocalAddress() || address.isLoopbackAddress()
-                    || address.isSiteLocalAddress() || address.isLinkLocalAddress()) {
-                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Access to internal address is restricted");
-            }
-
-            URLConnection conn = uri.toURL().openConnection();
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(15000);
-            conn.setRequestProperty("User-Agent", "Hellodoc-Image-Proxy/1.0");
-
-            String contentType = conn.getContentType();
-            if (contentType == null || (!contentType.toLowerCase().startsWith("image/")
-                    && !contentType.toLowerCase().startsWith("video/"))) {
-                return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "Only image or video content is supported");
-            }
-
-            String path = uri.getPath();
-            String fileName = "file";
-            if (path != null && path.contains("/")) {
-                fileName = path.substring(path.lastIndexOf('/') + 1);
-            }
-            if (!fileName.contains(".")) {
-                String ext = "bin";
-                if (contentType.contains("/")) {
-                    ext = contentType.split("/")[1].split(";")[0];
-                }
-                fileName += "." + ext;
-            }
-
-            // 读取到字节数组
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            try (InputStream is = conn.getInputStream()) {
-                byte[] data = new byte[8192];
-                int nRead;
-                int totalRead = 0;
-                int maxSize = 50 * 1024 * 1024; // 限制最大 50MB
-                while ((nRead = is.read(data, 0, data.length)) != -1) {
-                    buffer.write(data, 0, nRead);
-                    totalRead += nRead;
-                    if (totalRead > maxSize) {
-                        return ApiResponse.error(ApiResponse.Code.PARAM_ERROR, "File is too large to fetch");
-                    }
-                }
-            }
-
-            byte[] fileContent = buffer.toByteArray();
-            ByteArrayMultipartFile multipartFile = new ByteArrayMultipartFile(fileContent, "file", fileName,
-                    contentType);
+            var fetched = com.nopkg.hellodoc.services.ExternalAssetFetcher.fetch(url);
+            String fileName = fetched.fileName();
+            ByteArrayMultipartFile multipartFile = new ByteArrayMultipartFile(fetched.bytes(), "file", fileName,
+                    fetched.contentType());
 
             Long userId = currentUserId();
             KbAsset asset = assetService.uploadAsset(kbId, docId, multipartFile, userId, fileName, null);
