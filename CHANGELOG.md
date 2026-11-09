@@ -1,5 +1,27 @@
 # Changelog
 
+## [v3.6.4] - 2026-11-09
+
+### 更新说明
+
+- feat: 将 AI 知识助理对话按用户和文档保存到数据库，重新打开时恢复，清空时同步清除历史。
+- fix: 修复粘贴 HTML 时混合正文和图片、Base64 图片可能丢失，以及表格单元格换行或代码中的竖线导致保存后错行、错列的问题。
+- fix: 加固外部图片转存的 DNS 地址校验，禁止自动跟随重定向；依赖重定向的图片会保留原始链接。
+- fix: 修复目录右键菜单打开时再次右键弹出浏览器菜单，并避免移动端宽度模式覆盖桌面偏好。
+- style: 将原生列表编号格式下拉选项设为左对齐。
+- docs: 更新中英文项目介绍、Docker 部署说明和界面截图。
+- chore: 升级前请备份数据库和数据目录；服务启动时会自动执行 AI 对话记录数据库迁移。
+
+### Changelog
+
+- feat: Store AI knowledge assistant conversations in the database per user and document, restore them when reopened, and clear stored history when requested.
+- fix: Preserve text and images when pasting HTML, including Base64 images, and prevent table rows or columns from breaking after saving cells with line breaks or pipes in code.
+- fix: Validate DNS addresses used to fetch external images and disable automatic redirects; images requiring redirects retain their original URLs.
+- fix: Prevent the browser context menu from appearing on a second right-click while the directory menu is open, and preserve desktop page-width preferences on mobile.
+- style: Left-align options in the native list-numbering format dropdown.
+- docs: Update the Chinese and English project overview, Docker setup instructions, and interface screenshots.
+- chore: Back up the database and data directories before upgrading; the AI conversation database migration runs automatically when the service starts.
+
 ## [v3.6.3] - 2026-11-06
 
 ### 更新说明
