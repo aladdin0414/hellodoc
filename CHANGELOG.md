@@ -1,5 +1,17 @@
 # Changelog
 
+## [v3.6.5] - 2026-11-09
+
+### 更新说明
+
+- feat: MCP bridge 支持通过 `HELLODOC_MCP_TOKEN` 认证，同时保留用户名和密码登录方式。
+- docs: 补充发版后 CI 跟踪约定及本机隔离测试环境说明。
+
+### Changelog
+
+- feat: Support authentication with `HELLODOC_MCP_TOKEN` in the MCP bridge while retaining username and password login.
+- docs: Document the post-release CI tracking convention and local isolated test environment.
+
 ## [v3.6.4] - 2026-11-09
 
 ### 更新说明
