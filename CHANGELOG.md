@@ -1,5 +1,17 @@
 # Changelog
 
+## [v3.6.6] - 2026-11-09
+
+### 更新说明
+
+- fix: 修复中文加粗在标点边缘及末尾空格时的解析渲染，支持粘贴 HTML 中的 Markdown 标题和加粗内容转换为对应富文本。
+- fix: 为 CI 构建的 Gradle 下载增加 SHA-256 校验和镜像备用源，保障依赖下载可靠性。
+
+### Changelog
+
+- fix: Correct Chinese bold parsing beside punctuation and trailing spaces, and render pasted plain Markdown headings and bold text as rich text.
+- fix: Add SHA-256 checksum verification and mirror fallback sources for Gradle downloads in CI workflows.
+
 ## [v3.6.5] - 2026-11-09
 
 ### 更新说明
