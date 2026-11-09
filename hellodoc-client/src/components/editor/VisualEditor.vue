@@ -35,6 +35,7 @@ import html from 'highlight.js/lib/languages/xml'
 
 // Import extracted modules
 import {
+    ChineseBoldCompatibility,
     PlainTextMarkdownText,
     PlainTextMarkdownHardBreak,
     MarkdownParagraph,
@@ -49,6 +50,7 @@ import {
     SmartMarkdownTable
 } from './extensions/custom-extensions'
 import VisualEditorToolbar from './VisualEditorToolbar.vue'
+import { convertPastedMarkdown, normalizePastedMarkdown } from './pasteMarkdown'
 import ImagePreview from '../ImagePreview.vue'
 import './editor-styles.css'
 
@@ -155,6 +157,7 @@ const editor = useEditor({
             enableTabIndentation: true,
             tabSize: 4,
         }),
+        ChineseBoldCompatibility,
         PlainTextMarkdownText,
         PlainTextMarkdownHardBreak,
         MarkdownParagraph,
@@ -210,6 +213,7 @@ const editor = useEditor({
     content: props.modelValue,
     editable: !props.isReadOnly,
     editorProps: {
+        transformPastedHTML: normalizePastedMarkdown,
         handlePaste: (_view, event) => {
             const clipboardData = event.clipboardData
             if (!clipboardData) return false
@@ -243,6 +247,7 @@ const editor = useEditor({
             if (htmlData && (files.length > 0 || /<img\b/i.test(htmlData))) {
                 const fragmentMatch = htmlData.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)
                 const doc = new DOMParser().parseFromString(fragmentMatch?.[1] || htmlData, 'text/html')
+                convertPastedMarkdown(doc)
                 const images = Array.from(doc.querySelectorAll('img'))
                 const localImages: HTMLImageElement[] = []
                 const localFiles: File[] = []

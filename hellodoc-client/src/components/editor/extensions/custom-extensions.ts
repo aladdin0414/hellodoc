@@ -11,6 +11,14 @@ import { InlineMath, BlockMath } from '@tiptap/extension-mathematics'
 import { defaultMarkdownSerializer } from 'prosemirror-markdown'
 import markdownItMark from 'markdown-it-mark'
 import markdownItMath from 'markdown-it-math'
+import { chineseBoldPlugin } from '../../../markdown/plugins/chineseBold'
+
+export const ChineseBoldCompatibility = Extension.create({
+    name: 'chineseBoldCompatibility',
+    addStorage() {
+        return { markdown: { parse: { setup: chineseBoldPlugin } } }
+    },
+})
 
 // Escape literal Markdown and HTML entities so text survives a save/load round trip.
 export const PlainTextMarkdownText = Text.extend({

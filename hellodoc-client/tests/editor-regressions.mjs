@@ -286,3 +286,85 @@ test('HTML text without an image survives paste with a clipboard file', async ()
         assert.match(context.editor.getHTML(), /image.png/)
     } finally { context.close() }
 })
+
+test('renders Chinese bold with internal whitespace and punctuation boundaries', async () => {
+    const original = '正全面向**AI 原生开发底座与智能体操作系统（AgentOS） **升级。'
+    const context = await mount(original)
+    try {
+        const strong = context.root.querySelector('.ProseMirror strong')
+        assert.equal(strong?.textContent, 'AI 原生开发底座与智能体操作系统（AgentOS）')
+        assert.equal(context.props.modelValue, original)
+        assert.equal(context.editor.state.doc.textContent, '正全面向AI 原生开发底座与智能体操作系统（AgentOS） 升级。')
+    } finally { context.close() }
+})
+test('renders Chinese bold beside punctuation without adding visible spaces', async () => {
+    const context = await mount('正全面向**AI 技术（AgentOS）**升级。')
+    try {
+        assert.equal(context.root.querySelector('.ProseMirror strong')?.textContent, 'AI 技术（AgentOS）')
+        assert.equal(context.editor.state.doc.textContent, '正全面向AI 技术（AgentOS）升级。')
+    } finally { context.close() }
+})
+test('leaves escaped and code-contained stars literal', async () => {
+    const context = await mount('\\*\\*中文 ** 与 `**中文 **`\n\n```\n**中文 **\n```')
+    try {
+        assert.equal(context.root.querySelectorAll('.ProseMirror strong').length, 0)
+        assert.match(context.editor.getText(), /\*\*中文 \*\*/)
+    } finally { context.close() }
+})
+test('keeps unrelated malformed English markers and nested Markdown unchanged', async () => {
+    const english = await mount('An example **literal ** remains.')
+    const nested = await mount('**重点 _内容_**')
+    try {
+        assert.equal(english.root.querySelector('.ProseMirror strong'), null)
+        assert.match(english.editor.getText(), /\*\*literal \*\*/)
+        assert.equal(nested.root.querySelector('.ProseMirror strong em')?.textContent, '内容')
+    } finally { english.close(); nested.close() }
+})
+
+test('pasting HTML plain Markdown headings preserves them as headings after reopening', async () => {
+    const c = await mount()
+    let reopened
+    try {
+        c.editor.view.pasteHTML('<p>### Qwen</p><p>说明</p><p>### doubao</p>', { clipboardData: { files: [], items: [], getData: () => '' }, preventDefault() {} })
+        assert.deepEqual([...c.root.querySelectorAll('.ProseMirror h3')].map(el => el.textContent), ['Qwen', 'doubao'])
+        reopened = await mount(c.editor.storage.markdown.getMarkdown())
+        assert.deepEqual([...reopened.root.querySelectorAll('.ProseMirror h3')].map(el => el.textContent), ['Qwen', 'doubao'])
+    } finally { c.close(); reopened?.close() }
+})
+test('pasting HTML preserves literal headings in code and already formatted text', async () => {
+    const c = await mount()
+    try {
+        c.editor.view.pasteHTML('<pre><code>### code</code></pre><p><strong>### literal</strong></p>', { clipboardData: { files: [], items: [], getData: () => '' }, preventDefault() {} })
+        assert.equal(c.root.querySelectorAll('.ProseMirror h3').length, 0)
+        assert.match(c.editor.getText(), /### code/)
+        assert.match(c.editor.getText(), /### literal/)
+    } finally { c.close() }
+})
+test('pasting HTML Markdown heading with image preserves both after upload', async () => {
+    const c = await mount('', { onUploadImg: (_files, cb) => cb(['/api/test/image.png']) })
+    try {
+        const html = '<p>### Qwen</p><img src="data:image/png;base64,eA==">'
+        c.editor.options.editorProps.handlePaste(c.editor.view, { clipboardData: { files: [], items: [], getData: type => type === 'text/html' ? html : '' }, preventDefault() {} })
+        await nextTick()
+        assert.equal(c.root.querySelector('.ProseMirror h3')?.textContent, 'Qwen')
+        assert.match(c.editor.getHTML(), /\/api\/test\/image.png/)
+    } finally { c.close() }
+})
+test('pasting HTML Markdown bold in plain paragraphs renders and survives reload', async () => {
+    const c = await mount()
+    let reopened
+    try {
+        c.editor.view.pasteHTML('<p>正全面向**AI 技术（AgentOS） **升级。</p>', { clipboardData: { files: [], items: [], getData: () => '' }, preventDefault() {} })
+        assert.equal(c.root.querySelector('.ProseMirror strong')?.textContent, 'AI 技术（AgentOS）')
+        reopened = await mount(c.editor.storage.markdown.getMarkdown())
+        assert.equal(reopened.root.querySelector('.ProseMirror strong')?.textContent, 'AI 技术（AgentOS）')
+    } finally { c.close(); reopened?.close() }
+})
+test('HTML paste keeps escaped heading and bold syntax as literal text', async () => {
+    const c = await mount()
+    try {
+        c.editor.view.pasteHTML('<p>\\### 字面标题</p><p>\\**中文\\**</p><p>###literal</p>', { clipboardData: { files: [], items: [], getData: () => '' }, preventDefault() {} })
+        assert.equal(c.root.querySelectorAll('.ProseMirror h3, .ProseMirror strong').length, 0)
+        assert.match(c.editor.getText(), /### 字面标题/)
+    } finally { c.close() }
+})
