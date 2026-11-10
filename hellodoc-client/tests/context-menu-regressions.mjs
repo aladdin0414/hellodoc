@@ -42,4 +42,21 @@ test('right click on menu or its backdrop never opens the browser menu', async (
     assert.deepEqual(changes, [false])
   } finally { app.unmount(); root.remove() }
 })
+test('multi-selection offers publish and forwards the selected target', async () => {
+  const root = document.createElement('div'); document.body.append(root)
+  const docs = [{ id: 1, name: 'A', type: 'file', parentId: null, orderNum: 0 }, { id: 2, name: 'B', type: 'file', parentId: null, orderNum: 1 }]
+  const calls = []
+  const app = createApp({ render: () => h(Overlays, { showCreateModal: false, createType: 'file', newName: '', creating: false, showMoveModal: false, selectedTargetFolderId: null, showDeleteModal: false, deletingDoc: null, isDeleting: false, showKbCopyDialog: false, kbSearchQuery: '', selectedKbForCopy: null, copyLoading: false, showTrashModal: false, showContextMenu: true, menuPosition: { x: 10, y: 10 }, contextTargetDoc: docs[0], documents: docs, selectedDocIds: new Set([1, 2]), availableFolders: [], filteredCopyableKbs: [], kbId: 1, setCreateInputRef() {}, onFolderToggleStatus: (...args) => calls.push(args) }) })
+  app.use(i18n).mount(root); await nextTick()
+  try {
+    const button = [...root.querySelectorAll('button')].find(el => el.textContent.includes(i18n.global.t('editorMenu.publishSelected')))
+    assert.ok(button)
+    button.click()
+    assert.deepEqual(calls, [[docs[0], 'published']])
+    const unpublish = [...root.querySelectorAll('button')].find(el => el.textContent.includes(i18n.global.t('editorMenu.unpublishSelected')))
+    assert.ok(unpublish)
+    unpublish.click()
+    assert.deepEqual(calls[1], [docs[0], 'draft'])
+  } finally { app.unmount(); root.remove() }
+})
 await rm(output, { force: true })

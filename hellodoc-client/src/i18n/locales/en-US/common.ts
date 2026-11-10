@@ -294,6 +294,8 @@ export default {
         copyToKb: 'Copy to another knowledge base…',
         moveTo: 'Move to folder…',
         duplicate: 'Duplicate in current folder',
+        unpublishSelected: 'Unpublish selected',
+        publishSelected: 'Publish selected',
         duplicateSelected: 'Duplicate each in its original folder',
         firstItem: 'Already first in this folder',
         lastItem: 'Already last in this folder',

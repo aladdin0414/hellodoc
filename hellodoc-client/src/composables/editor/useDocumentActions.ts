@@ -2,7 +2,7 @@ import { ref, type Ref } from 'vue'
 import { getDocuments, updateDocument, deleteDocument, duplicateDocument } from '../../api/document'
 import { message } from '../../utils/message'
 import { expandAncestorFolders } from '../../utils/documentTree'
-import { topLevelSelection, summarizeBatch } from '../../utils/batchDocuments'
+import { topLevelSelection, summarizeBatch, selectedFiles } from '../../utils/batchDocuments'
 import { i18n } from '../../i18n'
 
 export interface DocumentActionItem {
@@ -66,18 +66,9 @@ export const useDocumentActions = (options: UseDocumentActionsOptions) => {
     }
 
     const handleFolderToggleStatus = async (folder: DocumentActionItem, targetStatus: 'published' | 'draft') => {
-        const affectedDocs: DocumentActionItem[] = []
-        const collectFiles = (parentId: number) => {
-            const children = options.documents.value.filter(d => d.parentId === parentId)
-            children.forEach(child => {
-                if (child.type === 'file') {
-                    affectedDocs.push(child)
-                } else if (child.type === 'folder') {
-                    collectFiles(child.id)
-                }
-            })
-        }
-        collectFiles(folder.id)
+        const selected = options.selectedDocIds?.value
+        const targetIds = selected?.has(folder.id) && selected.size > 1 ? selected : new Set([folder.id])
+        const affectedDocs = selectedFiles(options.documents.value, targetIds)
 
         if (affectedDocs.length === 0) {
             message.info(i18n.global.t('editor.folderNoOperableDocs'))

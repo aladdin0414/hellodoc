@@ -170,6 +170,16 @@ const safeDocAction = (handler: (doc: DocLike) => void, doc: DocLike | null) => 
             <span>{{ t('editorMenu.moveDown') }}</span>
         </button>
         <div class="h-px bg-slate-100 dark:bg-gray-700 my-1"></div>
+        <button v-if="isMultiSelected" :title="t('editor.publishHint')" @click="safeDocAction((doc) => emit('folderToggleStatus', doc, 'published'), contextTargetDoc)"
+            class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 hover:text-indigo-600 flex items-center space-x-2.5 transition-colors font-medium">
+            <FileCheck :size="14" class="text-emerald-500" />
+            <span>{{ t('editorMenu.publishSelected') }}</span>
+        </button>
+        <button v-if="isMultiSelected" @click="safeDocAction((doc) => emit('folderToggleStatus', doc, 'draft'), contextTargetDoc)"
+            class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 hover:text-indigo-600 flex items-center space-x-2.5 transition-colors font-medium">
+            <FileX :size="14" class="text-rose-500" />
+            <span>{{ t('editorMenu.unpublishSelected') }}</span>
+        </button>
         <button @click="emit('copyToKb')"
             class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 hover:text-indigo-600 flex items-center space-x-2.5 transition-colors font-medium">
             <Copy :size="14" class="text-indigo-500" />

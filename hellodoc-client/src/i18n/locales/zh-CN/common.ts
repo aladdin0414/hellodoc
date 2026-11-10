@@ -294,6 +294,8 @@ export default {
         copyToKb: '复制到其他知识库…',
         moveTo: '移动到目录…',
         duplicate: '在当前目录创建副本',
+        unpublishSelected: '批量取消发布',
+        publishSelected: '批量发布',
         duplicateSelected: '分别在原目录创建副本',
         firstItem: '已在同级首位',
         lastItem: '已在同级末位',
