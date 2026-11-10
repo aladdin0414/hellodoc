@@ -1,5 +1,15 @@
 # Changelog
 
+## [v3.6.8] - 2026-11-10
+
+### 更新说明
+
+- fix: 修复 MCP Streamable HTTP 的 SSE 连接未及时返回响应头，导致 Antigravity 等客户端连接超时的问题。
+
+### Changelog
+
+- fix: Return MCP Streamable HTTP SSE response headers promptly to prevent connection timeouts in clients such as Antigravity.
+
 ## [v3.6.7] - 2026-11-10
 
 ### 更新说明
