@@ -70,7 +70,7 @@
 }
 
 /* 嵌套有序列表使用右括号区分层级。 */
-:is(.ProseMirror, .md-editor-preview.github-theme) ol ol > li::marker {
+:where(.ProseMirror, .md-editor-preview.github-theme) ol ol > li::marker {
     content: counter(list-item) ") ";
 }
 
