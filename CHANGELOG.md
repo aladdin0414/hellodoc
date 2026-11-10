@@ -1,5 +1,21 @@
 # Changelog
 
+## [v3.6.7] - 2026-11-10
+
+### 更新说明
+
+- fix: 修复嵌套有序列表切换编号格式后标识未正确更新的问题。
+- fix: 粘贴 KaTeX 公式时保留可编辑的公式，避免箭头及 LaTeX 源码重复显示。
+- fix: 粘贴含图片的网页内容时保留代码块结构、换行和缩进，避免代码中的 Markdown 被误解析；保存包含反引号围栏的代码块后可完整重新打开。
+- fix: 改善字符图代码块的换行与显示，并避免未指定语言的代码块被自动错误着色。
+
+### Changelog
+
+- fix: Correct nested ordered-list markers when switching numbering formats.
+- fix: Preserve editable KaTeX formulas on paste and prevent duplicate arrows and LaTeX source from appearing.
+- fix: Preserve code block structure, line breaks, and indentation when pasting web content containing images, preventing Markdown inside code from being parsed; reopen code blocks containing backtick fences intact after saving.
+- fix: Improve line wrapping and display for text diagrams in code blocks, and prevent incorrect automatic syntax highlighting when no language is specified.
+
 ## [v3.6.6] - 2026-11-09
 
 ### 更新说明

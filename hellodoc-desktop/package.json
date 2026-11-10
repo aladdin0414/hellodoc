@@ -1,6 +1,6 @@
 {
   "name": "hellodoc-desktop",
-  "version": "3.6.6",
+  "version": "3.6.7",
   "description": "Desktop client for HelloDoc",
   "main": "main.js",
   "scripts": {
