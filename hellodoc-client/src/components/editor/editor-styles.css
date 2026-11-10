@@ -192,8 +192,9 @@
 
 :is(.ProseMirror, .md-editor-preview.github-theme) pre {
     position: relative;
+    white-space: pre;
     font-size: 16px;
-    line-height: 1.75;
+    line-height: 1.2;
     margin: 1em 0;
     background: #f8fafc;
     color: #334155;
@@ -212,7 +213,8 @@
     background: none !important;
     color: inherit !important;
     font-size: 0.8rem !important;
-    line-height: 1.75;
+    white-space: pre;
+    line-height: inherit;
     padding: 0 !important;
     border-radius: 0 !important;
     border: none !important;

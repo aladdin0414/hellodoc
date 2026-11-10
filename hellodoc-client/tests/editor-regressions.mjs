@@ -368,3 +368,121 @@ test('HTML paste keeps escaped heading and bold syntax as literal text', async (
         assert.match(c.editor.getText(), /### 字面标题/)
     } finally { c.close() }
 })
+
+test('pasting rendered KaTeX preserves a single editable formula through reload', async () => {
+    const katex = await import('katex')
+    const c = await mount()
+    let reopened
+    try {
+        const formula = katex.default.renderToString('\\rightarrow')
+        c.editor.view.pasteHTML(`<p>评级 ${formula} 扣减</p>`, { clipboardData: { files: [], items: [], getData: () => '' }, preventDefault() {} })
+        const saved = c.editor.storage.markdown.getMarkdown()
+        assert.equal(saved.trim(), '评级 $\\rightarrow$ 扣减')
+        reopened = await mount(saved)
+        assert.equal(reopened.editor.state.doc.firstChild.child(1).type.name, 'inlineMath')
+        assert.equal(reopened.editor.state.doc.firstChild.child(1).attrs.latex, '\\rightarrow')
+    } finally { c.close(); reopened?.close() }
+})
+
+test('pasting display KaTeX and an image preserves the formula and image', async () => {
+    const katex = await import('katex')
+    const c = await mount('', { onUploadImg: (_files, cb) => cb(['/api/test/image.png']) })
+    let reopened
+    try {
+        const formula = katex.default.renderToString('x^2', { displayMode: true })
+        const html = `<p>公式：</p>${formula}<img src="data:image/png;base64,eA==">`
+        c.editor.options.editorProps.handlePaste(c.editor.view, { clipboardData: { files: [], items: [], getData: type => type === 'text/html' ? html : '' }, preventDefault() {} })
+        await nextTick()
+        const saved = c.editor.storage.markdown.getMarkdown()
+        assert.match(saved, /\$\$\s*x\^2\s*\$\$/)
+        assert.match(c.editor.getHTML(), /\/api\/test\/image.png/)
+        reopened = await mount(saved)
+        assert.equal(reopened.editor.state.doc.child(1).type.name, 'blockMath')
+        assert.equal(reopened.editor.state.doc.child(1).attrs.latex, 'x^2')
+    } finally { c.close(); reopened?.close() }
+})
+
+
+test('pasting an HTML code block with line elements keeps a character diagram together', async () => {
+    const c = await mount()
+    let reopened
+    try {
+        const diagram = '     【图表】\n ┌──────┐   ┌──────┐\n │ 内容 │   │ 内容 │\n └──┬───┘   └──┬───┘\n    │           │\n    ▼           ▼'
+        const lines = diagram.split('\n').map(line => `<div>${line}</div>`).join('')
+        c.editor.view.pasteHTML(`<p>前文</p><pre><code>${lines}</code></pre><p>后文</p>`, { clipboardData: { files: [], items: [], getData: () => '' }, preventDefault() {} })
+        const code = c.editor.state.doc.content.content.find(node => node.type.name === 'codeBlock')
+        assert.equal(code?.textContent, diagram)
+        assert.equal(c.editor.state.doc.lastChild.textContent, '后文')
+        reopened = await mount(c.editor.storage.markdown.getMarkdown())
+        assert.equal(reopened.editor.state.doc.child(1).textContent, diagram)
+    } finally { c.close(); reopened?.close() }
+})
+
+test('pasting code with HTML line breaks retains diagram lines', async () => {
+    const c = await mount()
+    try {
+        const diagram = '【图表】\n┌────┐\n│ 内容 │\n└────┘'
+        c.editor.view.pasteHTML(`<p>前文</p><pre><code><div>${diagram.split('\n').join('<br>')}</div></code></pre><p>后文</p>`, { clipboardData: { files: [], items: [], getData: () => '' }, preventDefault() {} })
+        assert.equal(c.editor.state.doc.child(1).textContent, diagram)
+    } finally { c.close() }
+})
+
+test('pasting a flattened HTML diagram restores original clipboard lines', async () => {
+    const c = await mount()
+    try {
+        const diagram = '     【图表】\n ┌──────┐   ┌──────┐\n │ 内容 │   │ 内容 │\n └──────┘   └──────┘'
+        const html = `<p>前文</p><pre><code>${diagram.replaceAll('\n', ' ')}</code></pre><p>后文</p>`
+        const event = new window.Event('paste', { bubbles: true, cancelable: true })
+        Object.defineProperty(event, 'clipboardData', { value: { files: [], items: [], getData: type => type === 'text/html' ? html : type === 'text/plain' ? `前文\n\n${diagram}\n\n后文` : '' } })
+        c.editor.view.dom.dispatchEvent(event)
+        assert.equal(c.editor.state.doc.child(1).textContent, diagram)
+        assert.equal(c.editor.state.doc.lastChild.textContent, '后文')
+    } finally { c.close() }
+})
+
+
+test('code blocks containing Markdown fences survive saving and reopening', async () => {
+    const c = await mount()
+    let reopened
+    try {
+        const source = '# 标题\n\n| A | B |\n|---|---|\n\n```ts\nconst a = 1\n```\n\n正文 `code`'
+        c.editor.commands.insertContent({ type: 'codeBlock', attrs: { language: 'markdown' }, content: [{ type: 'text', text: source }] })
+        reopened = await mount(c.editor.storage.markdown.getMarkdown())
+        assert.equal(reopened.editor.state.doc.firstChild.type.name, 'codeBlock')
+        assert.equal(reopened.editor.state.doc.firstChild.textContent, source)
+        assert.equal(reopened.root.querySelectorAll('.ProseMirror h1, .ProseMirror table').length, 0)
+    } finally { c.close(); reopened?.close() }
+})
+
+test('pasting a page code block ignores its toolbar and preserves source', async () => {
+    const c = await mount('', { onUploadImg: (_files, cb) => cb(['/api/test/image.png']) })
+    let reopened
+    try {
+        const source = '---\nname: example\n---\n\n# 标题\n\n正文 `code`\n\n```ts\nconst a = 1\n```'
+        const lines = source.split('\n').map(line => `<span class="code-block-extension-codeLine">${line}</span>`).join('\n')
+        const html = `<pre><div class="code-block-extension-header">markdown 复制代码</div><code class="language-markdown">${lines}</code></pre><img src="data:image/png;base64,eA==">`
+        c.editor.options.editorProps.handlePaste(c.editor.view, { clipboardData: { files: [], items: [], getData: type => type === 'text/html' ? html : '' }, preventDefault() {} })
+        await nextTick()
+        assert.equal(c.editor.state.doc.firstChild.textContent, source)
+        reopened = await mount(c.editor.storage.markdown.getMarkdown())
+        assert.equal(reopened.editor.state.doc.firstChild.textContent, source)
+        assert.equal(reopened.root.querySelectorAll('.ProseMirror h1').length, 0)
+    } finally { c.close(); reopened?.close() }
+})
+
+test('pasting wrapped webpage HTML with images keeps Markdown inside its code block', async () => {
+    const c = await mount('', { onUploadImg: (_files, cb) => cb(['/api/test/image.png']) })
+    let reopened
+    try {
+        const source = '---\nname: example\n---\n\n# 标题\n\n- 条目 `代码`\n\n```ts\nconst a = 1\n```\n\n结束'
+        const lines = source.split('\n').map(line => `<span class="code-line">${line}</span>`).join('\n')
+        const html = `<div class="article"><p>前文</p><pre><div>复制代码</div><code class="language-markdown">${lines}</code></pre><p>后文</p><img src="data:image/png;base64,eA=="></div>`
+        c.editor.options.editorProps.handlePaste(c.editor.view, { clipboardData: { files: [], items: [], getData: type => type === 'text/html' ? html : '' }, preventDefault() {} })
+        await nextTick()
+        assert.equal(c.editor.state.doc.child(1).type.name, 'codeBlock')
+        assert.equal(c.editor.state.doc.child(1).textContent, source)
+        assert.equal(c.editor.state.doc.child(2).textContent, '后文')
+        reopened = await mount(c.editor.storage.markdown.getMarkdown())
+        assert.equal(reopened.editor.state.doc.child(1).textContent, source)
+    } finally { c.close(); reopened?.close() }
+})

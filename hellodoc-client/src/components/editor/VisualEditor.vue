@@ -114,9 +114,12 @@ const createUploadInsertion = (target: Editor, position?: number) => {
         if (!active) return
         cancel()
         if (target.isDestroyed || props.docId !== docId || props.isReadOnly || isPreviewMode.value) return
-        if (Array.isArray(content) && content.length === 0) return
+        const nodes = typeof content === 'string'
+            ? ProseMirrorDOMParser.fromSchema(target.schema).parse(new DOMParser().parseFromString(content, 'text/html').body).toJSON().content || []
+            : content
+        if (nodes.length === 0) return
         hasUserInteracted.value = true
-        target.commands.insertContentAt({ from, to }, content, { updateSelection: false })
+        target.commands.insertContentAt({ from, to }, nodes, { updateSelection: false })
     }
 }
 
@@ -139,6 +142,8 @@ lowlight.register('js', js)
 lowlight.register('typescript', ts)
 lowlight.register('ts', ts)
 
+let pastedText = ''
+
 const editor = useEditor({
     extensions: [
         StarterKit.configure({
@@ -152,8 +157,27 @@ const editor = useEditor({
         }),
         TabIndentExtension,
         MermaidBlock,
-        CodeBlockLowlight.configure({
+        CodeBlockLowlight.extend({
+            addStorage() {
+                return {
+                    markdown: {
+                        serialize(state: any, node: any) {
+                            const text = node.textContent as string
+                            let longest = 2
+                            for (const match of text.matchAll(/`+/g)) longest = Math.max(longest, match[0].length)
+                            const fence = '`'.repeat(longest + 1)
+                            state.write(fence + (node.attrs.language || '') + '\n')
+                            state.text(text, false)
+                            state.ensureNewLine()
+                            state.write(fence)
+                            state.closeBlock(node)
+                        },
+                    },
+                }
+            },
+        }).configure({
             lowlight,
+            defaultLanguage: 'plaintext',
             enableTabIndentation: true,
             tabSize: 4,
         }),
@@ -213,7 +237,17 @@ const editor = useEditor({
     content: props.modelValue,
     editable: !props.isReadOnly,
     editorProps: {
-        transformPastedHTML: normalizePastedMarkdown,
+        handleDOMEvents: {
+            paste: (_view, event) => {
+                pastedText = event.clipboardData?.getData('text/plain') || ''
+                return false
+            },
+        },
+        transformPastedHTML: html => {
+            const text = pastedText
+            pastedText = ''
+            return normalizePastedMarkdown(html, text)
+        },
         handlePaste: (_view, event) => {
             const clipboardData = event.clipboardData
             if (!clipboardData) return false
@@ -247,7 +281,7 @@ const editor = useEditor({
             if (htmlData && (files.length > 0 || /<img\b/i.test(htmlData))) {
                 const fragmentMatch = htmlData.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)
                 const doc = new DOMParser().parseFromString(fragmentMatch?.[1] || htmlData, 'text/html')
-                convertPastedMarkdown(doc)
+                convertPastedMarkdown(doc, clipboardData.getData('text/plain'))
                 const images = Array.from(doc.querySelectorAll('img'))
                 const localImages: HTMLImageElement[] = []
                 const localFiles: File[] = []
