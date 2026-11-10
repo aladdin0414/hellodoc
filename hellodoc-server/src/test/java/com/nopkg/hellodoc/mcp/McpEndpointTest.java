@@ -43,6 +43,22 @@ class McpEndpointTest {
         assertEquals(200, response.statusCode(), response.body());
         assertTrue(response.body().contains("protocolVersion"), response.body());
         String session = response.headers().firstValue("Mcp-Session-Id").orElseThrow();
+        var initialized = HttpRequest.newBuilder(uri).header("Content-Type", "application/json")
+                .header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token)
+                .header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}")).build();
+        assertEquals(202, client.send(initialized, HttpResponse.BodyHandlers.discarding()).statusCode());
+        var stream = HttpRequest.newBuilder(uri).header("Accept", "text/event-stream")
+                .header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).GET().build();
+        var streamResponse = client.sendAsync(stream, HttpResponse.BodyHandlers.ofInputStream())
+                .get(3, java.util.concurrent.TimeUnit.SECONDS);
+        try (var ignored = streamResponse.body()) {
+            assertEquals(200, streamResponse.statusCode());
+            assertTrue(streamResponse.headers().firstValue("Content-Type").orElse("").startsWith("text/event-stream"));
+        }
+        var invalidStream = HttpRequest.newBuilder(uri).header("Accept", "text/event-stream")
+                .header("Authorization", "Bearer " + token).header("Mcp-Session-Id", "invalid").GET().build();
+        assertEquals(404, client.send(invalidStream, HttpResponse.BodyHandlers.discarding()).statusCode());
         String list = "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}";
         var listReq = HttpRequest.newBuilder(uri).header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream").header("Authorization", "Bearer " + token).header("Mcp-Session-Id", session).POST(HttpRequest.BodyPublishers.ofString(list)).build();
         var listResult = client.send(listReq, HttpResponse.BodyHandlers.ofString());
@@ -132,7 +148,9 @@ class McpEndpointTest {
         var folderResult = client.send(folderReq, HttpResponse.BodyHandlers.ofString());
         assertTrue(folderResult.body().contains("这是文件夹，没有正文"), folderResult.body());
         assertTrue(folderResult.body().contains("文件夹内文档"), folderResult.body());
-
+        var closeSession = HttpRequest.newBuilder(uri).header("Authorization", "Bearer " + token)
+                .header("Mcp-Session-Id", session).DELETE().build();
+        assertEquals(200, client.send(closeSession, HttpResponse.BodyHandlers.discarding()).statusCode());
 
     }
     @Autowired McpAccessTokenService accessTokens;
