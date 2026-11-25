@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.sql.init.mode=never",
+        "spring.flyway.enabled=false",
         "app.database.initializer.enabled=false"
 })
 class AuthMigrationContractTest {
@@ -43,6 +44,12 @@ class AuthMigrationContractTest {
     @LocalServerPort int port;
     @Autowired ObjectMapper mapper;
     @Autowired javax.sql.DataSource dataSource;
+    @Autowired org.springframework.context.ApplicationContext context;
+
+    @Test
+    void flywayCannotOpenAnIndependentDatabase() {
+        assertTrue(context.getBeansOfType(org.flywaydb.core.Flyway.class).isEmpty());
+    }
 
     @Test
     void isolatedDatabase() throws Exception {

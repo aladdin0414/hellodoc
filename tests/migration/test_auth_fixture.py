@@ -43,6 +43,24 @@ class AuthFixtureTest(unittest.TestCase):
                 fixture._create("generated", "run", "synthetic")
             self.assertEqual(docker.call_args.args, ("rm", "-f", cid))
 
+    def test_ambiguous_create_waits_for_container_visibility(self):
+        cid = "a" * 64
+        missing = subprocess.CalledProcessError(1, ["docker", "inspect"], stderr="No such object")
+        unavailable = subprocess.TimeoutExpired(["docker", "inspect"], 60)
+        with patch.object(fixture.time, "sleep"), patch.object(fixture, "_docker", side_effect=[
+                subprocess.TimeoutExpired(["docker", "create"], 60), missing, unavailable,
+                cid + " run", cid + " run", ""]) as docker:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                fixture._create("generated", "run", "synthetic")
+            self.assertEqual(docker.call_args.args, ("rm", "-f", cid))
+
+    def test_uncertain_cleanup_identifies_resource_without_deleting(self):
+        timeout = subprocess.TimeoutExpired(["docker"], 60)
+        with patch.object(fixture.time, "sleep"), patch.object(fixture, "_docker", side_effect=timeout) as docker:
+            with self.assertRaisesRegex(RuntimeError, "cleanup unconfirmed.*generated.*run"):
+                fixture._create("generated", "run", "synthetic")
+            self.assertFalse(any(call.args[0] == "rm" for call in docker.call_args_list))
+
     def test_initialized_pair(self):
         if os.environ.get("HELLODOC_TEST_DISPOSABLE_PG") != "1":
             self.skipTest("Set HELLODOC_TEST_DISPOSABLE_PG=1 for two ephemeral PostgreSQL containers")

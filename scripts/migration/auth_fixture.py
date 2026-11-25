@@ -31,18 +31,28 @@ def _create(name, run, password):
         if not re.fullmatch(r"[0-9a-f]{64}", cid):
             raise RuntimeError("Docker did not return a full container ID")
     except (subprocess.SubprocessError, RuntimeError):
-        # Docker might have completed the creation before its client lost the reply.
-        try:
-            identity = _identity(name)
-        except subprocess.CalledProcessError as error:
-            if "no such" not in error.stderr.lower():
-                raise
-        else:
-            match = re.fullmatch(r"([0-9a-f]{64}) " + re.escape(run), identity)
-            if match:
-                _remove(match[1], run)
+        _recover_create(name, run)
         raise
     return cid
+
+
+def _recover_create(name, run):
+    # A client timeout can precede daemon creation. Look up the generated name,
+    # then verify ownership again by immutable ID immediately before removal.
+    for attempt in range(8):
+        try:
+            identity = _identity(name)
+            match = re.fullmatch(r"([0-9a-f]{64}) (.*)", identity)
+            if match and match[2] != run:
+                return
+            if match:
+                _remove(match[1], run)
+                return
+        except (subprocess.SubprocessError, OSError):
+            pass
+        if attempt < 7:
+            time.sleep(min(0.25 * 2 ** attempt, 2))
+    raise RuntimeError(f"Docker cleanup unconfirmed for {name}; ownership label {LABEL}={run}")
 
 
 def _identity(name_or_id):
