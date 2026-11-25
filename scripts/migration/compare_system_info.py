@@ -8,6 +8,8 @@ import re
 import sys
 from datetime import datetime
 
+from system_info_http import HEADER_NAMES, INFO, SCENARIOS, SECURITY, normalize
+
 HOST = "127.0.0.1"
 PATH = "/api/system/info"
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -91,6 +93,40 @@ def validate(body, started, finished, version):
         raise ContractDifference("serverTime", window, repr(timestamp))
 
 
+def verify_http_matrix(port, version):
+    for name, method, request_headers, status, headers, expected_body in SCENARIOS:
+        connection = http.client.HTTPConnection(HOST, port, timeout=5)
+        try:
+            started = datetime.now().replace(microsecond=0)
+            connection.request(method, PATH, headers=request_headers)
+            with connection.getresponse() as response:
+                body = response.read()
+                finished = datetime.now().replace(microsecond=0)
+                if response.status != status:
+                    raise ContractDifference(f"{name} HTTP status", status, response.status)
+                expected_headers = SECURITY | headers
+                for header in sorted(HEADER_NAMES):
+                    actual = normalize(header, response.getheader(header))
+                    expected = normalize(header, expected_headers.get(header))
+                    if actual != expected:
+                        raise ContractDifference(f"{name} {header}", expected, actual)
+            if expected_body is INFO:
+                validate(body, started, finished, version)
+            elif isinstance(expected_body, bytes):
+                if body != expected_body:
+                    raise ContractDifference(f"{name} body", expected_body, body)
+            else:
+                try:
+                    actual = json.loads(body, object_pairs_hook=unique_object)
+                except (ValueError, RecursionError) as error:
+                    raise ContractDifference(f"{name} JSON", expected_body, str(error)) from error
+                # Python equality conflates false with zero. Compare typed JSON values.
+                if json.dumps(actual, sort_keys=True) != json.dumps(expected_body, sort_keys=True):
+                    raise ContractDifference(f"{name} JSON", expected_body, actual)
+        finally:
+            connection.close()
+
+
 def port_number(value):
     port = int(value)
     if not 1 <= port <= 65535:
@@ -103,6 +139,8 @@ def main():
     parser.add_argument("--java-port", type=port_number, required=True)
     parser.add_argument("--go-port", type=port_number, required=True)
     parser.add_argument("--version", required=True)
+    parser.add_argument("--http-matrix", action="store_true",
+                        help="check all HTTP scenarios with explicit CORS origin http://localhost:13000")
     args = parser.parse_args()
     if args.java_port == args.go_port:
         parser.error("--java-port and --go-port must differ")
@@ -112,8 +150,11 @@ def main():
     result = 0
     for target, port in (("Java", args.java_port), ("Go", args.go_port)):
         try:
-            body, started, finished = fetch(port)
-            validate(body, started, finished, args.version)
+            if args.http_matrix:
+                verify_http_matrix(port, args.version)
+            else:
+                body, started, finished = fetch(port)
+                validate(body, started, finished, args.version)
         except ContractDifference as error:
             print(f"{target} ({HOST}:{port}): {error}", file=sys.stderr)
             result = max(result, 1)

@@ -1,0 +1,121 @@
+package server
+
+import (
+	"io"
+	"mime"
+	"net/http"
+	"os"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/nopkg/hellodoc/hellodoc-go/internal/systeminfo"
+)
+
+const corsMethods = "GET,POST,PUT,DELETE,OPTIONS"
+
+// NewRouter creates the routes implemented by the Go migration so far.
+func NewRouter(version string, now func() time.Time) http.Handler {
+	info := systeminfo.New(version, now)
+	origins := os.Getenv("APP_CORS_ALLOWED_ORIGINS")
+	if origins == "" {
+		origins = "*"
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/system/info", func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-XSS-Protection", "0")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers")
+		if handleCORS(w, r, origins) {
+			return
+		}
+		h.Set("Content-Language", "zh-CN")
+		// The migration has no token verifier. Fail closed for supplied credentials.
+		if len(r.Header.Values("Authorization")) > 0 {
+			h.Set("WWW-Authenticate", `Bearer error="invalid_token", error_description="invalid_token"`)
+			h.Set("Content-Type", "application/json;charset=UTF-8")
+			w.WriteHeader(http.StatusUnauthorized)
+			if r.Method != http.MethodHead {
+				io.WriteString(w, `{"error":"invalid_token","error_description":"refreshToken 无效","needRefresh":false}`)
+			}
+			return
+		}
+		if r.Method == http.MethodOptions {
+			h.Set("Allow", "GET,HEAD,OPTIONS")
+			h.Set("Accept-Patch", "")
+			return
+		}
+		if !acceptsJSON(strings.Join(r.Header.Values("Accept"), ",")) {
+			h.Set("Accept", "application/json, application/*+json, application/yaml")
+			w.WriteHeader(http.StatusNotAcceptable)
+			return
+		}
+		h.Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			info.ServeHTTP(w, r)
+		case http.MethodHead:
+			return
+		default:
+			io.WriteString(w, `{"code":9999,"message":"系统异常，请稍后再试","data":null}`)
+		}
+	})
+	return mux
+}
+
+func acceptsJSON(accept string) bool {
+	if accept == "" {
+		return true
+	}
+	for _, item := range strings.Split(accept, ",") {
+		mediaType, params, err := mime.ParseMediaType(item)
+		if err != nil {
+			continue
+		}
+		if raw, ok := params["q"]; ok {
+			q, err := strconv.ParseFloat(raw, 64)
+			if err != nil || q <= 0 || q > 1 {
+				continue
+			}
+		}
+		if mediaType == "application/json" || mediaType == "*/*" || mediaType == "application/*" {
+			return true
+		}
+	}
+	return false
+}
+
+func handleCORS(w http.ResponseWriter, r *http.Request, origins string) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return false
+	}
+	preflight := r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != ""
+	method := r.Method
+	if preflight {
+		method = r.Header.Get("Access-Control-Request-Method")
+	}
+	if (origins != "*" && !slices.Contains(strings.Split(origins, ","), origin)) || !slices.Contains(strings.Split(corsMethods, ","), method) {
+		// An explicit nil suppresses net/http's automatic content-type sniffing.
+		w.Header()["Content-Type"] = nil
+		w.WriteHeader(http.StatusForbidden)
+		io.WriteString(w, "Invalid CORS request")
+		return true
+	}
+	if origins == "*" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+	} else {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+	}
+	if preflight {
+		w.Header().Set("Access-Control-Allow-Methods", corsMethods)
+		if headers := r.Header.Get("Access-Control-Request-Headers"); headers != "" {
+			w.Header().Set("Access-Control-Allow-Headers", headers)
+		}
+	}
+	return preflight
+}
