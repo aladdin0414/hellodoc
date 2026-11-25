@@ -1,5 +1,8 @@
 package com.nopkg.hellodoc.controllers;
 
+import com.nopkg.hellodoc.security.Sha256PasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -123,5 +126,39 @@ class AuthMigrationContractTest {
         }
         observed.set("body", normalized);
         return raw;
+    }
+}
+
+// Kept outside the SpringBootTest so these interop checks need no server or database.
+class AuthMigrationPasswordContractTest {
+    @Test
+    void springAndGoPasswordVectors() {
+        String raw = "向量🙂";
+        String salt = "abcdefghijklmnopqrstuu";
+        String checksum = "iN8IvSGb8OzxGpzQWehP3/O4ZRnSYAm";
+        var bcrypt = new BCryptPasswordEncoder();
+        var hex = new Sha256PasswordEncoder("盐", "hex");
+        var base64 = new Sha256PasswordEncoder("盐", "BaSe64");
+        assertEquals("05d0daa261d005bc45d80645b30f5ce463331ef6348ea22f516368dd848cc1b6", hex.encode(raw));
+        assertEquals("BdDaomHQBbxF2AZFsw9c5GMzHvY0jqIvUWNo3YSMwbY=", base64.encode(raw));
+        for (String version : List.of("2a", "2b", "2y")) {
+            String setting = "$" + version + "$10$" + salt;
+            String hash = BCrypt.hashpw(raw, setting);
+            assertEquals(setting + checksum, hash);
+            assertTrue(hex.matches(raw, hash));
+        }
+        String setting = "$2a$10$" + salt;
+        assertEquals(setting + "jr5dF95nlffmIUNubpV71FPx1zncrEm", BCrypt.hashpw("", setting));
+        String boundary = "x".repeat(72);
+        String hash = BCrypt.hashpw(boundary, setting);
+        assertEquals(setting + "hBb/0dYbuuS1CS8hp30IXhlFBW2VAWG", hash);
+        assertThrows(IllegalArgumentException.class, () -> bcrypt.encode(boundary + "y"));
+        assertTrue(bcrypt.matches(boundary + "y", hash));
+        String original = BCrypt.hashpw(raw, "$2$10$" + salt);
+        assertEquals("$2$10$" + salt + "j7kztwSAR7M4lGkVFfn0mcGMQiHDc7q", original);
+        assertTrue(bcrypt.matches(raw, original));
+        assertFalse(hex.matches(raw, original));
+        // Produced by Go PasswordCodec.Encode with its normal random salt.
+        assertTrue(bcrypt.matches(raw, "$2a$10$cE88QaWsgT6gqAbAEmvNG.QmTyiRGUoFqFRSXl9m7HVJhtifMP4ga"));
     }
 }
