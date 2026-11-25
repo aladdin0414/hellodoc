@@ -77,3 +77,42 @@ func TestSystemInfoHTTP(t *testing.T) {
 		})
 	}
 }
+
+func TestSystemInfoOrigin(t *testing.T) {
+	t.Setenv("APP_CORS_ALLOWED_ORIGINS", "http://localhost:13000")
+	handler := NewRouter("test", time.Now)
+	for _, tc := range []struct {
+		method, target, origin string
+		status                 int
+	}{
+		{"POST", "http://example.com:1234", "http://example.com:1234", 200},
+		{"GET", "http://example.com", "http://example.com:80", 200},
+		{"GET", "https://example.com:443", "https://example.com", 200},
+		{"POST", "http://example.com:1234", "http://example.com:1235", 403},
+		{"GET", "https://example.com", "http://example.com", 403},
+	} {
+		req := httptest.NewRequest(tc.method, tc.target+"/api/system/info", nil)
+		req.Header.Set("Origin", tc.origin)
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, req)
+		if res.Code != tc.status || res.Header().Get("Access-Control-Allow-Origin") != "" {
+			t.Errorf("%s %s origin %s: status %d, headers %v", tc.method, tc.target, tc.origin, res.Code, res.Header())
+		}
+		if tc.status == 200 && tc.method == "POST" && !strings.Contains(res.Body.String(), `"code":9999`) {
+			t.Errorf("same-origin POST body %s", res.Body.String())
+		}
+	}
+}
+
+func TestUnsupportedMethods(t *testing.T) {
+	handler := NewRouter("test", time.Now)
+	for _, method := range []string{"TRACE", "OTHER"} {
+		req := httptest.NewRequest(method, "/api/system/info", nil)
+		req.Header.Set("Accept", "text/plain")
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, req)
+		if res.Code != 405 {
+			t.Errorf("%s returned %d", method, res.Code)
+		}
+	}
+}

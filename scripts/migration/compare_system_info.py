@@ -98,7 +98,8 @@ def verify_http_matrix(port, version):
         connection = http.client.HTTPConnection(HOST, port, timeout=5)
         try:
             started = datetime.now().replace(microsecond=0)
-            connection.request(method, PATH, headers=request_headers)
+            headers_to_send = {key: value.format(port=port) for key, value in request_headers.items()}
+            connection.request(method, PATH, headers=headers_to_send)
             with connection.getresponse() as response:
                 body = response.read()
                 finished = datetime.now().replace(microsecond=0)

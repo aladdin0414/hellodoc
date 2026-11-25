@@ -12,6 +12,9 @@ JSON_HEADERS = {**LANG, "Content-Type": "application/json"}
 INFO = object()
 SCENARIOS = [
     ("anonymous", "GET", {}, 200, JSON_HEADERS, INFO),
+    ("same-origin GET", "GET", {"Origin": "http://127.0.0.1:{port}"}, 200, JSON_HEADERS, INFO),
+    ("same-origin POST", "POST", {"Origin": "http://127.0.0.1:{port}"}, 200, JSON_HEADERS, POST_ERROR),
+    ("cross-origin POST", "POST", {"Origin": "https://denied.invalid"}, 403, {}, b"Invalid CORS request"),
     ("head", "HEAD", {}, 200, JSON_HEADERS, b""),
     ("options", "OPTIONS", {}, 200, {**LANG, "Allow": "GET,HEAD,OPTIONS", "Accept-Patch": ""}, b""),
     ("empty POST", "POST", {}, 200, JSON_HEADERS, POST_ERROR),

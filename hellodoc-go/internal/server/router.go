@@ -4,6 +4,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
 	"strconv"
@@ -23,7 +24,7 @@ func NewRouter(version string, now func() time.Time) http.Handler {
 		origins = "*"
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/system/info", func(w http.ResponseWriter, r *http.Request) {
+	serveInfo := func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-XSS-Protection", "0")
@@ -57,12 +58,13 @@ func NewRouter(version string, now func() time.Time) http.Handler {
 		switch r.Method {
 		case http.MethodGet:
 			info.ServeHTTP(w, r)
-		case http.MethodHead:
-			return
-		default:
+		case http.MethodPost:
 			io.WriteString(w, `{"code":9999,"message":"系统异常，请稍后再试","data":null}`)
 		}
-	})
+	}
+	for _, method := range []string{http.MethodGet, http.MethodOptions, http.MethodPost} {
+		mux.HandleFunc(method+" /api/system/info", serveInfo)
+	}
 	return mux
 }
 
@@ -88,9 +90,33 @@ func acceptsJSON(accept string) bool {
 	return false
 }
 
+// sameOrigin compares the HTTP origin tuple, including the effective default port.
+func sameOrigin(origin string, r *http.Request) bool {
+	source, err := url.Parse(origin)
+	if err != nil || source.Host == "" || source.User != nil || source.Path != "" || source.RawQuery != "" || source.Fragment != "" {
+		return false
+	}
+	scheme, defaultPort := "http", "80"
+	if r.TLS != nil {
+		scheme, defaultPort = "https", "443"
+	}
+	target := &url.URL{Host: r.Host}
+	if source.Scheme != scheme || !strings.EqualFold(source.Hostname(), target.Hostname()) {
+		return false
+	}
+	sourcePort, targetPort := source.Port(), target.Port()
+	if sourcePort == "" {
+		sourcePort = defaultPort
+	}
+	if targetPort == "" {
+		targetPort = defaultPort
+	}
+	return sourcePort == targetPort
+}
+
 func handleCORS(w http.ResponseWriter, r *http.Request, origins string) bool {
 	origin := r.Header.Get("Origin")
-	if origin == "" {
+	if origin == "" || sameOrigin(origin, r) {
 		return false
 	}
 	preflight := r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != ""
