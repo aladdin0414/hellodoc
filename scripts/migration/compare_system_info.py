@@ -49,6 +49,10 @@ def fetch(port):
 def validate(body, started, finished, version):
     try:
         info = json.loads(body, object_pairs_hook=unique_object)
+    except RecursionError as error:
+        raise ContractDifference(
+            "JSON", "an object within the decoder's nesting limit", "excessive nesting"
+        ) from error
     except (json.JSONDecodeError, UnicodeDecodeError) as error:
         raise ContractDifference("JSON", "a valid object", repr(body)) from error
 

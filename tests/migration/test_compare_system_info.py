@@ -1,4 +1,5 @@
 import json
+import socket
 import subprocess
 import sys
 import threading
@@ -11,6 +12,7 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts/migration/compare_system_info.py"
 VERSION = "1.2.3"
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+DEEP_JSON = b"[" * 10_000 + b"]" * 10_000
 
 
 def system_info(**overrides):
@@ -152,6 +154,29 @@ class CompareSystemInfoTests(unittest.TestCase):
         java_port, _ = self.listen()
         go_port, _ = self.listen(lambda: b"{")
         self.assert_difference(self.run_comparison(java_port, go_port), "JSON", "expected")
+
+    def test_deeply_nested_java_json_reports_difference_and_still_contacts_go(self):
+        java_port, _ = self.listen(lambda: DEEP_JSON)
+        go_port, go_requests = self.listen()
+        result = self.run_comparison(java_port, go_port)
+        self.assertEqual(go_requests, [("GET", "/api/system/info")])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("Java", result.stderr)
+        self.assertIn("JSON", result.stderr)
+        self.assertIn("expected", result.stderr)
+        self.assertIn("got excessive nesting", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_go_connection_failure_takes_precedence_over_deeply_nested_java_json(self):
+        java_port, _ = self.listen(lambda: DEEP_JSON)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as unserved:
+            unserved.bind(("127.0.0.1", 0))
+            result = self.run_comparison(java_port, unserved.getsockname()[1])
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("Java", result.stderr)
+        self.assertIn("Go", result.stderr)
+        self.assertIn("request failed", result.stderr)
+        self.assertNotIn("PASS", result.stdout + result.stderr)
 
     def test_rejects_duplicate_fields(self):
         def duplicate_name():
