@@ -73,6 +73,15 @@
         "data" : null
       }
     },
+    "refresh-token.afterLogout" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1005,
+        "message" : "Refresh token reuse detected",
+        "data" : null
+      }
+    },
     "login.wrongPassword" : {
       "status" : 200,
       "contentType" : "application/json",
@@ -271,6 +280,15 @@
       "body" : {
         "code" : 0,
         "message" : "成功",
+        "data" : null
+      }
+    },
+    "refresh-token.afterLogout" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1005,
+        "message" : "检测到 refresh token 被重复使用",
         "data" : null
       }
     },

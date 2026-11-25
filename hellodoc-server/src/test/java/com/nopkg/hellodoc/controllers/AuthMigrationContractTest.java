@@ -16,12 +16,43 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.address=127.0.0.1")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        "server.address=127.0.0.1",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.sql.init.mode=never",
+        "app.database.initializer.enabled=false"
+})
 class AuthMigrationContractTest {
+    @DynamicPropertySource
+    static void isolatedDataSource(DynamicPropertyRegistry properties) {
+        String url = "jdbc:h2:mem:auth_contract_" + UUID.randomUUID()
+                + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+                + ";INIT=CREATE DOMAIN IF NOT EXISTS ltree AS VARCHAR\\;CREATE DOMAIN IF NOT EXISTS tsvector AS VARCHAR";
+        properties.add("spring.datasource.url", () -> url);
+        properties.add("spring.datasource.hikari.jdbc-url", () -> url);
+    }
+
     @LocalServerPort int port;
     @Autowired ObjectMapper mapper;
+    @Autowired javax.sql.DataSource dataSource;
+
+    @Test
+    void isolatedDatabase() throws Exception {
+        try (var conn = dataSource.getConnection()) {
+            assertTrue(conn.getMetaData().getURL().startsWith("jdbc:h2:mem:auth_contract_"));
+            assertEquals("H2", conn.getMetaData().getDatabaseProductName());
+            assertEquals("SA", conn.getMetaData().getUserName());
+        }
+    }
+
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Test
@@ -37,8 +68,11 @@ class AuthMigrationContractTest {
             request(cases, locale, "register.duplicate", credentials, "application/json", false);
             JsonNode login = request(cases, locale, "login.success", credentials, "application/json", false);
             ObjectNode refresh = mapper.createObjectNode().put("refreshToken", login.at("/data/refreshToken").textValue());
-            request(cases, locale, "refresh-token.success", refresh, "application/json", false);
+            JsonNode rotated = request(cases, locale, "refresh-token.success", refresh, "application/json", false);
+            refresh.put("refreshToken", rotated.at("/data/refreshToken").textValue());
             request(cases, locale, "logout.success", refresh, "application/json", false);
+            JsonNode loggedOut = request(cases, locale, "refresh-token.afterLogout", refresh, "application/json", false);
+            assertNotEquals(0, loggedOut.get("code").intValue());
             request(cases, locale, "login.wrongPassword", credentials.deepCopy().put("password","incorrect"), "application/json", false);
             request(cases, locale, "refresh-token.invalid", refresh.put("refreshToken","invalid"), "application/json", false);
             for (String endpoint : List.of("register", "login", "refresh-token", "logout")) {

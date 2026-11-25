@@ -16,24 +16,41 @@ LABEL = "io.hellodoc.migration.auth"
 
 
 def _docker(*args, env=None):
+    docker_env = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], **(env or {})}
     return subprocess.run(["docker", "--host", "unix:///var/run/docker.sock", *args], check=True, capture_output=True,
-                          text=True, timeout=60, env=env).stdout.strip()
+                          text=True, timeout=60, env=docker_env).stdout.strip()
 
 
 def _create(name, run, password):
-    env = {**os.environ, "POSTGRES_PASSWORD": password}
-    cid = _docker("create", "--name", name, "--label", f"{LABEL}={run}",
-                  "--tmpfs", "/var/lib/postgresql/data", "--publish", "127.0.0.1::5432",
-                  "-e", "POSTGRES_PASSWORD", "-e", "POSTGRES_DB=auth_fixture",
-                  "postgres:16", env=env)
-    if not re.fullmatch(r"[0-9a-f]{64}", cid):
-        raise RuntimeError("Docker did not return a full container ID")
+    env = {"POSTGRES_PASSWORD": password}
+    try:
+        cid = _docker("create", "--name", name, "--label", f"{LABEL}={run}",
+                      "--tmpfs", "/var/lib/postgresql/data", "--publish", "127.0.0.1::5432",
+                      "-e", "POSTGRES_PASSWORD", "-e", "POSTGRES_DB=auth_fixture",
+                      "postgres:16", env=env)
+        if not re.fullmatch(r"[0-9a-f]{64}", cid):
+            raise RuntimeError("Docker did not return a full container ID")
+    except (subprocess.SubprocessError, RuntimeError):
+        # Docker might have completed the creation before its client lost the reply.
+        try:
+            identity = _identity(name)
+        except subprocess.CalledProcessError as error:
+            if "no such" not in error.stderr.lower():
+                raise
+        else:
+            match = re.fullmatch(r"([0-9a-f]{64}) " + re.escape(run), identity)
+            if match:
+                _remove(match[1], run)
+        raise
     return cid
 
 
+def _identity(name_or_id):
+    return _docker("inspect", "--format", '{{.Id}} {{index .Config.Labels "' + LABEL + '"}}', name_or_id)
+
+
 def _remove(cid, run):
-    identity = _docker("inspect", "--format", '{{.Id}} {{index .Config.Labels "' + LABEL + '"}}', cid)
-    if identity != f"{cid} {run}":
+    if _identity(cid) != f"{cid} {run}":
         raise RuntimeError("Container ownership changed")
     _docker("rm", "-f", cid)
 
@@ -130,8 +147,7 @@ def _initialize_pair(targets):
                     if match:
                         break
                     if proc.poll() is not None:
-                        reasons = [s for s in contents.splitlines() if "Caused by:" in s]
-                        raise RuntimeError(f"Java startup failed: {reasons[-1:]}")
+                        raise RuntimeError("Java fixture exited before HTTP startup")
                     time.sleep(.1)
                 else:
                     raise RuntimeError("Java initialization timed out")

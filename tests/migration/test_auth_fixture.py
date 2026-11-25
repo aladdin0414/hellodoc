@@ -1,4 +1,8 @@
+import json
 import os
+import socket
+import time
+import urllib.request
 import subprocess
 import unittest
 import uuid
@@ -31,6 +35,14 @@ class AuthFixtureTest(unittest.TestCase):
                     fixture._remove(cid, "run")
                 self.assertEqual(docker.call_count, 1)
 
+    def test_timed_out_create_recovers_only_owned_container(self):
+        cid = "a" * 64
+        with patch.object(fixture, "_docker", side_effect=[
+                subprocess.TimeoutExpired(["docker", "create"], 60), cid + " run", cid + " run", ""]) as docker:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                fixture._create("generated", "run", "synthetic")
+            self.assertEqual(docker.call_args.args, ("rm", "-f", cid))
+
     def test_initialized_pair(self):
         if os.environ.get("HELLODOC_TEST_DISPOSABLE_PG") != "1":
             self.skipTest("Set HELLODOC_TEST_DISPOSABLE_PG=1 for two ephemeral PostgreSQL containers")
@@ -50,9 +62,44 @@ class AuthFixtureTest(unittest.TestCase):
                 self.assertTrue(all(line.endswith("|t") for line in target.catalog["flyway"]))
                 self.assertEqual(set(target.catalog), {"columns", "sequences", "foreign_keys", "flyway", "row_counts"})
                 self.assertTrue(all(target.catalog.values()))
-            self.assertEqual(java.catalog, go.catalog)
+            expected = json.loads((fixture.ROOT / "tests/migration/fixtures/auth_postgres_catalog.json").read_text())
+            self.assertEqual(java.catalog, expected)
+            self.assertEqual(go.catalog, expected)
+            self.verify_go_startup(go)
+            self.assertEqual(fixture.catalog(go), expected)
         self.assertFalse(java.directory.exists())
         self.assertFalse(go.directory.exists())
+
+    def verify_go_startup(self, target):
+        exe = target.directory / "hellodoc"
+        subprocess.run(["go", "build", "-o", str(exe), "./cmd/hellodoc"],
+                       cwd=fixture.ROOT / "hellodoc-go", check=True)
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        env = {"PATH": os.environ["PATH"], "HELLODOC_GO_ADDR": f"127.0.0.1:{port}",
+               "DB_URL": f"jdbc:postgresql://127.0.0.1:{target.port}/{target.database}",
+               "DB_USERNAME": target.username, "DB_PASSWORD": target.password,
+               "JWT_SECRET": uuid.uuid4().hex + uuid.uuid4().hex}
+        with subprocess.Popen([exe], cwd=target.directory, env=env) as server:
+            try:
+                opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                for _ in range(100):
+                    self.assertIsNone(server.poll(), "Go server exited during startup")
+                    try:
+                        with opener.open(f"http://127.0.0.1:{port}/api/system/info", timeout=1) as response:
+                            self.assertEqual(response.status, 200)
+                        break
+                    except ConnectionError:
+                        pass
+                    except urllib.error.URLError as exc:
+                        if not isinstance(exc.reason, ConnectionRefusedError):
+                            raise
+                    time.sleep(.1)
+                else:
+                    self.fail("Go startup timed out")
+            finally:
+                server.terminate()
 
     @unittest.skipUnless(os.environ.get("HELLODOC_TEST_DISPOSABLE_PG") == "1", "requires disposable Docker")
     def test_name_collision_preserves_existing_id(self):
