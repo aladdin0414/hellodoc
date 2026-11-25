@@ -69,3 +69,39 @@ class InventoryTest(unittest.TestCase):
         names = re.findall(r'Tool\.builder\(\)\.name\("(\w+)"\)', registration)
         self.assertTrue(names)
         self.assertEqual({"tool " + name for name in names}, {i for i in ids if i.startswith("tool ")})
+
+    def test_websocket_client_evidence_matches_message_direction(self):
+        with (ROOT / "docs/migration/contracts.tsv").open(encoding="utf-8", newline="") as stream:
+            rows = list(csv.DictReader(stream, delimiter="\t"))
+        client = "hellodoc-client/src/composables/useDocumentCollab.ts"
+        source = (ROOT / client).read_text(encoding="utf-8")
+        sent = set(re.findall(r"(?:sendCollab\(|ws\.send\(JSON\.stringify\()\{ type: '(\w+)'", source))
+        received = set(re.findall(r"\btype === '(\w+)'", source))
+        # data.type distinguishes join/leave inside a presence event.
+        received -= set(re.findall(r"data\.type === '(\w+)'", source))
+        for prefix, observed in (("WS message ", sent), ("WS event ", received)):
+            linked = {
+                row["id"].removeprefix(prefix) for row in rows
+                if row["id"].startswith(prefix) and client + "#" in row["caller_ref"]
+            }
+            self.assertEqual(linked, observed)
+        operation = next(row for row in rows if row["id"] == "WS message operation")
+        self.assertIn("MVP_READONLY", operation["contract"])
+
+    def test_inventory_links_existing_behavioral_tests(self):
+        with (ROOT / "docs/migration/contracts.tsv").open(encoding="utf-8", newline="") as stream:
+            rows = {row["id"]: row for row in csv.DictReader(stream, delimiter="\t")}
+        tests = ROOT / "hellodoc-server/src/test/java/com/nopkg/hellodoc"
+        postgres = tests / "mcp/McpHttpPostgresTest.java"
+        source = postgres.read_text(encoding="utf-8")
+        tools = set(re.findall(r'\bcall\(\w+, session, "(\w+)"', source))
+        self.assertIn("get_operation", tools)
+        for tool in tools:
+            with self.subTest(tool=tool):
+                self.assertIn(
+                    str(postgres.relative_to(ROOT)) + "#actualMcpClientCanCreateAndRetryWithoutDuplicates",
+                    rows["tool " + tool]["test_ref"].split("|"),
+                )
+        cleanup = rows["StorageFileService.cleanupOrphanFiles Scheduled"]
+        self.assertIn("AssetControllerTest.java#asset_cleanupOrphanFiles_shouldDeleteDbAndFile", cleanup["test_ref"])
+        self.assertIn("cron", cleanup["gap"].lower())
