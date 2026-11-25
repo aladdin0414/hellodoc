@@ -1,5 +1,17 @@
 # Changelog
 
+## [v3.6.9] - 2026-11-25
+
+### 更新说明
+
+- feat: 支持批量发布或取消发布选中的文档及文件夹内的文档。
+- feat: PC 和移动端支持速记，并可在个人资料或个人中心选择有编辑权限的速记知识库；升级后原速记用户需要重新选择知识库。
+
+### Changelog
+
+- feat: Publish or unpublish selected documents and documents within selected folders in bulk.
+- feat: Use quick notes on desktop and mobile, and select an editable knowledge base in your profile or personal center; existing quick note users must select a knowledge base again after upgrading.
+
 ## [v3.6.8] - 2026-11-10
 
 ### 更新说明
