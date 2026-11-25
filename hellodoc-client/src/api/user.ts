@@ -20,3 +20,5 @@ export interface IssuedMcpToken { id: string; name: string; token: string }
 export const listMcpTokens = (): Promise<McpTokenInfo[]> => request.get('/api/mcp-tokens')
 export const createMcpToken = (name: string): Promise<IssuedMcpToken> => request.post('/api/mcp-tokens', { name })
 export const revokeMcpToken = (id: string) => request.delete(`/api/mcp-tokens/${encodeURIComponent(id)}`)
+
+export const updateQuickNotePreference = (kbId: number | null) => request.put('/api/users/quick-note', { kbId })

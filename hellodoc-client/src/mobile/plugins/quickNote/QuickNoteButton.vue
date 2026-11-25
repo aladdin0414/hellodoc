@@ -1,6 +1,5 @@
 <template>
   <button
-    v-if="isTargetUser(username)"
     @click="handleClick"
     :disabled="creatingQuickNote"
     :title="t('mobile.quickNote.title')"
@@ -16,18 +15,14 @@ import { useI18n } from 'vue-i18n'
 import { Zap } from 'lucide-vue-next'
 import { useQuickNote } from './useQuickNote'
 
-const props = defineProps<{
-  username?: string
-}>()
-
 const { t } = useI18n()
 const router = useRouter()
-const { isTargetUser, creatingQuickNote, handleCreateQuickNote } = useQuickNote()
+const { creatingQuickNote, handleCreateQuickNote } = useQuickNote()
 
 const handleClick = () => {
   handleCreateQuickNote({
     router,
-    username: props.username
+    onSetupRequired: () => router.push('/m/profile')
   })
 }
 </script>

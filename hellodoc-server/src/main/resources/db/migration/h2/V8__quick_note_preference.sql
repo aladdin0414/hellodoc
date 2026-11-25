@@ -1,0 +1,1 @@
+ALTER TABLE IF EXISTS sys_user ADD COLUMN IF NOT EXISTS quick_note_kb_id BIGINT;

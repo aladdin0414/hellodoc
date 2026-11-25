@@ -10,8 +10,7 @@
       </template>
 
       <template #right>
-        <!-- 私人订制插件：速记铅笔图标按钮 (仅目标用户显示，点击直达编辑页) -->
-        <QuickNoteButton :username="currentUsername" />
+        <QuickNoteButton />
 
         <!-- 新建知识库图标按钮 -->
         <button
@@ -162,7 +161,6 @@ import type { KnowledgeBase } from '../../types/kb'
 import { useTheme } from '../composables/useTheme'
 import { getIconBgStyle } from '../../utils/color'
 
-// 引入解耦的私人订制速记插件
 import QuickNoteButton from '../plugins/quickNote/QuickNoteButton.vue'
 
 const { t } = useI18n()

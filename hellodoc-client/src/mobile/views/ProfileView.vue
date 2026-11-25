@@ -21,6 +21,8 @@
         </div>
       </div>
 
+      <div class="p-4 bg-white dark:bg-slate-800 rounded-2xl"><QuickNoteSettings /></div>
+
       <!-- iOS Grouped Inset 风格设置列表组 -->
       <div class="bg-white dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/50 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50 text-[14px]">
         <button
@@ -135,6 +137,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from '../components/HeaderNav.vue'
+import QuickNoteSettings from '../../components/shared/QuickNoteSettings.vue'
 import TabBar from '../components/TabBar.vue'
 import { LogOut, Sun, Moon, Monitor, ChevronRight, Globe, Check, X } from 'lucide-vue-next'
 import { useTheme } from '../composables/useTheme'

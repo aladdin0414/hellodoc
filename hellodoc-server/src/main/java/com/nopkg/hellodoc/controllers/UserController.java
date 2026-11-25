@@ -2,6 +2,7 @@ package com.nopkg.hellodoc.controllers;
 
 import com.nopkg.hellodoc.entities.SysUser;
 import com.nopkg.hellodoc.services.UserService;
+import com.nopkg.hellodoc.services.QuickNotePreferenceService;
 import com.nopkg.hellodoc.web.ApiResponse;
 import com.nopkg.hellodoc.web.dto.user.SysUserDetailVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +37,7 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final QuickNotePreferenceService quickNotePreferenceService;
 
     @Value("${file.upload-dir:./uploads}")
     private String uploadDir;
@@ -76,14 +78,14 @@ public class UserController {
                             user.getPhone(),
                             user.getAvatar(),
                             user.getRoles().stream().findFirst().orElse("user"),
-                            userService.getLanguageModeOrDefault(user));
+                            userService.getLanguageModeOrDefault(user), user.getQuickNoteKbId());
                     return ApiResponse.success(userInfo);
                 })
                 .orElse(ApiResponse.error(ApiResponse.Code.UNAUTHORIZED));
     }
 
     record UserInfo(Long id, String username, String nickname, String realName, String email, String phone,
-            String avatar, String role, String languageMode) {
+            String avatar, String role, String languageMode, Long quickNoteKbId) {
     }
 
     @GetMapping("/getUserInfo/{username}")
@@ -100,7 +102,7 @@ public class UserController {
                             user.getPhone(),
                             user.getAvatar(),
                             user.getRoles().stream().findFirst().orElse("user"),
-                            userService.getLanguageModeOrDefault(user));
+                            userService.getLanguageModeOrDefault(user), null);
                     return ApiResponse.success(userInfo);
                 })
                 .orElse(ApiResponse.error(ApiResponse.Code.RESOURCE_NOT_FOUND));
@@ -201,6 +203,16 @@ public class UserController {
         }
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         userService.updateLanguageMode(username, request.languageMode());
+        return ApiResponse.success(null);
+    }
+
+    record QuickNotePreferenceRequest(Long kbId) {}
+
+    @PutMapping("/quick-note")
+    public ApiResponse<Void> updateQuickNotePreference(@RequestBody QuickNotePreferenceRequest request) {
+        if (request == null) return ApiResponse.error(ApiResponse.Code.INVALID_REQUEST);
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        quickNotePreferenceService.update(username, request.kbId());
         return ApiResponse.success(null);
     }
 

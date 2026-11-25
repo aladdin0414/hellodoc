@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { updateProfile, uploadAvatar } from '../../api/user'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '../shared/BaseDialog.vue'
+import QuickNoteSettings from '../shared/QuickNoteSettings.vue'
 
 const props = defineProps<{
     nickname: string
@@ -130,6 +131,7 @@ const handleUpdateProfile = async () => {
                         </div>
 
                         <div class="space-y-4">
+                            <QuickNoteSettings v-if="show" />
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ t('userProfile.nicknameLabel') }}</label>
                                 <input v-model="profileForm.nickname" type="text"

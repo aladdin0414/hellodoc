@@ -957,6 +957,12 @@ export default {
             docNamePlaceholder: '请输入文档名称'
         },
         quickNote: {
+            autoSave: '选择后立即保存',
+            setting: '速记知识库',
+            select: '请选择速记知识库',
+            none: '未设置',
+            saved: '设置已保存',
+            setupHint: '请先选择速记知识库',
             title: '速记',
             docPrefix: '速记'
         },

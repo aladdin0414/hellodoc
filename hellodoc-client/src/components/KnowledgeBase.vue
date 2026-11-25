@@ -634,7 +634,7 @@ const fetchProfile = async () => {
         nickname.value = data.nickname
         avatar.value = data.avatar
         userRole.value = data.role
-        if (data.username) localStorage.setItem('username', data.username || '')
+        if (data.username) localStorage.setItem('username', data.username)
         localStorage.setItem('nickname', data.nickname || '')
         localStorage.setItem('avatar', data.avatar || '')
         localStorage.setItem('userRole', data.role || 'user')
@@ -871,7 +871,7 @@ const handleKbSelected = (kbId: number) => {
                     @open-search-modal="showSearchModal = true" />
 
                 <div class="flex-1 overflow-y-auto scroll-smooth">
-                    <KnowledgeBaseContent :activeTab="activeTab" :navStyle="navStyle" v-model:viewMode="viewMode" :loading="loading" :favLoading="favLoading"
+                    <KnowledgeBaseContent :openQuickNoteSettings="() => { showProfileModal = true }" :activeTab="activeTab" :navStyle="navStyle" v-model:viewMode="viewMode" :loading="loading" :favLoading="favLoading"
                         :favorites="favorites" :filteredFavorites="filteredFavorites" :favoritesForHome="favoritesForHome"
                         :filteredRecentDocs="filteredRecentDocs" :recentDocsForHome="recentDocsForHome" :myKbs="myKbs"
                         :sharedKbs="sharedKbs" :homeWidgetSettings="homeWidgetSettings" :homeWidgetGridClass="homeWidgetGridClass"

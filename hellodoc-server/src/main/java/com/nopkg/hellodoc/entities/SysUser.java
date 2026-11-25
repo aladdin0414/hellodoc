@@ -47,6 +47,9 @@ public class SysUser {
     @Column(name = "language_mode", length = 16)
     private String languageMode = "AUTO";
 
+    @Column(name = "quick_note_kb_id")
+    private Long quickNoteKbId;
+
     @ColumnDefault("0")
     @Column(name = "status")
     private Short status;

@@ -957,6 +957,12 @@ export default {
             docNamePlaceholder: 'Enter document name'
         },
         quickNote: {
+            autoSave: 'Saved immediately when changed',
+            setting: 'Quick note knowledge base',
+            select: 'Select a knowledge base for quick notes',
+            none: 'Not set',
+            saved: 'Setting saved',
+            setupHint: 'Select a quick note knowledge base first',
             title: 'Quick Note',
             docPrefix: 'QuickNote'
         },

@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 import { useLocale } from '../../composables/useLocale'
 import { getIconStyle as utilGetIconStyle, getIconBgStyle as utilGetIconBgStyle } from '../../utils/color'
 import * as Icons from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { useQuickNote } from '../../mobile/plugins/quickNote/useQuickNote'
 
 type TabKey = 'my' | 'recent' | 'shared' | 'favorites'
 type ViewMode = 'grid' | 'list'
@@ -48,6 +50,7 @@ type KbSummary = {
 }
 
 const props = defineProps<{
+    openQuickNoteSettings: () => void
     activeTab: TabKey
     navStyle: NavStyle
     viewMode: ViewMode
@@ -87,6 +90,8 @@ const viewModeModel = computed({
     set: (value: ViewMode) => emit('update:viewMode', value),
 })
 
+const router = useRouter()
+const { creatingQuickNote, handleCreateQuickNote } = useQuickNote()
 const { isDark } = useTheme()
 const { t } = useI18n()
 const { effectiveLocale } = useLocale()
@@ -160,6 +165,13 @@ const getKbIcon = (iconName: string | undefined | null) => {
                 </p>
             </div>
             <div class="flex items-center gap-2">
+                <button v-if="activeTab === 'my'"
+                    @click="handleCreateQuickNote({ router, destination: 'desktop', onSetupRequired: openQuickNoteSettings })"
+                    :disabled="creatingQuickNote" :title="t('mobile.quickNote.title')"
+                    class="inline-flex items-center justify-center gap-2 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium transition disabled:opacity-50">
+                    <Icons.Zap class="h-4 w-4" />
+                    <span>{{ t('mobile.quickNote.title') }}</span>
+                </button>
                 <button v-if="activeTab === 'my' && navStyle !== 'left' && !shouldHideCreateCard" @click="openCreateModal"
                     class="inline-flex items-center justify-center gap-2 h-9 w-9 sm:w-auto px-0 sm:px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition dark:bg-blue-500 dark:hover:bg-blue-600"
                     :title="t('kb.createKb')">
