@@ -19,8 +19,8 @@ const corsMethods = "GET,POST,PUT,DELETE,OPTIONS"
 // NewRouter creates the routes implemented by the Go migration so far.
 func NewRouter(version string, now func() time.Time) http.Handler {
 	info := systeminfo.New(version, now)
-	origins := os.Getenv("APP_CORS_ALLOWED_ORIGINS")
-	if origins == "" {
+	origins, configured := os.LookupEnv("APP_CORS_ALLOWED_ORIGINS")
+	if !configured {
 		origins = "*"
 	}
 	mux := http.NewServeMux()

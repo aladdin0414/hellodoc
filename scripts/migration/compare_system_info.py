@@ -55,8 +55,10 @@ def validate(body, started, finished, version):
         raise ContractDifference(
             "JSON", "an object within the decoder's nesting limit", "excessive nesting"
         ) from error
-    except (json.JSONDecodeError, UnicodeDecodeError) as error:
-        raise ContractDifference("JSON", "a valid object", repr(body)) from error
+    except ContractDifference:
+        raise
+    except ValueError as error:
+        raise ContractDifference("JSON", "a valid object", str(error)) from error
 
     if not isinstance(info, dict):
         raise ContractDifference("JSON", "an object", repr(info))

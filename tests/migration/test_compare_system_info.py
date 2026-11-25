@@ -178,6 +178,18 @@ class CompareSystemInfoTests(unittest.TestCase):
         self.assertIn("request failed", result.stderr)
         self.assertNotIn("PASS", result.stdout + result.stderr)
 
+    def test_oversized_integer_reports_java_difference_and_go_connection_failure(self):
+        body = b'{"extra":' + b"9" * 4301 + b"}"
+        java_port, _ = self.listen(lambda: body)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as unserved:
+            unserved.bind(("127.0.0.1", 0))
+            result = self.run_comparison(java_port, unserved.getsockname()[1])
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("Java", result.stderr)
+        self.assertIn("Go", result.stderr)
+        self.assertIn("request failed", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_rejects_duplicate_fields(self):
         def duplicate_name():
             body = json.dumps(system_info())

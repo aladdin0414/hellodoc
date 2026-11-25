@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -114,5 +115,36 @@ func TestUnsupportedMethods(t *testing.T) {
 		if res.Code != 405 {
 			t.Errorf("%s returned %d", method, res.Code)
 		}
+	}
+}
+
+func TestSystemInfoCORSConfiguration(t *testing.T) {
+	const key = "APP_CORS_ALLOWED_ORIGINS"
+	const origin = "https://client.example"
+	for _, tc := range []struct {
+		name, setting        string
+		unset                bool
+		status               int
+		allowed, credentials string
+	}{
+		{"unset", "", true, 200, "*", ""},
+		{"empty", "", false, 403, "", ""},
+		{"allowlist", "https://other.example," + origin, false, 200, origin, "true"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv(key, tc.setting)
+			if tc.unset {
+				if err := os.Unsetenv(key); err != nil {
+					t.Fatal(err)
+				}
+			}
+			req := httptest.NewRequest(http.MethodGet, "/api/system/info", nil)
+			req.Header.Set("Origin", origin)
+			res := httptest.NewRecorder()
+			NewRouter("test", time.Now).ServeHTTP(res, req)
+			if res.Code != tc.status || res.Header().Get("Access-Control-Allow-Origin") != tc.allowed || res.Header().Get("Access-Control-Allow-Credentials") != tc.credentials {
+				t.Errorf("status %d, headers %v", res.Code, res.Header())
+			}
+		})
 	}
 }
