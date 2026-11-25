@@ -1,0 +1,404 @@
+{
+  "en" : {
+    "register.success" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "Success",
+        "data" : {
+          "id" : "<id>",
+          "nickname" : "Migration User",
+          "realName" : null,
+          "avatar" : null,
+          "phone" : null,
+          "email" : null,
+          "languageMode" : "AUTO",
+          "quickNoteKbId" : null,
+          "status" : 0,
+          "createTime" : "<instant>",
+          "updateTime" : "<instant>",
+          "username" : null,
+          "roles" : [ ]
+        }
+      }
+    },
+    "register.duplicate" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1003,
+        "message" : "Username already exists",
+        "data" : null
+      }
+    },
+    "login.success" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "Success",
+        "data" : {
+          "accessToken" : "<jwt>",
+          "refreshToken" : "<jwt>",
+          "tokenType" : "Bearer",
+          "nickname" : "Migration User",
+          "avatar" : null,
+          "isInitialPwd" : false
+        }
+      }
+    },
+    "refresh-token.success" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "Success",
+        "data" : {
+          "accessToken" : "<jwt>",
+          "refreshToken" : "<jwt>",
+          "tokenType" : "Bearer",
+          "nickname" : "Migration User",
+          "avatar" : null,
+          "isInitialPwd" : false
+        }
+      }
+    },
+    "logout.success" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "Success",
+        "data" : null
+      }
+    },
+    "login.wrongPassword" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1001,
+        "message" : "Incorrect username or password",
+        "data" : null
+      }
+    },
+    "refresh-token.invalid" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1005,
+        "message" : "Refresh token is invalid",
+        "data" : null
+      }
+    },
+    "register.missingFields" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "System error occurred, please try again later",
+        "data" : null
+      }
+    },
+    "register.wrongMedia" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "System error occurred, please try again later",
+        "data" : null
+      }
+    },
+    "register.invalidBearer" : {
+      "status" : 401,
+      "contentType" : "application/json;charset=UTF-8",
+      "body" : {
+        "error" : "invalid_token",
+        "error_description" : "Refresh token is invalid",
+        "needRefresh" : false
+      }
+    },
+    "login.missingFields" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1001,
+        "message" : "Incorrect username or password",
+        "data" : null
+      }
+    },
+    "login.wrongMedia" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "System error occurred, please try again later",
+        "data" : null
+      }
+    },
+    "login.invalidBearer" : {
+      "status" : 401,
+      "contentType" : "application/json;charset=UTF-8",
+      "body" : {
+        "error" : "invalid_token",
+        "error_description" : "Refresh token is invalid",
+        "needRefresh" : false
+      }
+    },
+    "refresh-token.missingFields" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1005,
+        "message" : "Refresh token is invalid",
+        "data" : null
+      }
+    },
+    "refresh-token.wrongMedia" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "System error occurred, please try again later",
+        "data" : null
+      }
+    },
+    "refresh-token.invalidBearer" : {
+      "status" : 401,
+      "contentType" : "application/json;charset=UTF-8",
+      "body" : {
+        "error" : "invalid_token",
+        "error_description" : "Refresh token is invalid",
+        "needRefresh" : false
+      }
+    },
+    "logout.missingFields" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "Success",
+        "data" : null
+      }
+    },
+    "logout.wrongMedia" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "System error occurred, please try again later",
+        "data" : null
+      }
+    },
+    "logout.invalidBearer" : {
+      "status" : 401,
+      "contentType" : "application/json;charset=UTF-8",
+      "body" : {
+        "error" : "invalid_token",
+        "error_description" : "Refresh token is invalid",
+        "needRefresh" : false
+      }
+    }
+  },
+  "zh-CN" : {
+    "register.success" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "成功",
+        "data" : {
+          "id" : "<id>",
+          "nickname" : "Migration User",
+          "realName" : null,
+          "avatar" : null,
+          "phone" : null,
+          "email" : null,
+          "languageMode" : "AUTO",
+          "quickNoteKbId" : null,
+          "status" : 0,
+          "createTime" : "<instant>",
+          "updateTime" : "<instant>",
+          "username" : null,
+          "roles" : [ ]
+        }
+      }
+    },
+    "register.duplicate" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1003,
+        "message" : "用户名已存在",
+        "data" : null
+      }
+    },
+    "login.success" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "成功",
+        "data" : {
+          "accessToken" : "<jwt>",
+          "refreshToken" : "<jwt>",
+          "tokenType" : "Bearer",
+          "nickname" : "Migration User",
+          "avatar" : null,
+          "isInitialPwd" : false
+        }
+      }
+    },
+    "refresh-token.success" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "成功",
+        "data" : {
+          "accessToken" : "<jwt>",
+          "refreshToken" : "<jwt>",
+          "tokenType" : "Bearer",
+          "nickname" : "Migration User",
+          "avatar" : null,
+          "isInitialPwd" : false
+        }
+      }
+    },
+    "logout.success" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "成功",
+        "data" : null
+      }
+    },
+    "login.wrongPassword" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1001,
+        "message" : "用户名或密码错误",
+        "data" : null
+      }
+    },
+    "refresh-token.invalid" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1005,
+        "message" : "refreshToken 无效",
+        "data" : null
+      }
+    },
+    "register.missingFields" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "系统异常，请稍后再试",
+        "data" : null
+      }
+    },
+    "register.wrongMedia" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "系统异常，请稍后再试",
+        "data" : null
+      }
+    },
+    "register.invalidBearer" : {
+      "status" : 401,
+      "contentType" : "application/json;charset=UTF-8",
+      "body" : {
+        "error" : "invalid_token",
+        "error_description" : "refreshToken 无效",
+        "needRefresh" : false
+      }
+    },
+    "login.missingFields" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1001,
+        "message" : "用户名或密码错误",
+        "data" : null
+      }
+    },
+    "login.wrongMedia" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "系统异常，请稍后再试",
+        "data" : null
+      }
+    },
+    "login.invalidBearer" : {
+      "status" : 401,
+      "contentType" : "application/json;charset=UTF-8",
+      "body" : {
+        "error" : "invalid_token",
+        "error_description" : "refreshToken 无效",
+        "needRefresh" : false
+      }
+    },
+    "refresh-token.missingFields" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 1005,
+        "message" : "refreshToken 无效",
+        "data" : null
+      }
+    },
+    "refresh-token.wrongMedia" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "系统异常，请稍后再试",
+        "data" : null
+      }
+    },
+    "refresh-token.invalidBearer" : {
+      "status" : 401,
+      "contentType" : "application/json;charset=UTF-8",
+      "body" : {
+        "error" : "invalid_token",
+        "error_description" : "refreshToken 无效",
+        "needRefresh" : false
+      }
+    },
+    "logout.missingFields" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 0,
+        "message" : "成功",
+        "data" : null
+      }
+    },
+    "logout.wrongMedia" : {
+      "status" : 200,
+      "contentType" : "application/json",
+      "body" : {
+        "code" : 9999,
+        "message" : "系统异常，请稍后再试",
+        "data" : null
+      }
+    },
+    "logout.invalidBearer" : {
+      "status" : 401,
+      "contentType" : "application/json;charset=UTF-8",
+      "body" : {
+        "error" : "invalid_token",
+        "error_description" : "refreshToken 无效",
+        "needRefresh" : false
+      }
+    }
+  }
+}
