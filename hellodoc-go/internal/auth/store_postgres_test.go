@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -361,4 +362,262 @@ func (c *observedPasswords) Encode(raw string) (string, error) {
 func (c *observedPasswords) Matches(raw, encoded string) bool {
 	c.matches = append(c.matches, [2]string{raw, encoded})
 	return c.PasswordCodec.Matches(raw, encoded)
+}
+
+func TestRefreshRotationPostgres(t *testing.T) {
+	store, _ := fixtureStore(t)
+	tokens := refreshTokens(t, nil)
+	svc := &Service{Store: store, Tokens: tokens}
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+	login := func(t *testing.T) (string, Claims) {
+		t.Helper()
+		resp, err := svc.Login(ctx, "migration_fixture", os.Getenv("AUTH_ACCOUNT_PASSWORD"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		claims, err := tokens.Verify(resp.RefreshToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return resp.RefreshToken, claims
+	}
+	type outcome struct {
+		Code    int
+		Message string
+		Data    AuthResponse
+	}
+	parse := func(t *testing.T, w *httptest.ResponseRecorder) outcome {
+		t.Helper()
+		var o outcome
+		if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &o) != nil {
+			// Avoid printing successful responses, which contain tokens.
+			t.Fatalf("unexpected refresh response status %d", w.Code)
+		}
+		return o
+	}
+	t.Run("child insert failure rolls back", func(t *testing.T) {
+		raw, parent := login(t)
+		// The fixture trigger fails child insertion for this family only.
+		if _, err := store.DB.ExecContext(ctx, "INSERT INTO refresh_failures VALUES ($1)", parent.Family); err != nil {
+			t.Fatal(err)
+		}
+		var pgErr *pgconn.PgError
+		response, err := svc.Rotate(ctx, raw)
+		if response != (AuthResponse{}) || !errors.As(err, &pgErr) ||
+			pgErr.Code != "P0001" || pgErr.Message != "fixture child insert rejected" {
+			t.Fatalf("expected injected PostgreSQL child insert failure, got %v", err)
+		}
+		var intact bool
+		if err := store.DB.QueryRowContext(ctx, `SELECT count(*)=1 AND bool_and(
+			jti=$1 AND used_at IS NULL AND revoked_at IS NULL AND revoked_reason IS NULL AND replaced_by_jti IS NULL)
+			FROM sys_refresh_token WHERE family_id=$2`, parent.ID, parent.Family).Scan(&intact); err != nil || !intact {
+			t.Fatalf("failed transaction changed family, query error %v", err)
+		}
+		if _, err := store.DB.ExecContext(ctx, "DELETE FROM refresh_failures WHERE family_id=$1", parent.Family); err != nil {
+			t.Fatal(err)
+		}
+		if got := parse(t, refreshHTTP(ctx, svc, refreshBody(raw))); got.Code != 0 || got.Data.RefreshToken == "" {
+			t.Fatalf("retry after removing fault returned code %d", got.Code)
+		}
+	})
+	t.Run("record and current account validation", func(t *testing.T) {
+		raw, parent := login(t)
+		sign := func(subject, id, family string) string {
+			t.Helper()
+			got, err := tokens.Refresh(subject, id, family)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return got
+		}
+		exec := func(statement string, args ...any) {
+			t.Helper()
+			if _, err := store.DB.ExecContext(ctx, statement, args...); err != nil {
+				t.Fatal(err)
+			}
+		}
+		check := func(token string, code int, message string) {
+			t.Helper()
+			got := parse(t, refreshHTTP(ctx, svc, refreshBody(token)))
+			if got.Code != code || got.Message != message || got.Data != (AuthResponse{}) {
+				t.Fatalf("code %d, message %q, want %d and %q", got.Code, got.Message, code, message)
+			}
+		}
+		check(sign(parent.Subject, newUUID(), parent.Family), 1005, "Refresh token not found")
+		check(sign(parent.Subject, parent.ID, newUUID()), 1005, "Refresh token family mismatch")
+		check(sign("missing_fixture", parent.ID, parent.Family), 1005, "User not found")
+		check(sign("refresh_other", parent.ID, parent.Family), 1005, "Refresh token user mismatch")
+		exec("UPDATE sys_user SET status=2 WHERE id=(SELECT user_id FROM sys_refresh_token WHERE jti=$1)", parent.ID)
+		check(raw, 1002, "Account is disabled")
+		exec("UPDATE sys_user SET status=0 WHERE id=(SELECT user_id FROM sys_refresh_token WHERE jti=$1)", parent.ID)
+		exec("UPDATE sys_refresh_token SET expires_at=issued_at - INTERVAL '1 second' WHERE jti=$1", parent.ID)
+		check(raw, 1005, "Refresh token expired")
+		var intact bool
+		if err := store.DB.QueryRowContext(ctx, `SELECT count(*)=1 AND bool_and(used_at IS NULL AND revoked_at IS NULL
+			AND replaced_by_jti IS NULL AND revoked_reason IS NULL) FROM sys_refresh_token WHERE family_id=$1`, parent.Family).
+			Scan(&intact); err != nil || !intact {
+			t.Fatalf("rejected refresh changed family, query error %v", err)
+		}
+	})
+
+	t.Run("concurrent same token", func(t *testing.T) {
+		raw, parent := login(t)
+		other, independent := login(t)
+		if _, err := store.DB.ExecContext(ctx, "UPDATE sys_role SET role_code='refresh_current' WHERE role_code='user'"); err != nil {
+			t.Fatal(err)
+		}
+
+		// Hold the parent row until both requests reach a PostgreSQL lock wait.
+		// Since the holder uses a third session, the two waiters are distinct connections.
+		tx, err := store.DB.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Rollback()
+		var blocker int
+		if err := tx.QueryRowContext(ctx, `SELECT pg_backend_pid() FROM sys_refresh_token WHERE jti=$1 FOR UPDATE`, parent.ID).Scan(&blocker); err != nil {
+			t.Fatal(err)
+		}
+		responses := make(chan *httptest.ResponseRecorder, 2)
+		for range 2 {
+			go func() {
+				responses <- refreshHTTP(ctx, svc, refreshBody(raw))
+			}()
+		}
+		waitForRefreshLocks(t, ctx, store.DB, blocker, 2, responses)
+		if err := tx.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		var successes, reuses int
+		var winner AuthResponse
+		for range 2 {
+			select {
+			case response := <-responses:
+				got := parse(t, response)
+				switch got.Code {
+				case 0:
+					successes++
+					winner = got.Data
+				case 1005:
+					if got.Message == "Refresh token reuse detected" && got.Data == (AuthResponse{}) {
+						reuses++
+					}
+				}
+			case <-ctx.Done():
+				t.Fatal("refresh requests did not finish")
+			}
+		}
+		if successes != 1 || reuses != 1 {
+			t.Fatalf("wanted one success and one reuse, got %d/%d", successes, reuses)
+		}
+		child, err := tokens.Verify(winner.RefreshToken)
+		access, accessErr := tokens.Verify(winner.AccessToken)
+		if err != nil || accessErr != nil || child.Subject != parent.Subject || child.Family != parent.Family ||
+			child.ID == parent.ID || access.Subject != parent.Subject || !slices.Equal(access.Roles, []string{"ROLE_refresh_current"}) ||
+			winner.TokenType != "Bearer" || winner.IsInitialPwd || winner.Nickname == nil || *winner.Nickname != "Migration Fixture" {
+			t.Fatal("invalid rotated response or current permissions")
+		}
+		var correct bool
+		if err := store.DB.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM sys_refresh_token WHERE family_id=p.family_id)=2
+			AND p.revoked_reason='ROTATED' AND p.replaced_by_jti=c.jti AND p.used_at IS NOT NULL AND p.revoked_at=p.used_at
+			AND c.parent_jti=p.jti AND c.user_id=p.user_id AND c.family_id=p.family_id AND c.expires_at=$3
+			AND c.revoked_reason='REUSE_DETECTED' AND c.revoked_at IS NOT NULL AND c.used_at IS NULL AND c.replaced_by_jti IS NULL
+			FROM sys_refresh_token p CROSS JOIN sys_refresh_token c WHERE p.jti=$1 AND c.jti=$2`,
+			parent.ID, child.ID, child.ExpiresAt.Time.UTC()).Scan(&correct); err != nil || !correct {
+			t.Fatalf("wrong committed rotation and revocation state, query error %v", err)
+		}
+		if got := parse(t, refreshHTTP(ctx, svc, refreshBody(winner.RefreshToken))); got.Code != 1005 {
+			t.Fatal("revoked winner token rotated")
+		}
+		if got := parse(t, refreshHTTP(ctx, svc, refreshBody(other))); got.Code != 0 || got.Data.RefreshToken == "" {
+			t.Fatalf("independent family returned code %d", got.Code)
+		}
+		var unaffected bool
+		if err := store.DB.QueryRowContext(ctx, `SELECT count(*)=2 AND count(revoked_at)=1
+			AND count(*) FILTER (WHERE revoked_reason='ROTATED')=1
+			FROM sys_refresh_token WHERE family_id=$1`, independent.Family).Scan(&unaffected); err != nil || !unaffected {
+			t.Fatalf("unrelated family changed, query error %v", err)
+		}
+	})
+	t.Run("ancestor replay cannot miss concurrent grandchild", func(t *testing.T) {
+		old, parent := login(t)
+		first := parse(t, refreshHTTP(ctx, svc, refreshBody(old)))
+		if first.Code != 0 {
+			t.Fatalf("first rotation returned %d", first.Code)
+		}
+		child, err := tokens.Verify(first.Data.RefreshToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+		holder, err := store.DB.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer holder.Rollback()
+		var blocker int
+		if err := holder.QueryRowContext(ctx, `SELECT pg_backend_pid() FROM sys_refresh_token WHERE jti=$1 FOR UPDATE`,
+			child.ID).Scan(&blocker); err != nil {
+			t.Fatal(err)
+		}
+		rotation, replay := make(chan *httptest.ResponseRecorder, 1), make(chan *httptest.ResponseRecorder, 1)
+		go func() { rotation <- refreshHTTP(ctx, svc, refreshBody(first.Data.RefreshToken)) }()
+		waitForRefreshLocks(t, ctx, store.DB, blocker, 1, rotation)
+		go func() { replay <- refreshHTTP(ctx, svc, refreshBody(old)) }()
+		waitForRefreshLocks(t, ctx, store.DB, blocker, 2, replay)
+		if err := holder.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		finish := func(result chan *httptest.ResponseRecorder) outcome {
+			t.Helper()
+			select {
+			case w := <-result:
+				return parse(t, w)
+			case <-ctx.Done():
+				t.Fatal("refresh request did not finish")
+				return outcome{}
+			}
+		}
+		fresh, reused := finish(rotation), finish(replay)
+		if fresh.Code != 0 || reused.Code != 1005 || reused.Message != "Refresh token reuse detected" {
+			t.Fatalf("child rotation/replay returned codes %d/%d", fresh.Code, reused.Code)
+		}
+		grandchild, err := tokens.Verify(fresh.Data.RefreshToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var revoked bool
+		if err := store.DB.QueryRowContext(ctx, `SELECT count(*)=3 AND count(revoked_at)=3
+			AND count(*) FILTER (WHERE jti=$1 AND parent_jti=$2 AND revoked_reason='REUSE_DETECTED')=1
+			FROM sys_refresh_token WHERE family_id=$3`, grandchild.ID, child.ID, parent.Family).
+			Scan(&revoked); err != nil || !revoked {
+			t.Fatalf("ancestor replay missed a committed grandchild, query error %v", err)
+		}
+	})
+}
+
+func waitForRefreshLocks(t *testing.T, ctx context.Context, db *sql.DB, blocker, expected int, response <-chan *httptest.ResponseRecorder) {
+	t.Helper()
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		var waiting int
+		err := db.QueryRowContext(ctx, `WITH RECURSIVE blockers(pid) AS (
+			SELECT $1::int UNION SELECT a.pid FROM pg_stat_activity a JOIN blockers b
+			ON b.pid=ANY(pg_blocking_pids(a.pid))
+		) SELECT count(*)-1 FROM blockers`, blocker).Scan(&waiting)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if waiting == expected {
+			return
+		}
+		select {
+		case w := <-response:
+			t.Fatalf("refresh completed before lock release, HTTP status %d", w.Code)
+		case <-ctx.Done():
+			t.Fatal("refresh requests did not block in PostgreSQL")
+		case <-ticker.C:
+		}
+	}
 }

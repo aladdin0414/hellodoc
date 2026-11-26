@@ -95,7 +95,7 @@ class Target:
 
 
 @contextmanager
-def auth_fixture():
+def auth_fixture(*, java_probe=None):
     run = uuid.uuid4().hex
     with ExitStack() as stack:
         targets = {}
@@ -106,7 +106,7 @@ def auth_fixture():
             port = _start(cid)
             directory = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix=f"auth-{role}-")))
             targets[role] = Target(cid, port, directory, password)
-        _initialize_pair(targets)
+        _initialize_pair(targets, java_probe)
         yield targets
 
 
@@ -132,14 +132,14 @@ def catalog(target):
             for name, sql in queries.items()}
 
 
-def _initialize_pair(targets):
+def _initialize_pair(targets, java_probe):
     jar = ROOT / "hellodoc-server/build/libs/hellodoc.jar"
     if not jar.is_file():
         raise RuntimeError("Build hellodoc-server with ./gradlew bootJar before starting the fixture")
     # Both sides see the same synthetic business data and credential, generated for this run.
     account = {"username": "migration_fixture", "nickname": "Migration Fixture",
                "email": "migration@example.invalid", "password": secrets.token_urlsafe(24)}
-    for target in targets.values():
+    for role, target in targets.items():
         env = {"PATH": os.environ["PATH"], "HOME": str(target.directory),
                "DB_URL": f"jdbc:postgresql://127.0.0.1:{target.port}/{target.database}",
                "DB_USERNAME": target.username, "DB_PASSWORD": target.password,
@@ -171,6 +171,8 @@ def _initialize_pair(targets):
                 target.account_password = account["password"]
                 target.user_id = registered["data"]["id"]
                 target.catalog = catalog(target)
+                if role == "java" and java_probe is not None:
+                    java_probe(target, f"http://127.0.0.1:{match[1]}", opener)
             finally:
                 proc.terminate()
                 try:

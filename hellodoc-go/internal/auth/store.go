@@ -27,9 +27,15 @@ func (a Account) Enabled() bool {
 }
 
 func (s *Store) Lookup(ctx context.Context, username string) (Account, error) {
+	return lookupAccount(ctx, s.DB, username)
+}
+
+func lookupAccount(ctx context.Context, db interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, username string) (Account, error) {
 	var a Account
 	var rolesJSON []byte
-	err := s.DB.QueryRowContext(ctx, `
+	err := db.QueryRowContext(ctx, `
 		SELECT u.id, a.id, a.identifier, a.credential, u.status, u.nickname, u.avatar, COALESCE(u.language_mode, 'AUTO'),
 		       ARRAY_TO_JSON(ARRAY(
 		           SELECT 'ROLE_' || COALESCE(r.role_code, 'null')
