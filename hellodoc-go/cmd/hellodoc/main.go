@@ -27,6 +27,34 @@ func databaseSetting(name string) string {
 	return os.Getenv("SPRING_DATASOURCE_" + name)
 }
 
+func databaseDSN() (string, error) {
+	raw, jdbc := strings.CutPrefix(databaseSetting("URL"), "jdbc:")
+	dsn, err := url.Parse(raw)
+	username, password := databaseSetting("USERNAME"), databaseSetting("PASSWORD")
+	if err != nil || dsn.Scheme != "postgresql" || dsn.Hostname() == "" || len(dsn.Path) < 2 || username == "" || password == "" {
+		return "", errors.New("authentication requires a PostgreSQL DB_URL, DB_USERNAME and DB_PASSWORD")
+	}
+	rawQuery := dsn.RawQuery
+	// JDBC uses form decoding, whereas libpq treats an unescaped plus literally.
+	if !jdbc {
+		rawQuery = strings.ReplaceAll(rawQuery, "+", "%2B")
+	}
+	query, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return "", errors.New("invalid authentication database URL parameters")
+	}
+	hasSchema := query.Has("currentSchema")
+	if hasSchema {
+		query.Set("search_path", query.Get("currentSchema"))
+		query.Del("currentSchema")
+	}
+	if jdbc || hasSchema {
+		dsn.RawQuery = strings.ReplaceAll(query.Encode(), "+", "%20")
+	}
+	dsn.User = url.UserPassword(username, password)
+	return dsn.String(), nil
+}
+
 func configuredAuth() (*auth.Service, error) {
 	raw, configured := os.LookupEnv("HELLODOC_GO_AUTH_ENABLED")
 	if !configured {
@@ -43,22 +71,11 @@ func configuredAuth() (*auth.Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	dsn, err := url.Parse(strings.TrimPrefix(databaseSetting("URL"), "jdbc:"))
-	username, password := databaseSetting("USERNAME"), databaseSetting("PASSWORD")
-	if err != nil || dsn.Scheme != "postgresql" || dsn.Hostname() == "" || len(dsn.Path) < 2 || username == "" || password == "" {
-		return nil, errors.New("authentication requires a PostgreSQL DB_URL, DB_USERNAME and DB_PASSWORD")
-	}
-	query, err := url.ParseQuery(dsn.RawQuery)
+	dsn, err := databaseDSN()
 	if err != nil {
-		return nil, errors.New("invalid authentication database URL parameters")
+		return nil, err
 	}
-	if query.Has("currentSchema") {
-		query.Set("search_path", query.Get("currentSchema"))
-		query.Del("currentSchema")
-		dsn.RawQuery = query.Encode()
-	}
-	dsn.User = url.UserPassword(username, password)
-	db, err := sql.Open("pgx", dsn.String())
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, errors.New("invalid authentication database configuration")
 	}

@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/nopkg/hellodoc/hellodoc-go/internal/server"
 )
 
@@ -45,7 +47,7 @@ func TestBearerConfiguredSystemInfo(t *testing.T) {
 	}
 	t.Setenv("HELLODOC_GO_AUTH_ENABLED", "true")
 	t.Setenv("JWT_SECRET", strings.Repeat("a", 64))
-	t.Setenv("DB_URL", fmt.Sprintf("jdbc:postgresql://127.0.0.1:%d/auth_fixture?sslmode=disable&currentSchema=fixture_scope,public", port))
+	t.Setenv("DB_URL", fmt.Sprintf("jdbc:postgresql://127.0.0.1:%d/auth_fixture?sslmode=disable&currentSchema=fixture_scope%%2C%%20public", port))
 	t.Setenv("DB_USERNAME", "store_reader")
 	t.Setenv("DB_PASSWORD", password)
 	for _, name := range []string{"URL", "USERNAME", "PASSWORD"} {
@@ -105,5 +107,29 @@ func TestBearerConfiguredSystemInfo(t *testing.T) {
 	h.ServeHTTP(w, r)
 	if w.Code != 401 || !strings.Contains(w.Body.String(), `"needRefresh":false`) {
 		t.Fatal("database outage accepted a credential")
+	}
+}
+
+func TestDatabaseDSNEscaping(t *testing.T) {
+	t.Setenv("DB_USERNAME", "fixture")
+	t.Setenv("DB_PASSWORD", "fixture")
+	for _, tc := range []struct{ prefix, app, want string }{
+		{"jdbc:", "client%2Bname", "client+name"},
+		{"jdbc:", "client+name", "client name"},
+		{"", "client+name", "client+name"},
+	} {
+		t.Setenv("DB_URL", tc.prefix+"postgresql://127.0.0.1/fixture?currentSchema=tenant%2C%20public&options=-c%20statement_timeout%3D1000&application_name="+tc.app)
+		dsn, err := databaseDSN()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := pgx.ParseConfig(dsn)
+		if err != nil {
+			t.Fatal("pgx could not parse fixture URI")
+		}
+		params := cfg.RuntimeParams
+		if params["search_path"] != "tenant, public" || params["options"] != "-c statement_timeout=1000" || params["application_name"] != tc.want {
+			t.Errorf("schema %q, options %q, app %q", params["search_path"], params["options"], params["application_name"])
+		}
 	}
 }
