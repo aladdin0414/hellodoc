@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -15,13 +16,28 @@ var errRequest = errors.New("invalid request")
 const maxAuthBodyBytes = 64 << 10
 
 func readJSON[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
+	return readAuthJSON[T](w, r, false)
+}
+
+func readAuthJSON[T any](w http.ResponseWriter, r *http.Request, optional bool) (*T, error) {
+	var body io.Reader = http.MaxBytesReader(w, r.Body, maxAuthBodyBytes)
+	if optional {
+		buffered := bufio.NewReader(body)
+		if _, err := buffered.Peek(1); err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil, nil
+			}
+			return nil, errRequest
+		}
+		body = buffered
+	}
 	media, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || !(media == "application/json" || strings.HasPrefix(media, "application/") && strings.HasSuffix(media, "+json")) {
 		return nil, errRequest
 	}
 	var req *T
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxAuthBodyBytes))
-	if dec.Decode(&req) != nil || req == nil || dec.Decode(new(any)) != io.EOF {
+	dec := json.NewDecoder(body)
+	if dec.Decode(&req) != nil || (!optional && req == nil) || dec.Decode(new(any)) != io.EOF {
 		return nil, errRequest
 	}
 	return req, nil
@@ -146,5 +162,22 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 		}
 		data, err := s.Rotate(r.Context(), req.token)
 		writeResult(w, data, err)
+	})
+
+	mux.HandleFunc("POST /api/auth/logout", func(w http.ResponseWriter, r *http.Request) {
+		req, err := readAuthJSON[refreshRequest](w, r, true)
+		if err != nil {
+			writeResult(w, nil, err)
+			return
+		}
+		var refresh *string
+		if req != nil {
+			refresh = &req.token
+		}
+		var principal *Account
+		if account, ok := Principal(r.Context()); ok {
+			principal = &account
+		}
+		writeResult(w, nil, s.Logout(r.Context(), principal, refresh))
 	})
 }

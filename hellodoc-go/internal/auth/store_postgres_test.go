@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -727,5 +728,225 @@ func waitForRefreshLocks(t *testing.T, ctx context.Context, db *sql.DB, blocker,
 			t.Fatal("refresh requests did not block in PostgreSQL")
 		case <-ticker.C:
 		}
+	}
+}
+
+func TestLogoutScopePostgres(t *testing.T) {
+	store, _ := fixtureStore(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	var clock atomic.Int64
+	clock.Store(time.Now().Unix())
+	tokens := refreshTokens(t, func() time.Time { return time.Unix(clock.Load(), 0) })
+	svc := &Service{Store: store, Tokens: tokens, Passwords: PasswordCodec{Encoder: "sha256"}}
+
+	type session struct {
+		claims          Claims
+		refresh, access string
+	}
+	login := func(t *testing.T, username string) session {
+		t.Helper()
+		res, err := svc.Login(ctx, username, os.Getenv("AUTH_ACCOUNT_PASSWORD"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		claims, err := tokens.Verify(res.RefreshToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return session{claims, res.RefreshToken, res.AccessToken}
+	}
+	expectAccess := func(t *testing.T, raw string, status int) {
+		t.Helper()
+		handler := svc.Bearer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if _, ok := Principal(r.Context()); !ok {
+				t.Error("missing bearer principal")
+			}
+			w.WriteHeader(http.StatusNoContent)
+		}))
+		r := httptest.NewRequestWithContext(ctx, "GET", "/private", nil)
+		r.Header.Set("Authorization", "Bearer "+raw)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != status {
+			t.Fatalf("access status %d, want %d", w.Code, status)
+		}
+	}
+
+	for _, tc := range []struct {
+		name         string
+		bearer, body int
+		want         [4]string
+	}{
+		{name: "anonymous empty body", bearer: -1, body: -1},
+		{name: "anonymous valid body", bearer: -1, body: 0, want: [4]string{"LOGOUT"}},
+		{name: "anonymous expired body", bearer: -1, body: 0, want: [4]string{"LOGOUT"}},
+		{name: "anonymous invalid body", bearer: -1, body: -2},
+		{name: "anonymous signed body with wrong owner", bearer: -1, body: -3},
+		{name: "anonymous signed body with wrong family", bearer: -1, body: -4},
+		{name: "authenticated bearer only", bearer: 0, body: -1, want: [4]string{"LOGOUT", "LOGOUT"}},
+		{name: "authenticated invalid body", bearer: 0, body: -2, want: [4]string{"LOGOUT", "LOGOUT"}},
+		{name: "authenticated same account body", bearer: 0, body: 1, want: [4]string{"LOGOUT", "LOGOUT"}},
+		{name: "authenticated foreign body", bearer: 0, body: 2, want: [4]string{"LOGOUT", "LOGOUT"}},
+		{name: "invalid bearer with valid body", bearer: -2, body: 0},
+		{name: "expired bearer with valid body", bearer: -3, body: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			first := login(t, "migration_fixture")
+			if tc.name == "anonymous expired body" {
+				clock.Add(int64(25 * time.Hour / time.Second))
+				if _, err := svc.Rotate(ctx, first.refresh); !errors.Is(err, ErrTokenExpired) {
+					t.Fatalf("expired refresh authorized rotation, error: %v", err)
+				}
+			} else if tc.bearer == -3 {
+				clock.Add(int64(2 * time.Hour / time.Second))
+			}
+			sessions := [4]session{first, login(t, "migration_fixture"), login(t, "logout_other"), login(t, "logout_other")}
+			var body, bearer string
+			if tc.body >= 0 {
+				body = refreshBody(sessions[tc.body].refresh)
+			} else if tc.body == -2 {
+				// Keep the family and owner claims while corrupting the signature.
+				signatureStart := strings.LastIndexByte(first.refresh, '.') + 1
+				signature := first.refresh[signatureStart:]
+				replacement := "A"
+				if strings.HasPrefix(signature, replacement) {
+					replacement = "B"
+				}
+				body = refreshBody(first.refresh[:signatureStart] + replacement + signature[1:])
+			} else if tc.body == -3 || tc.body == -4 {
+				subject, jti, family := sessions[2].claims.Subject, sessions[2].claims.ID, sessions[2].claims.Family
+				if tc.body == -3 {
+					subject = first.claims.Subject
+				} else {
+					family = sessions[3].claims.Family
+				}
+				ticket, err := tokens.Refresh(subject, jti, family)
+				if err != nil {
+					t.Fatal(err)
+				}
+				body = refreshBody(ticket)
+			}
+			if tc.bearer >= 0 {
+				bearer = sessions[tc.bearer].access
+			} else if tc.bearer == -2 {
+				bearer = "bogus"
+			} else if tc.bearer == -3 {
+				bearer = first.access
+			}
+
+			// Reserve a different connection so these reads see committed state.
+			observer, err := store.DB.Conn(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer observer.Close()
+			var auditBefore, auditAfter int
+			if err := observer.QueryRowContext(ctx, "SELECT count(*) FROM sys_login_log").Scan(&auditBefore); err != nil {
+				t.Fatal(err)
+			}
+			w := logoutHTTP(ctx, svc, body, "application/json", bearer)
+			if tc.bearer >= -1 {
+				requireLogoutResult(t, w, 0)
+			} else {
+				var challenge struct {
+					NeedRefresh bool `json:"needRefresh"`
+				}
+				if w.Code != http.StatusUnauthorized || json.Unmarshal(w.Body.Bytes(), &challenge) != nil ||
+					challenge.NeedRefresh != (tc.bearer == -3) {
+					t.Fatalf("unexpected bearer refusal %d, response %s", w.Code, w.Body)
+				}
+			}
+			for i, item := range sessions {
+				var reason string
+				var revoked bool
+				if err := observer.QueryRowContext(ctx, `SELECT revoked_at IS NOT NULL, COALESCE(revoked_reason,'')
+					FROM sys_refresh_token WHERE family_id=$1 AND jti=$2`, item.claims.Family, item.claims.ID).Scan(&revoked, &reason); err != nil {
+					t.Fatal(err)
+				}
+				if reason != tc.want[i] || revoked != (tc.want[i] != "") {
+					t.Errorf("family %d revoked=%t reason=%q, want %q", i, revoked, reason, tc.want[i])
+				}
+			}
+			if err := observer.QueryRowContext(ctx, "SELECT count(*) FROM sys_login_log").Scan(&auditAfter); err != nil {
+				t.Fatal(err)
+			}
+			if auditAfter != auditBefore {
+				t.Errorf("logout changed login audit count from %d to %d", auditBefore, auditAfter)
+			}
+			if tc.bearer >= 0 {
+				expectAccess(t, bearer, http.StatusNoContent)
+				clock.Add(int64(2 * time.Hour / time.Second))
+				expectAccess(t, bearer, http.StatusUnauthorized)
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		name         string
+		accountScope bool
+	}{
+		{"anonymous logout waits for concurrent rotation", false},
+		{"authenticated logout waits for concurrent rotation", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			parent := login(t, "migration_fixture")
+			holder, err := store.DB.BeginTx(ctx, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer holder.Rollback()
+			var blocker int
+			if err := holder.QueryRowContext(ctx, "SELECT pg_backend_pid() FROM sys_refresh_token WHERE jti=$1 FOR UPDATE",
+				parent.claims.ID).Scan(&blocker); err != nil {
+				t.Fatal(err)
+			}
+			var bearer, body string
+			if tc.accountScope {
+				bearer = parent.access
+			} else {
+				body = refreshBody(parent.refresh)
+			}
+			rotation, logout := make(chan *httptest.ResponseRecorder, 1), make(chan *httptest.ResponseRecorder, 1)
+			go func() { rotation <- refreshHTTP(ctx, svc, refreshBody(parent.refresh)) }()
+			waitForRefreshLocks(t, ctx, store.DB, blocker, 1, rotation)
+			go func() { logout <- logoutHTTP(ctx, svc, body, "application/json", bearer) }()
+			waitForRefreshLocks(t, ctx, store.DB, blocker, 2, logout)
+			clock.Add(1)
+			if err := holder.Commit(); err != nil {
+				t.Fatal(err)
+			}
+			receive := func(ch <-chan *httptest.ResponseRecorder) *httptest.ResponseRecorder {
+				t.Helper()
+				select {
+				case response := <-ch:
+					return response
+				case <-ctx.Done():
+					t.Fatal("rotation or logout did not finish")
+					return nil
+				}
+			}
+			w := receive(rotation)
+			var rotated struct {
+				Code int
+				Data AuthResponse
+			}
+			if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &rotated) != nil ||
+				rotated.Code != 0 || rotated.Data.RefreshToken == "" {
+				t.Fatal("concurrent rotation did not create a child")
+			}
+			requireLogoutResult(t, receive(logout), 0)
+			var closed bool
+			if err := store.DB.QueryRowContext(ctx, `SELECT count(*)=2 AND count(revoked_at)=2
+				AND count(*) FILTER (WHERE jti=$1 AND revoked_reason='ROTATED' AND used_at IS NOT NULL)=1
+				AND count(*) FILTER (WHERE parent_jti=$1 AND revoked_reason='LOGOUT' AND used_at IS NULL AND revoked_at >= issued_at)=1
+				FROM sys_refresh_token WHERE family_id=$2`, parent.claims.ID, parent.claims.Family).
+				Scan(&closed); err != nil || !closed {
+				t.Fatalf("logout missed a committed child, backdated revocation, or changed rotation history, query error %v", err)
+			}
+			if _, err := svc.Rotate(ctx, rotated.Data.RefreshToken); !errors.Is(err, errRefreshReuse) {
+				t.Fatalf("logged out child accepted for rotation, error: %v", err)
+			}
+		})
 	}
 }

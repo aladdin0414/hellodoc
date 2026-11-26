@@ -34,7 +34,7 @@ func (s *Service) Rotate(ctx context.Context, raw string) (AuthResponse, error) 
 	// Serialize even when the requests address different generations. Otherwise
 	// reuse can revoke a child while its concurrent rotation inserts a grandchild
 	// outside the revocation statement's snapshot.
-	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('hellodoc/auth/refresh/' || $1, 0))`, claims.Family); err != nil {
+	if err := lockRefreshFamily(ctx, tx, claims.Family); err != nil {
 		return AuthResponse{}, err
 	}
 	var userID int64
@@ -108,4 +108,9 @@ func (s *Service) Rotate(ctx context.Context, raw string) (AuthResponse, error) 
 		return AuthResponse{}, err
 	}
 	return AuthResponse{AccessToken: access, RefreshToken: refresh, TokenType: "Bearer", Nickname: account.Nickname, Avatar: account.Avatar}, nil
+}
+
+func lockRefreshFamily(ctx context.Context, tx *sql.Tx, family string) error {
+	_, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('hellodoc/auth/refresh/' || $1, 0))`, family)
+	return err
 }

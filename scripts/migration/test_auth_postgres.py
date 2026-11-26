@@ -1,10 +1,16 @@
 """Run Go store integration tests against a freshly Java-initialized fixture."""
 import argparse
+import base64
+import hashlib
+import hmac
 import json
 import os
 import secrets
 import subprocess
+import time
+import urllib.error
 import urllib.request
+import uuid
 
 from auth_fixture import ROOT, _docker, auth_fixture
 
@@ -14,7 +20,7 @@ def fixture_sql(target, statement):
                    "-U", target.username, "-d", target.database, "-c", statement)
 
 
-def probe_java_refresh(target, base, opener):
+def probe_java_refresh(target, base, opener, _jwt_secret):
     def post(path, body, expected):
         payload = body if isinstance(body, str) else json.dumps(body)
         request = urllib.request.Request(f"{base}/api/auth/{path}", payload.encode(),
@@ -69,8 +75,101 @@ def probe_java_refresh(target, base, opener):
     print("Java baseline: reuse returned 1005; committed child stayed unrevoked and subsequently rotated.", flush=True)
 
 
+def probe_java_logout(target, base, opener, jwt_secret):
+    def request(path, body=None, bearer=None, status=200, code=0, media="application/json", method="POST"):
+        headers = {"X-Language": "en", "Content-Type": media}
+        if bearer is not None:
+            headers["Authorization"] = "Bearer " + bearer
+        payload = body if body is None or isinstance(body, bytes) else json.dumps(body).encode()
+        url = f"{base}{path}" if path.startswith("/") else f"{base}/api/auth/{path}"
+        req = urllib.request.Request(url, payload, headers, method=method)
+        try:
+            response = opener.open(req, timeout=15)
+        except urllib.error.HTTPError as error:
+            response = error
+        with response:
+            result = json.load(response)
+            if response.status != status or (status == 200 and result.get("code") != code):
+                raise RuntimeError(f"Unexpected Java HTTP status/business code for {path}: {response.status}/{result.get('code')}")
+            if status == 200 and path == "logout" and ("data" not in result or result["data"] is not None):
+                raise RuntimeError("Java logout did not return explicit null data")
+            return result
+
+    def claims(ticket):
+        body = ticket.split(".")[1]
+        return json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+
+    def reissue(ticket, **overrides):
+        header = ticket.split(".")[0]
+        data = claims(ticket)
+        data.update(overrides)
+        payload = base64.urlsafe_b64encode(json.dumps(data).encode()).rstrip(b"=").decode()
+        sig = hmac.digest(jwt_secret.encode(), f"{header}.{payload}".encode(), "sha512")
+        return f"{header}.{payload}." + base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+
+    password = target.account_password
+    request("register", {"username": "logout_other", "password": password, "nickname": "Logout Other",
+                         "email": "logout-other@example.invalid"})
+    users = ["migration_fixture", "migration_fixture", "logout_other", "logout_other"]
+    logins = [request("login", {"username": user, "password": password})["data"] for user in users]
+    access = logins[0]["accessToken"]
+    refresh = [login["refreshToken"] for login in logins]
+    ids = [str(uuid.UUID(claims(ticket)["jti"])) for ticket in refresh]
+
+    def state(want):
+        reasons = [f"(SELECT CASE WHEN revoked_at IS NULL AND revoked_reason IS NULL THEN '-' "
+                   "WHEN revoked_at IS NOT NULL AND revoked_reason IS NOT NULL THEN revoked_reason "
+                   f"ELSE '<inconsistent>' END FROM sys_refresh_token WHERE jti='{jti}')"
+                   for jti in ids]
+        actual = fixture_sql(target, "SELECT " + ",".join(reasons))
+        if actual != "|".join(want):
+            raise RuntimeError(f"Java logout committed reasons {actual!r}; expected {want!r}")
+
+    audit = fixture_sql(target, "SELECT count(*) FROM sys_login_log")
+    request("logout")
+    request("logout", b"null")
+    request("logout", b" ", code=9999)
+    request("logout", b"{}", code=9999, media="text/plain")
+    request("logout", {"refreshToken": "bogus"})
+    signature = refresh[2].rsplit(".", 1)[1]
+    invalid_signature = refresh[2][:-len(signature)] + ("B" if signature[0] == "A" else "A") + signature[1:]
+    request("logout", {"refreshToken": invalid_signature})
+    for bearer, need_refresh in (("bogus", False), (reissue(access, exp=int(time.time()) - 60), True)):
+        reply = request("logout", {"refreshToken": refresh[2]}, bearer=bearer, status=401)
+        if reply.get("needRefresh") is not need_refresh:
+            raise RuntimeError("Java logout returned unexpected refresh hint for denied Bearer")
+    state(("-", "-", "-", "-"))
+    request("logout", {"refreshToken": reissue(refresh[0], exp=int(time.time()) - 60)})
+    state(("LOGOUT", "-", "-", "-"))
+    request("logout", {"refreshToken": refresh[2]}, bearer=access)
+    state(("LOGOUT", "LOGOUT", "LOGOUT", "-"))
+    if fixture_sql(target, "SELECT count(*) FROM sys_login_log") != audit:
+        raise RuntimeError("Java logout wrote a login audit event")
+    me = request("/api/users/me", bearer=access, method="GET")
+    if me["data"]["username"] != users[0]:
+        raise RuntimeError("Java failed to resolve the original account with its pre-logout access token")
+    request("/api/users/me", bearer=reissue(access, exp=int(time.time()) - 60), status=401, method="GET")
+    request("logout", {"refreshToken": refresh[3]})
+    state(("LOGOUT", "LOGOUT", "LOGOUT", "LOGOUT"))
+    other_sessions = [
+        request("login", {"username": "logout_other", "password": password})["data"]["refreshToken"]
+        for _ in range(2)
+    ]
+    ids = [str(uuid.UUID(claims(ticket)["jti"])) for ticket in other_sessions]
+    request("logout", {"refreshToken": reissue(other_sessions[0], sub="migration_fixture")})
+    state(("LOGOUT", "-"))
+    request("logout", {"refreshToken": reissue(other_sessions[1], jti=claims(other_sessions[0])["jti"])})
+    state(("LOGOUT", "LOGOUT"))
+    print("Java logout baseline: expired body revokes one family; mixed principals revoke both scopes; "
+          "invalid Bearer blocks logout; issued access still authenticates; no login audit row added; "
+          "synthetic signed owner and JTI mismatches still revoke the claimed family.", flush=True)
+
+
 def main(test):
-    java_probe = probe_java_refresh if test == "TestRefreshRotationPostgres" else None
+    java_probe = {
+        "TestRefreshRotationPostgres": probe_java_refresh,
+        "TestLogoutScopePostgres": probe_java_logout,
+    }.get(test)
     with auth_fixture(java_probe=java_probe) as targets:
         target = targets["go"]
 
@@ -85,7 +184,7 @@ def main(test):
                "AUTH_STORE_PORT": str(target.port), "AUTH_STORE_PASSWORD": password}
 
         def check():
-            race_flag = ["-race"] if test == "TestRefreshRotationPostgres" else []
+            race_flag = ["-race"] if test in ("TestRefreshRotationPostgres", "TestLogoutScopePostgres") else []
             subprocess.run(["go", "test", *race_flag, "-count=1", "-v", "./internal/auth", "-run", f"^{test}$"],
                            check=True, cwd=ROOT / "hellodoc-go", env=env)
 
@@ -129,6 +228,24 @@ def main(test):
                 $$;
                 CREATE TRIGGER reject_fixture_child BEFORE INSERT ON sys_refresh_token
                     FOR EACH ROW EXECUTE FUNCTION reject_fixture_child();
+            """)
+            env["AUTH_ACCOUNT_PASSWORD"] = target.account_password
+            env["AUTH_LOOKUP_PHASE"] = "initial"
+            check()
+            return
+
+        if test == "TestLogoutScopePostgres":
+            digest = hashlib.sha256(target.account_password.encode()).hexdigest()
+            sql(f"""
+                GRANT INSERT, SELECT, UPDATE ON sys_refresh_token TO store_reader;
+                GRANT INSERT, SELECT ON sys_login_log TO store_reader;
+                GRANT USAGE ON sys_refresh_token_id_seq, sys_login_log_id_seq TO store_reader;
+                UPDATE sys_user_auth SET credential='{digest}'
+                    WHERE identifier='migration_fixture' AND identity_type='PASSWORD';
+                INSERT INTO sys_user(id, status) VALUES (-91, 0);
+                INSERT INTO sys_user_auth(id, user_id, identity_type, identifier, credential, status, verified)
+                    SELECT -92, -91, 'PASSWORD', 'logout_other', credential, 0, true
+                    FROM sys_user_auth WHERE identifier='migration_fixture' AND identity_type='PASSWORD';
             """)
             env["AUTH_ACCOUNT_PASSWORD"] = target.account_password
             env["AUTH_LOOKUP_PHASE"] = "initial"
@@ -183,5 +300,5 @@ def main(test):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("test", nargs="?", choices=["TestLookupPasswordAccount", "TestBearerReloadAccount", "TestLoginPersistence", "TestRegisterAtomic", "TestRefreshRotationPostgres"], default="TestLookupPasswordAccount")
+    parser.add_argument("test", nargs="?", choices=["TestLookupPasswordAccount", "TestBearerReloadAccount", "TestLoginPersistence", "TestRegisterAtomic", "TestRefreshRotationPostgres", "TestLogoutScopePostgres"], default="TestLookupPasswordAccount")
     main(parser.parse_args().test)

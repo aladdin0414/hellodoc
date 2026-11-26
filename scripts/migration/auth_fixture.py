@@ -172,7 +172,7 @@ def _initialize_pair(targets, java_probe):
                 target.user_id = registered["data"]["id"]
                 target.catalog = catalog(target)
                 if role == "java" and java_probe is not None:
-                    java_probe(target, f"http://127.0.0.1:{match[1]}", opener)
+                    java_probe(target, f"http://127.0.0.1:{match[1]}", opener, env["JWT_SECRET"])
             finally:
                 proc.terminate()
                 try:
