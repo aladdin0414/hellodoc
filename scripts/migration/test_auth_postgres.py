@@ -14,7 +14,7 @@ def fixture_sql(target, statement):
                    "-U", target.username, "-d", target.database, "-c", statement)
 
 
-def probe_java_refresh_reuse(target, base, opener):
+def probe_java_refresh(target, base, opener):
     def post(path, body, expected):
         request = urllib.request.Request(f"{base}/api/auth/{path}", json.dumps(body).encode(),
                                          {"Content-Type": "application/json", "X-Language": "en"})
@@ -34,7 +34,11 @@ def probe_java_refresh_reuse(target, base, opener):
 
     initial = post("login", {"username": "migration_fixture", "password": target.account_password}, 0)
     old = {"refreshToken": initial["data"]["refreshToken"]}
+    wrong_case = post("refresh-token", {"REFRESHTOKEN": old["refreshToken"]}, 1005)
+    if wrong_case["message"] != "Refresh token is invalid" or wrong_case["data"] is not None:
+        raise RuntimeError("Java wrong-case refresh field response changed")
     fresh = post("refresh-token", old, 0)
+    print("Java baseline: REFRESHTOKEN is ignored; the same ticket rotated with refreshToken.", flush=True)
     before = child_state()
     failure = post("refresh-token", old, 1005)
     after = child_state()
@@ -47,7 +51,7 @@ def probe_java_refresh_reuse(target, base, opener):
 
 
 def main(test):
-    java_probe = probe_java_refresh_reuse if test == "TestRefreshRotationPostgres" else None
+    java_probe = probe_java_refresh if test == "TestRefreshRotationPostgres" else None
     with auth_fixture(java_probe=java_probe) as targets:
         target = targets["go"]
 

@@ -96,14 +96,18 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 		writeResult(w, data, err)
 	})
 	mux.HandleFunc("POST /api/auth/refresh-token", func(w http.ResponseWriter, r *http.Request) {
-		req, err := readJSON[struct {
-			RefreshToken string `json:"refreshToken"`
-		}](w, r)
+		// Match the Jackson property name exactly.
+		req, err := readJSON[map[string]json.RawMessage](w, r)
 		if err != nil {
 			writeResult(w, nil, err)
 			return
 		}
-		data, err := s.Rotate(r.Context(), req.RefreshToken)
+		var raw string
+		if token, present := (*req)["refreshToken"]; present && json.Unmarshal(token, &raw) != nil {
+			writeResult(w, nil, errRequest)
+			return
+		}
+		data, err := s.Rotate(r.Context(), raw)
 		writeResult(w, data, err)
 	})
 }

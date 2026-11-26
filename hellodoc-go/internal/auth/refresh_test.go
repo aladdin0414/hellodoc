@@ -75,7 +75,10 @@ func TestRefreshHTTPValidation(t *testing.T) {
 	}{
 		{"missing field", `{}`, "Refresh token is invalid", 1005},
 		{"null field", `{"refreshToken":null}`, "Refresh token is invalid", 1005},
+		{"non-string field", `{"refreshToken":{}}`, "System error occurred, please try again later", 9999},
 		{"malformed JSON", `{"refreshToken":`, "System error occurred, please try again later", 9999},
+		{"wrong-case field", `{"REFRESHTOKEN":"` + access + `"}`, "Refresh token is invalid", 1005},
+		{"wrong-case field does not override", `{"refreshToken":"bad","REFRESHTOKEN":"` + access + `"}`, "Refresh token is invalid", 1005},
 		{"access token", refreshBody(access), "Invalid token type: refresh token required", 1006},
 		{"expired token", refreshBody(expired), "Refresh token is invalid", 1005},
 		{"wrong signature", refreshBody(wrongSignature), "Refresh token is invalid", 1005},

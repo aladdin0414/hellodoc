@@ -461,6 +461,73 @@ func TestRefreshRotationPostgres(t *testing.T) {
 		}
 	})
 
+	t.Run("invalid replay leaves active child usable", func(t *testing.T) {
+		for _, tc := range []struct {
+			name, message string
+			code          int
+		}{
+			{"family mismatch", "Refresh token family mismatch", 1005},
+			{"owner mismatch", "Refresh token user mismatch", 1005},
+			{"disabled account", "Account is disabled", 1002},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				raw, parent := login(t)
+				rotated := parse(t, refreshHTTP(ctx, svc, refreshBody(raw)))
+				if rotated.Code != 0 {
+					t.Fatalf("first rotation returned %d", rotated.Code)
+				}
+				child, err := tokens.Verify(rotated.Data.RefreshToken)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Reserve the observer connection so the request cannot use it.
+				observer, err := store.DB.Conn(ctx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer observer.Close()
+				setStatus := func(status int) {
+					t.Helper()
+					if _, err := observer.ExecContext(ctx, `UPDATE sys_user SET status=$1
+						WHERE id=(SELECT user_id FROM sys_refresh_token WHERE jti=$2)`, status, parent.ID); err != nil {
+						t.Fatal(err)
+					}
+				}
+				switch tc.name {
+				case "family mismatch":
+					raw, err = tokens.Refresh(parent.Subject, parent.ID, newUUID())
+				case "owner mismatch":
+					raw, err = tokens.Refresh("refresh_other", parent.ID, parent.Family)
+				case "disabled account":
+					setStatus(2)
+					defer setStatus(0)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := parse(t, refreshHTTP(ctx, svc, refreshBody(raw)))
+				if got.Code != tc.code || got.Message != tc.message || got.Data != (AuthResponse{}) {
+					t.Errorf("code %d, message %q, want %d and %q", got.Code, got.Message, tc.code, tc.message)
+				}
+				var intact bool
+				if err := observer.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM sys_refresh_token WHERE family_id=p.family_id)=2
+					AND p.revoked_reason='ROTATED' AND p.used_at IS NOT NULL AND p.revoked_at=p.used_at AND p.replaced_by_jti=c.jti
+					AND c.parent_jti=p.jti AND c.family_id=p.family_id AND c.user_id=p.user_id
+					AND c.used_at IS NULL AND c.revoked_at IS NULL AND c.revoked_reason IS NULL AND c.replaced_by_jti IS NULL
+					FROM sys_refresh_token p CROSS JOIN sys_refresh_token c WHERE p.jti=$1 AND c.jti=$2`,
+					parent.ID, child.ID).Scan(&intact); err != nil || !intact {
+					t.Errorf("invalid replay changed committed family state, query error %v", err)
+				}
+				if tc.name == "disabled account" {
+					setStatus(0)
+				}
+				if got := parse(t, refreshHTTP(ctx, svc, refreshBody(rotated.Data.RefreshToken))); got.Code != 0 || got.Data.RefreshToken == "" {
+					t.Fatalf("original child could not rotate, code %d", got.Code)
+				}
+			})
+		}
+	})
+
 	t.Run("concurrent same token", func(t *testing.T) {
 		raw, parent := login(t)
 		other, independent := login(t)
