@@ -26,6 +26,22 @@ def main(test):
             subprocess.run(["go", "test", "-count=1", "-v", "./internal/auth", "-run", f"^{test}$"],
                            check=True, cwd=ROOT / "hellodoc-go", env=env)
 
+        if test == "TestRegisterAtomic":
+            sql("GRANT INSERT ON sys_user, sys_user_auth, sys_user_role TO store_reader; "
+                "GRANT USAGE ON sys_user_id_seq, sys_user_auth_id_seq TO store_reader; "
+                "INSERT INTO sys_role(role_code) VALUES ('common') ON CONFLICT DO NOTHING")
+            for phase in ("initial", "roles", "updated", "deleted"):
+                if phase == "roles":
+                    sql("REVOKE INSERT ON sys_user_role FROM store_reader")
+                if phase == "updated":
+                    sql("GRANT INSERT ON sys_user_role TO store_reader; "
+                        "UPDATE sys_role SET role_code='retired_user' WHERE role_code='user'")
+                if phase == "deleted":
+                    sql("UPDATE sys_role SET role_code='retired_common' WHERE role_code='common'")
+                env["AUTH_LOOKUP_PHASE"] = phase
+                check()
+            return
+
         if test == "TestLoginPersistence":
             sql("GRANT INSERT, SELECT ON sys_refresh_token, sys_login_log TO store_reader; "
                 "GRANT USAGE ON sys_refresh_token_id_seq, sys_login_log_id_seq TO store_reader")
@@ -74,5 +90,5 @@ def main(test):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("test", nargs="?", choices=["TestLookupPasswordAccount", "TestBearerReloadAccount", "TestLoginPersistence"], default="TestLookupPasswordAccount")
+    parser.add_argument("test", nargs="?", choices=["TestLookupPasswordAccount", "TestBearerReloadAccount", "TestLoginPersistence", "TestRegisterAtomic"], default="TestLookupPasswordAccount")
     main(parser.parse_args().test)

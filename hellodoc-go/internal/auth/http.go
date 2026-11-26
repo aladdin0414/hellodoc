@@ -30,6 +30,8 @@ func writeResult(w http.ResponseWriter, data any, err error) {
 		switch {
 		case errors.Is(err, errCredentials):
 			code, zh, en = 1001, "用户名或密码错误", "Incorrect username or password"
+		case errors.Is(err, errConflict):
+			code, zh, en = 1003, "用户名已存在", "Username already exists"
 		case errors.Is(err, errDisabled):
 			code, zh, en = 1002, "账号已被禁用", "Account is disabled"
 		default:
@@ -59,6 +61,21 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 			return
 		}
 		data, err := s.Login(r.Context(), *req.Username, *req.Password)
+		writeResult(w, data, err)
+	})
+	mux.HandleFunc("POST /api/auth/register", func(w http.ResponseWriter, r *http.Request) {
+		req, err := readJSON[struct {
+			RegisterRequest
+			Username *string `json:"username"`
+			Password *string `json:"password"`
+		}](r)
+		if err != nil || req.Username == nil || req.Password == nil {
+			writeResult(w, nil, errRequest)
+			return
+		}
+		req.RegisterRequest.Username = *req.Username
+		req.RegisterRequest.Password = *req.Password
+		data, err := s.Register(r.Context(), req.RegisterRequest)
 		writeResult(w, data, err)
 	})
 }

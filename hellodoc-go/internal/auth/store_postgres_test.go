@@ -3,14 +3,19 @@ package auth
 import (
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func fixtureStore(t *testing.T) (*Store, string) {
@@ -121,5 +126,160 @@ func TestLoginPersistence(t *testing.T) {
 	var logs, refreshes int
 	if err := store.DB.QueryRowContext(ctx, "SELECT (SELECT count(*) FROM sys_login_log),(SELECT count(*) FROM sys_refresh_token)").Scan(&logs, &refreshes); err != nil || logs != 2 || refreshes != 2 {
 		t.Fatalf("rows %d/%d: %v", logs, refreshes, err)
+	}
+}
+
+func TestRegisterAtomic(t *testing.T) {
+	store, phase := fixtureStore(t)
+	svc := Service{Store: store, Passwords: PasswordCodec{Encoder: "sha256"}}
+	ctx := t.Context()
+	name := "new_" + phase
+	req := RegisterRequest{Username: name, Password: "fixture", Nickname: " ", RealName: "\t"}
+	if phase != "deleted" {
+		req.Email = " " + phase + "@example.invalid "
+	}
+	count := func() [3]int {
+		var rows [3]int
+		err := store.DB.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM sys_user),
+			(SELECT count(*) FROM sys_user_auth), (SELECT count(*) FROM sys_user_role)`).
+			Scan(&rows[0], &rows[1], &rows[2])
+		if err != nil {
+			t.Fatal(err)
+		}
+		return rows
+	}
+	before := count()
+	type outcome struct {
+		user PublicUser
+		err  error
+	}
+	results := make(chan outcome, 2)
+	for range 2 {
+		go func() { u, e := svc.Register(ctx, req); results <- outcome{u, e} }()
+	}
+	var successes, conflicts, denied int
+	for range 2 {
+		result := <-results
+		if result.err != nil {
+			if errors.Is(result.err, errConflict) {
+				conflicts++
+			} else {
+				var pgErr *pgconn.PgError
+				if phase == "roles" && errors.As(result.err, &pgErr) && pgErr.Code == "42501" {
+					denied++
+				} else {
+					t.Error(result.err)
+				}
+			}
+			continue
+		}
+		successes++
+		u := result.user
+		if u.Nickname != name || u.RealName != nil || u.Phone != nil || u.Roles == nil || len(u.Roles) != 0 {
+			t.Fatal("profile fields differ")
+		}
+		if phase == "deleted" && u.Email != nil || phase != "deleted" && (u.Email == nil || *u.Email != req.Email) {
+			t.Fatal("email normalization differs")
+		}
+		if u.ID == 0 || u.Status != 0 || u.LanguageMode != "AUTO" || u.CreateTime.IsZero() || u.UpdateTime.IsZero() ||
+			u.Username != nil || u.QuickNoteKBID != nil || u.Avatar != nil {
+			t.Fatalf("unexpected public defaults: %+v", u)
+		}
+		data, err := json.Marshal(u)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var fields map[string]any
+		if err := json.Unmarshal(data, &fields); err != nil {
+			t.Fatal(err)
+		}
+		keys := []string{"id", "nickname", "realName", "email", "phone", "avatar", "languageMode", "quickNoteKbId", "status", "createTime", "updateTime", "roles", "username"}
+		if len(fields) != len(keys) {
+			t.Fatal("profile field count")
+		}
+		for _, k := range keys {
+			if _, ok := fields[k]; !ok {
+				t.Fatalf("missing %s", k)
+			}
+		}
+		a, err := store.Lookup(ctx, name)
+		if err != nil || a.Credential == nil || !svc.Passwords.Matches(req.Password, *a.Credential) {
+			t.Fatal("credential mismatch", err)
+		}
+		var verified bool
+		if err := store.DB.QueryRowContext(ctx, "SELECT verified FROM sys_user_auth WHERE id=$1", a.AuthID).Scan(&verified); err != nil || !verified {
+			t.Fatal("identity unverified", err)
+		}
+		want := map[string][]string{"initial": {"ROLE_user"}, "updated": {"ROLE_common"}, "deleted": {}}[phase]
+		if !slices.Equal(a.Roles, want) {
+			t.Fatalf("roles %v want %v", a.Roles, want)
+		}
+	}
+	if phase == "roles" {
+		if successes != 0 || denied != 2 || count() != before {
+			t.Fatal("partial registration")
+		}
+		return
+	}
+	want := before
+	want[0]++
+	want[1]++
+	if phase != "deleted" {
+		want[2]++
+	}
+	if after := count(); successes != 1 || conflicts != 1 || after != want {
+		t.Fatalf("successes %d conflicts %d and rows %v; want one success, one conflict and rows %v", successes, conflicts, after, want)
+	}
+
+	mux := http.NewServeMux()
+	svc.RegisterRoutes(mux)
+	for _, tc := range []struct{ locale, message string }{
+		{"zh-CN", "用户名已存在"},
+		{"en-US", "Username already exists"},
+	} {
+		r := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(
+			fmt.Sprintf(`{"username":%q,"password":"fixture"}`, name)))
+		r.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		w.Header().Set("Content-Language", tc.locale)
+		mux.ServeHTTP(w, r)
+		var body struct {
+			Code    int
+			Message string
+			Data    any
+		}
+		if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &body) != nil ||
+			body.Code != 1003 || body.Message != tc.message || body.Data != nil {
+			t.Fatalf("duplicate response: status %d, body %s", w.Code, w.Body.String())
+		}
+	}
+	if phase == "initial" {
+		other := req
+		other.Username = "different_username"
+		if _, err := svc.Register(ctx, other); err == nil || errors.Is(err, errConflict) {
+			t.Fatalf("different username with duplicate email returned %v", err)
+		}
+	}
+	if after := count(); after != want {
+		t.Fatalf("repeated request changed rows from %v to %v", want, after)
+	}
+	if phase == "initial" {
+		r := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(
+			`{"username":"http_fixture","password":"fixture","realName":" Fixture Name ","nickname":"Fixture Nickname","phone":"   "}`))
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("X-Language", "en")
+		w := httptest.NewRecorder()
+		svc.Bearer(mux).ServeHTTP(w, r)
+		var body struct {
+			Code    int
+			Message string
+			Data    PublicUser
+		}
+		if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &body) != nil ||
+			body.Code != 0 || body.Message != "Success" || body.Data.ID == 0 ||
+			body.Data.Nickname != "Fixture Nickname" || body.Data.RealName == nil ||
+			*body.Data.RealName != " Fixture Name " || body.Data.Phone != nil {
+			t.Fatalf("registration response: status %d, body %s", w.Code, w.Body.String())
+		}
 	}
 }
