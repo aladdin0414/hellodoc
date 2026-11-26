@@ -1,5 +1,15 @@
 # Changelog
 
+## [v3.6.11] - 2026-11-26
+
+### 更新说明
+
+- feat: 优化移动端知识库预览顶部栏与抽屉交互，将目录按钮移至标题左侧，并在右侧集成包含返回首页、主题切换、分享文档与导出 ZIP 的更多操作菜单。
+
+### Changelog
+
+- feat: Improve the mobile knowledge base preview top bar and drawer interaction by moving the catalog button to the left of the title and consolidating home navigation, theme switching, document sharing, and ZIP export into a right-side more actions menu.
+
 ## [v3.6.10] - 2026-11-26
 
 ### 更新说明
