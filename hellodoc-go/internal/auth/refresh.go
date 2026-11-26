@@ -31,6 +31,20 @@ func (s *Service) Rotate(ctx context.Context, raw string) (AuthResponse, error) 
 		return AuthResponse{}, err
 	}
 	defer tx.Rollback()
+
+	// Read the candidate owner without a row lock. Recheck it after taking
+	// the account and family locks and locking the issued record.
+	var lockOwner int64
+	err = tx.QueryRowContext(ctx, `SELECT user_id FROM sys_refresh_token WHERE jti=$1`, claims.ID).Scan(&lockOwner)
+	if errors.Is(err, sql.ErrNoRows) {
+		return AuthResponse{}, errRefreshMissing
+	}
+	if err != nil {
+		return AuthResponse{}, err
+	}
+	if err := lockRefreshAccount(ctx, tx, lockOwner, false); err != nil {
+		return AuthResponse{}, err
+	}
 	// Serialize even when the requests address different generations. Otherwise
 	// reuse can revoke a child while its concurrent rotation inserts a grandchild
 	// outside the revocation statement's snapshot.
@@ -66,7 +80,7 @@ func (s *Service) Rotate(ctx context.Context, raw string) (AuthResponse, error) 
 	if err != nil {
 		return AuthResponse{}, err
 	}
-	if userID != account.UserID {
+	if userID != lockOwner || userID != account.UserID {
 		return AuthResponse{}, errRefreshOwner
 	}
 	if !account.Enabled() {
@@ -108,9 +122,4 @@ func (s *Service) Rotate(ctx context.Context, raw string) (AuthResponse, error) 
 		return AuthResponse{}, err
 	}
 	return AuthResponse{AccessToken: access, RefreshToken: refresh, TokenType: "Bearer", Nickname: account.Nickname, Avatar: account.Avatar}, nil
-}
-
-func lockRefreshFamily(ctx context.Context, tx *sql.Tx, family string) error {
-	_, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('hellodoc/auth/refresh/' || $1, 0))`, family)
-	return err
 }

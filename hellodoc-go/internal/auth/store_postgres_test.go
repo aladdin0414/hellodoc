@@ -594,7 +594,7 @@ func TestRefreshRotationPostgres(t *testing.T) {
 				responses <- refreshHTTP(ctx, svc, refreshBody(raw))
 			}()
 		}
-		waitForRefreshLocks(t, ctx, store.DB, blocker, 2, responses)
+		waitForSessionLockWaiters(t, ctx, store.DB, blocker, 2, responses)
 		if err := tx.Commit(); err != nil {
 			t.Fatal(err)
 		}
@@ -671,9 +671,9 @@ func TestRefreshRotationPostgres(t *testing.T) {
 		}
 		rotation, replay := make(chan *httptest.ResponseRecorder, 1), make(chan *httptest.ResponseRecorder, 1)
 		go func() { rotation <- refreshHTTP(ctx, svc, refreshBody(first.Data.RefreshToken)) }()
-		waitForRefreshLocks(t, ctx, store.DB, blocker, 1, rotation)
+		waitForSessionLockWaiters(t, ctx, store.DB, blocker, 1, rotation)
 		go func() { replay <- refreshHTTP(ctx, svc, refreshBody(old)) }()
-		waitForRefreshLocks(t, ctx, store.DB, blocker, 2, replay)
+		waitForSessionLockWaiters(t, ctx, store.DB, blocker, 2, replay)
 		if err := holder.Commit(); err != nil {
 			t.Fatal(err)
 		}
@@ -705,7 +705,7 @@ func TestRefreshRotationPostgres(t *testing.T) {
 	})
 }
 
-func waitForRefreshLocks(t *testing.T, ctx context.Context, db *sql.DB, blocker, expected int, response <-chan *httptest.ResponseRecorder) {
+func waitForSessionLockWaiters(t *testing.T, ctx context.Context, db *sql.DB, blocker, expected int, response <-chan *httptest.ResponseRecorder) {
 	t.Helper()
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
@@ -723,9 +723,9 @@ func waitForRefreshLocks(t *testing.T, ctx context.Context, db *sql.DB, blocker,
 		}
 		select {
 		case w := <-response:
-			t.Fatalf("refresh completed before lock release, HTTP status %d", w.Code)
+			t.Fatalf("session request completed before lock release, HTTP status %d", w.Code)
 		case <-ctx.Done():
-			t.Fatal("refresh requests did not block in PostgreSQL")
+			t.Fatal("session requests did not block in PostgreSQL")
 		case <-ticker.C:
 		}
 	}
@@ -909,9 +909,9 @@ func TestLogoutScopePostgres(t *testing.T) {
 			}
 			rotation, logout := make(chan *httptest.ResponseRecorder, 1), make(chan *httptest.ResponseRecorder, 1)
 			go func() { rotation <- refreshHTTP(ctx, svc, refreshBody(parent.refresh)) }()
-			waitForRefreshLocks(t, ctx, store.DB, blocker, 1, rotation)
+			waitForSessionLockWaiters(t, ctx, store.DB, blocker, 1, rotation)
 			go func() { logout <- logoutHTTP(ctx, svc, body, "application/json", bearer) }()
-			waitForRefreshLocks(t, ctx, store.DB, blocker, 2, logout)
+			waitForSessionLockWaiters(t, ctx, store.DB, blocker, 2, logout)
 			clock.Add(1)
 			if err := holder.Commit(); err != nil {
 				t.Fatal(err)
@@ -949,4 +949,156 @@ func TestLogoutScopePostgres(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("account logout keeps advisory locks bounded with thousands of families", func(t *testing.T) {
+		active := login(t, "migration_fixture")
+		foreign := login(t, "logout_other")
+		const expiredFamilies = 2048
+		if _, err := store.DB.ExecContext(ctx, `INSERT INTO sys_refresh_token
+			(user_id,jti,family_id,issued_at,expires_at,create_time)
+			SELECT user_id,gen_random_uuid(),gen_random_uuid(),now()-interval '2 days',now()-interval '1 day',now()
+			FROM sys_refresh_token CROSS JOIN generate_series(1,$2::integer)
+			WHERE jti=$1`, active.claims.ID, expiredFamilies); err != nil {
+			t.Fatal(err)
+		}
+		holder, err := store.DB.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer holder.Rollback()
+		var blocker int
+		if err := holder.QueryRowContext(ctx, `SELECT pg_backend_pid() FROM sys_refresh_token
+			WHERE jti=$1 FOR UPDATE`, active.claims.ID).Scan(&blocker); err != nil {
+			t.Fatal(err)
+		}
+
+		response := make(chan *httptest.ResponseRecorder, 1)
+		go func() { response <- logoutHTTP(ctx, svc, "", "", active.access) }()
+		waitForSessionLockWaiters(t, ctx, store.DB, blocker, 1, response)
+		var locks int
+		if err := store.DB.QueryRowContext(ctx, `WITH waiters AS MATERIALIZED (
+				SELECT pid FROM pg_stat_activity WHERE $1=ANY(pg_blocking_pids(pid))
+			) SELECT count(*) FROM pg_locks JOIN waiters USING(pid)
+			  WHERE locktype='advisory' AND granted`, blocker).Scan(&locks); err != nil {
+			t.Fatal(err)
+		}
+		if locks != 1 {
+			t.Errorf("account logout holds %d advisory locks for %d historical families, want 1", locks, expiredFamilies)
+		}
+		if err := holder.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		requireLogoutResult(t, <-response, 0)
+
+		var closed, foreignActive bool
+		if err := store.DB.QueryRowContext(ctx, `SELECT
+			(SELECT count(*)=0 FROM sys_refresh_token WHERE user_id=a.user_id AND revoked_at IS NULL),
+			(SELECT revoked_at IS NULL FROM sys_refresh_token WHERE jti=$2)
+			FROM sys_refresh_token a WHERE a.jti=$1`, active.claims.ID, foreign.claims.ID).Scan(&closed, &foreignActive); err != nil {
+			t.Fatal(err)
+		}
+		if !closed || !foreignActive {
+			t.Fatalf("large logout left own refresh active or touched a second account")
+		}
+	})
+
+	startLogin := func(username string) <-chan *httptest.ResponseRecorder {
+		response := make(chan *httptest.ResponseRecorder, 1)
+		go func() {
+			body, _ := json.Marshal(map[string]string{"username": username, "password": os.Getenv("AUTH_ACCOUNT_PASSWORD")})
+			mux := http.NewServeMux()
+			svc.RegisterRoutes(mux)
+			req := httptest.NewRequestWithContext(ctx, "POST", "/api/auth/login", strings.NewReader(string(body)))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			svc.Bearer(mux).ServeHTTP(w, req)
+			response <- w
+		}()
+		return response
+	}
+	expectLoginRevoked := func(t *testing.T, response <-chan *httptest.ResponseRecorder, want bool) {
+		t.Helper()
+		w := <-response
+		var login struct {
+			Code int
+			Data AuthResponse
+		}
+		if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &login) != nil ||
+			login.Code != 0 || login.Data.RefreshToken == "" {
+			t.Fatalf("concurrent login failed with status %d/business code %d", w.Code, login.Code)
+		}
+		claims, err := tokens.Verify(login.Data.RefreshToken)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tokens.Verify(login.Data.AccessToken); err != nil {
+			t.Fatalf("concurrent login issued an unusable access token: %v", err)
+		}
+		var revoked bool
+		if err := store.DB.QueryRowContext(ctx, `SELECT revoked_reason IS NOT DISTINCT FROM 'LOGOUT'
+			AND revoked_at IS NOT NULL FROM sys_refresh_token WHERE jti=$1`, claims.ID).Scan(&revoked); err != nil || revoked != want {
+			t.Fatalf("login session revoked=%t, want %t, query error %v", revoked, want, err)
+		}
+	}
+
+	t.Run("account logout first blocks same-user login while other user can login", func(t *testing.T) {
+		active := login(t, "migration_fixture")
+		holder, err := store.DB.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer holder.Rollback()
+		var blocker int
+		if err := holder.QueryRowContext(ctx, "SELECT pg_backend_pid() FROM sys_refresh_token WHERE jti=$1 FOR UPDATE",
+			active.claims.ID).Scan(&blocker); err != nil {
+			t.Fatal(err)
+		}
+		logout := make(chan *httptest.ResponseRecorder, 1)
+		go func() { logout <- logoutHTTP(ctx, svc, "", "", active.access) }()
+		waitForSessionLockWaiters(t, ctx, store.DB, blocker, 1, logout)
+		expectLoginRevoked(t, startLogin("logout_other"), false)
+		fresh := startLogin("migration_fixture")
+		waitForSessionLockWaiters(t, ctx, store.DB, blocker, 2, fresh)
+		// A delayed login should issue new tokens after it acquires its lock.
+		clock.Add(int64(2 * time.Hour / time.Second))
+		if err := holder.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		requireLogoutResult(t, <-logout, 0)
+		expectLoginRevoked(t, fresh, false)
+	})
+
+	t.Run("login first issues a family that waiting logout revokes", func(t *testing.T) {
+		active := login(t, "migration_fixture")
+		holder, err := store.DB.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer holder.Rollback()
+		if _, err := holder.ExecContext(ctx, "LOCK TABLE sys_refresh_token IN SHARE MODE"); err != nil {
+			t.Fatal(err)
+		}
+		var blocker int
+		if err := holder.QueryRowContext(ctx, "SELECT pg_backend_pid()").Scan(&blocker); err != nil {
+			t.Fatal(err)
+		}
+		fresh := startLogin("migration_fixture")
+		waitForSessionLockWaiters(t, ctx, store.DB, blocker, 1, fresh)
+		logout := make(chan *httptest.ResponseRecorder, 1)
+		go func() { logout <- logoutHTTP(ctx, svc, "", "", active.access) }()
+		waitForSessionLockWaiters(t, ctx, store.DB, blocker, 2, logout)
+		var directlyBlocked int
+		if err := store.DB.QueryRowContext(ctx, `SELECT count(*) FROM pg_stat_activity
+			WHERE $1=ANY(pg_blocking_pids(pid))`, blocker).Scan(&directlyBlocked); err != nil {
+			t.Fatal(err)
+		}
+		if directlyBlocked != 1 {
+			t.Errorf("login did not hold the account lock while waiting for the table, got %d direct waiters", directlyBlocked)
+		}
+		if err := holder.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		requireLogoutResult(t, <-logout, 0)
+		expectLoginRevoked(t, fresh, true)
+	})
 }

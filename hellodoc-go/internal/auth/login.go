@@ -58,6 +58,15 @@ func (s *Service) login(ctx context.Context, username string, password *string) 
 	if password == nil || a.Credential == nil || !encoder.Matches(*password, *a.Credential) {
 		return AuthResponse{}, errCredentials
 	}
+	tx, err := s.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return AuthResponse{}, err
+	}
+	defer tx.Rollback()
+	if err := lockRefreshAccount(ctx, tx, a.UserID, false); err != nil {
+		return AuthResponse{}, err
+	}
+
 	access, err := s.Tokens.Access(a.Identifier, a.Roles)
 	if err != nil {
 		return AuthResponse{}, err
@@ -71,11 +80,6 @@ func (s *Service) login(ctx context.Context, username string, password *string) 
 	if err != nil {
 		return AuthResponse{}, err
 	}
-	tx, err := s.Store.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return AuthResponse{}, err
-	}
-	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `INSERT INTO sys_refresh_token(user_id,jti,family_id,issued_at,expires_at,create_time) VALUES($1,$2,$3,$4,$5,$4)`, a.UserID, jti, family, s.Tokens.now().UTC(), claims.ExpiresAt.Time.UTC())
 	if err != nil {
 		return AuthResponse{}, err
