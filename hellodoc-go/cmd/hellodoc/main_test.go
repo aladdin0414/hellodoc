@@ -45,14 +45,32 @@ func TestBearerConfiguredSystemInfo(t *testing.T) {
 	}
 	t.Setenv("HELLODOC_GO_AUTH_ENABLED", "true")
 	t.Setenv("JWT_SECRET", strings.Repeat("a", 64))
-	t.Setenv("DB_URL", fmt.Sprintf("jdbc:postgresql://127.0.0.1:%d/auth_fixture?sslmode=disable", port))
+	t.Setenv("DB_URL", fmt.Sprintf("jdbc:postgresql://127.0.0.1:%d/auth_fixture?sslmode=disable&currentSchema=fixture_scope,public", port))
 	t.Setenv("DB_USERNAME", "store_reader")
 	t.Setenv("DB_PASSWORD", password)
+	for _, name := range []string{"URL", "USERNAME", "PASSWORD"} {
+		t.Setenv("SPRING_DATASOURCE_"+name, "unused")
+	}
 	svc, err := configuredAuth()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer svc.Store.DB.Close()
+	for _, name := range []string{"URL", "USERNAME", "PASSWORD"} {
+		t.Setenv("SPRING_DATASOURCE_"+name, os.Getenv("DB_"+name))
+		if err := os.Unsetenv("DB_" + name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	aliasService, err := configuredAuth()
+	if err != nil {
+		t.Fatal("production datasource aliases failed")
+	}
+	aliasService.Store.DB.Close()
+	var schema string
+	if err := svc.Store.DB.QueryRowContext(t.Context(), "select current_schema()").Scan(&schema); err != nil || schema != "fixture_scope" {
+		t.Fatal("JDBC schema selection failed")
+	}
 	access, err := svc.Tokens.Access("migration_fixture", nil)
 	if err != nil {
 		t.Fatal(err)

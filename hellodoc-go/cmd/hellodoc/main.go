@@ -19,6 +19,14 @@ import (
 // version can be set at build time with -ldflags '-X main.version=...'.
 var version = "2.0.0"
 
+// Database settings may use the aliases declared in application-prod.properties.
+func databaseSetting(name string) string {
+	if value, ok := os.LookupEnv("DB_" + name); ok {
+		return value
+	}
+	return os.Getenv("SPRING_DATASOURCE_" + name)
+}
+
 func configuredAuth() (*auth.Service, error) {
 	raw, configured := os.LookupEnv("HELLODOC_GO_AUTH_ENABLED")
 	if !configured {
@@ -35,10 +43,19 @@ func configuredAuth() (*auth.Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	dsn, err := url.Parse(strings.TrimPrefix(os.Getenv("DB_URL"), "jdbc:"))
-	username, password := os.Getenv("DB_USERNAME"), os.Getenv("DB_PASSWORD")
+	dsn, err := url.Parse(strings.TrimPrefix(databaseSetting("URL"), "jdbc:"))
+	username, password := databaseSetting("USERNAME"), databaseSetting("PASSWORD")
 	if err != nil || dsn.Scheme != "postgresql" || dsn.Hostname() == "" || len(dsn.Path) < 2 || username == "" || password == "" {
 		return nil, errors.New("authentication requires a PostgreSQL DB_URL, DB_USERNAME and DB_PASSWORD")
+	}
+	query, err := url.ParseQuery(dsn.RawQuery)
+	if err != nil {
+		return nil, errors.New("invalid authentication database URL parameters")
+	}
+	if query.Has("currentSchema") {
+		query.Set("search_path", query.Get("currentSchema"))
+		query.Del("currentSchema")
+		dsn.RawQuery = query.Encode()
 	}
 	dsn.User = url.UserPassword(username, password)
 	db, err := sql.Open("pgx", dsn.String())

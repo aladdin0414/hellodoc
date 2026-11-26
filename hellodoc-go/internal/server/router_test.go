@@ -181,3 +181,45 @@ func TestBearerPreflightBeforeAuthentication(t *testing.T) {
 		t.Fatal("credential blocked preflight")
 	}
 }
+
+func TestBearerMethodDispatch(t *testing.T) {
+	t.Setenv("APP_CORS_ALLOWED_ORIGINS", "*")
+	now := time.Unix(1000, 0)
+	tokens, err := auth.NewTokens([]byte(strings.Repeat("x", 64)), time.Minute, time.Hour, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	expired, err := tokens.Access("fixture", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(time.Hour)
+	configured := NewRouterWithAuth("fixture", time.Now, &auth.Service{Tokens: tokens})
+	public := NewRouter("fixture", time.Now)
+	for _, tc := range []struct {
+		method, auth, origin      string
+		handler                   http.Handler
+		status                    int
+		reason, allowOrigin, body string
+	}{
+		{"PUT", "Bearer invalid", "", configured, 401, "invalid_token", "", ""},
+		{"DELETE", "Bearer " + expired, "", configured, 401, "token_expired", "", ""},
+		{"PATCH", "Bearer invalid", "https://example.invalid", configured, 403, "", "", "Invalid CORS request"},
+		{"DELETE", "Bearer invalid", "https://example.invalid", configured, 401, "invalid_token", "*", ""},
+		{"PATCH", "", "", configured, 200, "", "", `"code":9999`},
+		{"PUT", "", "", public, 405, "", "", ""},
+	} {
+		r := httptest.NewRequest(tc.method, "/api/system/info", nil)
+		r.Header.Set("Authorization", tc.auth)
+		r.Header.Set("Origin", tc.origin)
+		w := httptest.NewRecorder()
+		tc.handler.ServeHTTP(w, r)
+		challenge := ""
+		if tc.reason != "" {
+			challenge = `Bearer error="invalid_token", error_description="` + tc.reason + `"`
+		}
+		if w.Code != tc.status || w.Header().Get("WWW-Authenticate") != challenge || w.Header().Get("Access-Control-Allow-Origin") != tc.allowOrigin || !strings.Contains(w.Body.String(), tc.body) {
+			t.Errorf("%s got %d", tc.method, w.Code)
+		}
+	}
+}

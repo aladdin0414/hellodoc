@@ -34,6 +34,7 @@ def main(test):
                      (-44, -41, 'EMAIL', 'email_only', 'different', 0, true);
         """)
         if test == "TestBearerReloadAccount":
+            sql("CREATE SCHEMA fixture_scope; GRANT USAGE ON SCHEMA fixture_scope TO store_reader")
             subprocess.run(["go", "test", "-count=1", "-v", "./cmd/hellodoc", "-run", "^TestBearerConfiguredSystemInfo$"],
                            check=True, cwd=ROOT / "hellodoc-go", env=env)
         env["AUTH_LOOKUP_PHASE"] = "initial"

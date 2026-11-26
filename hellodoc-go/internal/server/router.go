@@ -45,8 +45,17 @@ func NewRouterWithAuth(version string, now func() time.Time, svc *auth.Service) 
 		switch r.Method {
 		case http.MethodGet:
 			info.ServeHTTP(w, r)
-		case http.MethodPost:
+		case http.MethodHead:
+			// net/http suppresses response bodies for HEAD.
+		case http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch:
+			if h.Get("Content-Language") == "en-US" {
+				io.WriteString(w, `{"code":9999,"message":"System error occurred, please try again later","data":null}`)
+				return
+			}
 			io.WriteString(w, `{"code":9999,"message":"系统异常，请稍后再试","data":null}`)
+		default:
+			h.Set("Allow", "GET, HEAD, OPTIONS, POST")
+			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})
 	if svc != nil {
@@ -73,6 +82,10 @@ func NewRouterWithAuth(version string, now func() time.Time, svc *auth.Service) 
 			return
 		}
 		content.ServeHTTP(w, r)
+	}
+	if svc != nil {
+		mux.HandleFunc("/api/system/info", serveInfo)
+		return mux
 	}
 	for _, method := range []string{http.MethodGet, http.MethodOptions, http.MethodPost} {
 		mux.HandleFunc(method+" /api/system/info", serveInfo)
