@@ -69,6 +69,7 @@ func TestRefreshHTTPValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	accessJSON := `"` + access + `"`
 	for _, tc := range []struct {
 		name, body, message string
 		code                int
@@ -79,6 +80,17 @@ func TestRefreshHTTPValidation(t *testing.T) {
 		{"malformed JSON", `{"refreshToken":`, "System error occurred, please try again later", 9999},
 		{"wrong-case field", `{"REFRESHTOKEN":"` + access + `"}`, "Refresh token is invalid", 1005},
 		{"wrong-case field does not override", `{"refreshToken":"bad","REFRESHTOKEN":"` + access + `"}`, "Refresh token is invalid", 1005},
+		{"object before access", `{"refreshToken":{},"refreshToken":` + accessJSON + `}`, "System error occurred, please try again later", 9999},
+		{"array after access", `{"refreshToken":` + accessJSON + `,"refreshToken":[]}`, "System error occurred, please try again later", 9999},
+		{"null after access", `{"refreshToken":` + accessJSON + `,"refreshToken":null}`, "Refresh token is invalid", 1005},
+		{"null before access", `{"refreshToken":null,"refreshToken":` + accessJSON + `}`, "Invalid token type: refresh token required", 1006},
+		{"number", `{"refreshToken":42}`, "Refresh token is invalid", 1005},
+		{"boolean", `{"refreshToken":true}`, "Refresh token is invalid", 1005},
+		{"number before access", `{"refreshToken":42,"refreshToken":` + accessJSON + `}`, "Invalid token type: refresh token required", 1006},
+		{"boolean after access", `{"refreshToken":` + accessJSON + `,"refreshToken":false}`, "Refresh token is invalid", 1005},
+		{"wrong-case object after access", `{"refreshToken":` + accessJSON + `,"RefreshToken":{}}`, "Invalid token type: refresh token required", 1006},
+		{"over limit", `{"refreshToken":null,"padding":"` + strings.Repeat("x", maxAuthBodyBytes) + `"}`, "System error occurred, please try again later", 9999},
+
 		{"access token", refreshBody(access), "Invalid token type: refresh token required", 1006},
 		{"expired token", refreshBody(expired), "Refresh token is invalid", 1005},
 		{"wrong signature", refreshBody(wrongSignature), "Refresh token is invalid", 1005},
@@ -90,10 +102,10 @@ func TestRefreshHTTPValidation(t *testing.T) {
 			var result struct {
 				Code    int
 				Message string
-				Data    any
+				Data    json.RawMessage
 			}
 			if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &result) != nil ||
-				result.Code != tc.code || result.Message != tc.message || result.Data != nil {
+				result.Code != tc.code || result.Message != tc.message || string(result.Data) != "null" {
 				t.Fatalf("status %d, response %s, want code %d and message %q", w.Code, w.Body, tc.code, tc.message)
 			}
 		})

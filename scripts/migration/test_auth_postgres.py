@@ -16,7 +16,8 @@ def fixture_sql(target, statement):
 
 def probe_java_refresh(target, base, opener):
     def post(path, body, expected):
-        request = urllib.request.Request(f"{base}/api/auth/{path}", json.dumps(body).encode(),
+        payload = body if isinstance(body, str) else json.dumps(body)
+        request = urllib.request.Request(f"{base}/api/auth/{path}", payload.encode(),
                                          {"Content-Type": "application/json", "X-Language": "en"})
         with opener.open(request, timeout=15) as response:
             result = json.load(response)
@@ -34,11 +35,29 @@ def probe_java_refresh(target, base, opener):
 
     initial = post("login", {"username": "migration_fixture", "password": target.account_password}, 0)
     old = {"refreshToken": initial["data"]["refreshToken"]}
-    wrong_case = post("refresh-token", {"REFRESHTOKEN": old["refreshToken"]}, 1005)
-    if wrong_case["message"] != "Refresh token is invalid" or wrong_case["data"] is not None:
-        raise RuntimeError("Java wrong-case refresh field response changed")
+    access = json.dumps(initial["data"]["accessToken"])
+    refresh = json.dumps(old["refreshToken"])
+    unusable = "Refresh token is invalid"
+    wrong_type = "Invalid token type: refresh token required"
+    system_error = "System error occurred, please try again later"
+    cases = (
+        ("wrong case", {"REFRESHTOKEN": old["refreshToken"]}, 1005, unusable),
+        ("object then refresh", f'{{"refreshToken":{{}},"refreshToken":{refresh}}}', 9999, system_error),
+        ("access then array", f'{{"refreshToken":{access},"refreshToken":[]}}', 9999, system_error),
+        ("access then null", f'{{"refreshToken":{access},"refreshToken":null}}', 1005, unusable),
+        ("null then access", f'{{"refreshToken":null,"refreshToken":{access}}}', 1006, wrong_type),
+        ("number", {"refreshToken": 42}, 1005, unusable),
+        ("boolean", {"refreshToken": True}, 1005, unusable),
+        ("number then access", f'{{"refreshToken":42,"refreshToken":{access}}}', 1006, wrong_type),
+        ("access then boolean", f'{{"refreshToken":{access},"refreshToken":false}}', 1005, unusable),
+        ("access with wrong-case object", f'{{"refreshToken":{access},"RefreshToken":{{}}}}', 1006, wrong_type),
+    )
+    for name, body, code, message in cases:
+        result = post("refresh-token", body, code)
+        if result["message"] != message or result["data"] is not None:
+            raise RuntimeError(f"Java refresh request binding changed for {name}")
     fresh = post("refresh-token", old, 0)
-    print("Java baseline: REFRESHTOKEN is ignored; the same ticket rotated with refreshToken.", flush=True)
+    print("Java baseline: exact casing, duplicate order and scalar coercion match the binding cases.", flush=True)
     before = child_state()
     failure = post("refresh-token", old, 1005)
     after = child_state()

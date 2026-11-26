@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -67,6 +68,48 @@ func writeResult(w http.ResponseWriter, data any, err error) {
 		Data    any    `json:"data"`
 	}{code, message, data})
 }
+
+type refreshRequest struct {
+	token string
+}
+
+func (r *refreshRequest) UnmarshalJSON(body []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(body))
+	opening, err := dec.Token()
+	if err != nil || opening != json.Delim('{') {
+		return errRequest
+	}
+	// Jackson matches the field name exactly and binds each occurrence in order.
+	for dec.More() {
+		name, err := dec.Token()
+		if err != nil {
+			return err
+		}
+		var value json.RawMessage
+		if err := dec.Decode(&value); err != nil {
+			return err
+		}
+		if name != "refreshToken" {
+			continue
+		}
+		switch value[0] {
+		case '{', '[':
+			return errRequest
+		case 'n':
+			r.token = ""
+		case '"':
+			if err := json.Unmarshal(value, &r.token); err != nil {
+				return err
+			}
+		default:
+			// Jackson coerces JSON numbers and booleans to strings.
+			r.token = string(value)
+		}
+	}
+	_, err = dec.Token()
+	return err
+}
+
 func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/login", func(w http.ResponseWriter, r *http.Request) {
 		req, err := readJSON[struct{ Username, Password *string }](w, r)
@@ -96,18 +139,12 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 		writeResult(w, data, err)
 	})
 	mux.HandleFunc("POST /api/auth/refresh-token", func(w http.ResponseWriter, r *http.Request) {
-		// Match the Jackson property name exactly.
-		req, err := readJSON[map[string]json.RawMessage](w, r)
+		req, err := readJSON[refreshRequest](w, r)
 		if err != nil {
 			writeResult(w, nil, err)
 			return
 		}
-		var raw string
-		if token, present := (*req)["refreshToken"]; present && json.Unmarshal(token, &raw) != nil {
-			writeResult(w, nil, errRequest)
-			return
-		}
-		data, err := s.Rotate(r.Context(), raw)
+		data, err := s.Rotate(r.Context(), req.token)
 		writeResult(w, data, err)
 	})
 }

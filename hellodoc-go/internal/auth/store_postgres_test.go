@@ -389,13 +389,54 @@ func TestRefreshRotationPostgres(t *testing.T) {
 	}
 	parse := func(t *testing.T, w *httptest.ResponseRecorder) outcome {
 		t.Helper()
-		var o outcome
-		if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &o) != nil {
+		var result struct {
+			Code    int
+			Message string
+			Data    json.RawMessage
+		}
+		if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &result) != nil {
 			// Avoid printing successful responses, which contain tokens.
 			t.Fatalf("unexpected refresh response status %d", w.Code)
 		}
+		o := outcome{Code: result.Code, Message: result.Message}
+		if o.Code == 0 {
+			if err := json.Unmarshal(result.Data, &o.Data); err != nil || string(result.Data) == "null" {
+				t.Fatal("expected a refresh session object")
+			}
+		} else if string(result.Data) != "null" {
+			t.Fatal("expected explicit null data in refresh failure")
+		}
 		return o
 	}
+	t.Run("request binding cannot rotate a valid ticket", func(t *testing.T) {
+		raw, parent := login(t)
+		encoded, err := json.Marshal(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, tc := range []struct {
+			body, message string
+			code          int
+		}{
+			{`{"refreshToken":{},"refreshToken":` + string(encoded) + `}`, "System error occurred, please try again later", 9999},
+			{`{"refreshToken":` + string(encoded) + `,"refreshToken":null}`, "Refresh token is invalid", 1005},
+			{`{"refreshToken":` + string(encoded) + `,"refreshToken":true}`, "Refresh token is invalid", 1005},
+			{`{"REFRESHTOKEN":` + string(encoded) + `}`, "Refresh token is invalid", 1005},
+		} {
+			if got := parse(t, refreshHTTP(ctx, svc, tc.body)); got.Code != tc.code || got.Message != tc.message {
+				t.Errorf("unexpected refresh response code %d and message %q, want %d and %q", got.Code, got.Message, tc.code, tc.message)
+			}
+		}
+		var intact bool
+		if err := store.DB.QueryRowContext(ctx, `SELECT count(*)=1 AND bool_and(jti=$1 AND used_at IS NULL AND revoked_at IS NULL)
+			FROM sys_refresh_token WHERE family_id=$2`, parent.ID, parent.Family).Scan(&intact); err != nil || !intact {
+			t.Errorf("binding failure changed persisted family, query error %v", err)
+		}
+		if got := parse(t, refreshHTTP(ctx, svc, refreshBody(raw))); got.Code != 0 || got.Data.RefreshToken == "" {
+			t.Fatalf("canonical body failed to rotate old ticket, code %d", got.Code)
+		}
+	})
+
 	t.Run("child insert failure rolls back", func(t *testing.T) {
 		raw, parent := login(t)
 		// The fixture trigger fails child insertion for this family only.
