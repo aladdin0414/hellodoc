@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -29,6 +30,39 @@ type Claims struct {
 	Roles  []string `json:"roles,omitempty"`
 	Type   string   `json:"type,omitempty"`
 	Family string   `json:"family,omitempty"`
+}
+
+// UnmarshalJSON matches JWT claim names exactly, as required for JSON object
+// members. Decoding directly into a Go struct also matches case variants.
+func (c *Claims) UnmarshalJSON(data []byte) error {
+	var values map[string]json.RawMessage
+	if err := json.Unmarshal(data, &values); err != nil {
+		return err
+	}
+	var claims Claims
+	for _, claim := range []struct {
+		name string
+		dest any
+	}{
+		{"iss", &claims.Issuer},
+		{"sub", &claims.Subject},
+		{"aud", &claims.Audience},
+		{"exp", &claims.ExpiresAt},
+		{"nbf", &claims.NotBefore},
+		{"iat", &claims.IssuedAt},
+		{"jti", &claims.ID},
+		{"roles", &claims.Roles},
+		{"type", &claims.Type},
+		{"family", &claims.Family},
+	} {
+		if value, ok := values[claim.name]; ok {
+			if err := json.Unmarshal(value, claim.dest); err != nil {
+				return err
+			}
+		}
+	}
+	*c = claims
+	return nil
 }
 
 type Tokens struct {
@@ -123,11 +157,18 @@ func (t *Tokens) registeredClaims(subject string, ttl time.Duration) jwt.Registe
 // Claims returned with ErrTokenExpired must never grant access or rotate a session.
 func (t *Tokens) Verify(raw string) (Claims, error) {
 	var claims Claims
-	_, err := t.parser.ParseWithClaims(raw, &claims, func(*jwt.Token) (any, error) {
+	token, err := t.parser.ParseWithClaims(raw, &claims, func(*jwt.Token) (any, error) {
 		return t.secret, nil
 	})
 	if err != nil || claims.ExpiresAt == nil || strings.TrimSpace(claims.Subject) == "" {
 		return Claims{}, ErrTokenInvalid
+	}
+	// HelloDoc does not support any critical JWS header extensions.
+	if crit := token.Header["crit"]; crit != nil {
+		names, ok := crit.([]any)
+		if !ok || len(names) != 0 {
+			return Claims{}, ErrTokenInvalid
+		}
 	}
 	switch claims.Type {
 	case "":

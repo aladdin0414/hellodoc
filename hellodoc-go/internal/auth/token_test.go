@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	_ "embed"
+	"encoding/base64"
 	"errors"
 	"os"
 	"os/exec"
@@ -10,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
@@ -234,4 +237,112 @@ func TestNewTokensFromEnv(t *testing.T) {
 	if _, err := NewTokensFromEnv(now); err == nil {
 		t.Fatal("accepted an empty JWT_SECRET")
 	}
+}
+
+func TestVerifyExactClaimNames(t *testing.T) {
+	tokens, err := NewTokens([]byte(interopSecret), time.Hour, time.Hour, func() time.Time { return interopNow })
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name    string
+		payload string
+	}{
+		{"subject", `{"SUB":"user","exp":4102444800}`},
+		{"expiration", `{"sub":"user","EXP":4102444800}`},
+		{"refresh_jti", `{"sub":"user","exp":4102444800,"type":"refresh","JTI":"` + interopJTI + `","family":"` + interopFamily + `"}`},
+		{"refresh_family", `{"sub":"user","exp":4102444800,"type":"refresh","jti":"` + interopJTI + `","FAMILY":"` + interopFamily + `"}`},
+	} {
+		t.Run("missing_"+tc.name, func(t *testing.T) {
+			raw := signJWTJSON(t, `{"alg":"HS512"}`, tc.payload)
+			if claims, err := tokens.Verify(raw); !errors.Is(err, ErrTokenInvalid) || claims.Subject != "" {
+				t.Fatalf("case variant supplied the missing %s: %+v, %v", tc.name, claims, err)
+			}
+		})
+	}
+
+	t.Run("shadowed", func(t *testing.T) {
+		raw := signJWTJSON(t, `{"alg":"HS512"}`, `{
+			"sub":"user","SUB":"shadow",
+			"exp":4102444800,"EXP":1,
+			"iat":1,"IAT":2,
+			"nbf":1,"NBF":4102444800,
+			"iss":"issuer","ISS":"shadow",
+			"aud":["audience"],"AUD":["shadow"],
+			"roles":["ROLE_USER"],"ROLES":["ROLE_ADMIN"],
+			"type":"refresh","TYPE":"shadow",
+			"jti":"`+interopJTI+`","JTI":"shadow",
+			"family":"`+interopFamily+`","FAMILY":"shadow"
+		}`)
+		claims, err := tokens.Verify(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if claims.Subject != "user" || claims.ExpiresAt.Unix() != 4102444800 ||
+			claims.IssuedAt.Unix() != 1 || claims.NotBefore.Unix() != 1 ||
+			claims.Issuer != "issuer" || !slices.Equal(claims.Audience, []string{"audience"}) ||
+			!slices.Equal(claims.Roles, []string{"ROLE_USER"}) || claims.Type != "refresh" ||
+			claims.ID != interopJTI || claims.Family != interopFamily {
+			t.Fatalf("case variant shadowed an exact claim: %+v", claims)
+		}
+	})
+
+	t.Run("variant_type_does_not_select_refresh", func(t *testing.T) {
+		raw := signJWTJSON(t, `{"alg":"HS512"}`, `{"sub":"user","exp":4102444800,"TYPE":"refresh"}`)
+		if claims, err := tokens.Verify(raw); err != nil || claims.Type != "" {
+			t.Fatalf("unknown claim changed access semantics: %+v, %v", claims, err)
+		}
+	})
+}
+
+func TestVerifyRejectsUnsupportedCriticalHeaders(t *testing.T) {
+	tokens, err := NewTokens([]byte(interopSecret), time.Hour, time.Hour, func() time.Time { return interopNow })
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name   string
+		header string
+	}{
+		{"unknown", `{"alg":"HS512","crit":["extension"],"extension":true}`},
+		{"missing_extension", `{"alg":"HS512","crit":["extension"]}`},
+		{"malformed", `{"alg":"HS512","crit":"extension","extension":true}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := signJWTJSON(t, tc.header, `{"sub":"user","exp":4102444800}`)
+			if claims, err := tokens.Verify(raw); !errors.Is(err, ErrTokenInvalid) || claims.Subject != "" {
+				t.Fatalf("unsupported crit was accepted: %+v, %v", claims, err)
+			}
+		})
+	}
+}
+
+func TestVerifyHeadersWithoutCriticalExtensions(t *testing.T) {
+	tokens, err := NewTokens([]byte(interopSecret), time.Hour, time.Hour, func() time.Time { return interopNow })
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, header := range []string{
+		`{"alg":"HS512"}`,
+		`{"alg":"HS512","crit":[]}`,
+		`{"alg":"HS512","crit":null}`,
+		`{"alg":"HS512","CRIT":["extension"]}`,
+	} {
+		raw := signJWTJSON(t, header, `{"sub":"user","exp":4102444800}`)
+		if claims, err := tokens.Verify(raw); err != nil || claims.Subject != "user" {
+			t.Fatalf("%s returned %+v, %v", header, claims, err)
+		}
+	}
+}
+
+func signJWTJSON(t *testing.T, header, payload string) string {
+	t.Helper()
+	encode := base64.RawURLEncoding.EncodeToString
+	unsigned := encode([]byte(header)) + "." + encode([]byte(payload))
+	signature, err := jwt.SigningMethodHS512.Sign(unsigned, []byte(interopSecret))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return unsigned + "." + encode(signature)
 }
