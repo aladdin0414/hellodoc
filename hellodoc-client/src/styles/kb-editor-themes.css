@@ -1,0 +1,1008 @@
+/* ==========================================================================
+   HelloDoc 知识库多编辑风格样式表（1:1 还原 prototypes/note-editor.html）
+   仅当根容器存在 data-editor-theme 属性（且非 default）时生效，默认风格零侵入
+   ========================================================================== */
+
+[data-editor-theme='linear'] {
+    --kb-bg-canvas: #0b0c0e;
+    --kb-bg-sidebar: #0f1013;
+    --kb-bg-surface: #141519;
+    --kb-bg-elevated: #191b20;
+    --kb-bg-hover: rgba(255, 255, 255, 0.045);
+    --kb-bg-active: rgba(255, 255, 255, 0.08);
+    --kb-bg-active-text: #f2f4f8;
+    --kb-bg-code: #08090b;
+    --kb-text-primary: #f2f4f8;
+    --kb-text-secondary: #98a0b3;
+    --kb-text-muted: #5a6275;
+    --kb-text-ghost: #3a404e;
+    --kb-border: rgba(255, 255, 255, 0.07);
+    --kb-border-strong: rgba(255, 255, 255, 0.14);
+    --kb-accent: #6e7bf2;
+    --kb-accent-text: #9ba5ff;
+    --kb-accent-dim: rgba(110, 123, 242, 0.14);
+    --kb-radius: 6px;
+    --kb-paper-bg: transparent;
+    --kb-paper-border: transparent;
+    --kb-paper-radius: 0px;
+}
+
+[data-editor-theme='geist'] {
+    --kb-bg-canvas: #fafafa;
+    --kb-bg-sidebar: #f4f4f5;
+    --kb-bg-surface: #ffffff;
+    --kb-bg-elevated: #ffffff;
+    --kb-bg-hover: rgba(0, 0, 0, 0.04);
+    --kb-bg-active: #111111;
+    --kb-bg-active-text: #ffffff;
+    --kb-bg-code: #f4f4f5;
+    --kb-text-primary: #09090b;
+    --kb-text-secondary: #52525b;
+    --kb-text-muted: #9ca3af;
+    --kb-text-ghost: #d4d4d8;
+    --kb-border: #e4e4e7;
+    --kb-border-strong: #18181b;
+    --kb-accent: #09090b;
+    --kb-accent-text: #09090b;
+    --kb-accent-dim: rgba(9, 9, 11, 0.07);
+    --kb-radius: 4px;
+    --kb-paper-bg: transparent;
+    --kb-paper-border: transparent;
+    --kb-paper-radius: 0px;
+}
+
+[data-editor-theme='architect'] {
+    --kb-bg-canvas: #efeff2;
+    --kb-bg-sidebar: #e6e6ea;
+    --kb-bg-surface: #ffffff;
+    --kb-bg-elevated: #ffffff;
+    --kb-bg-hover: rgba(0, 0, 0, 0.04);
+    --kb-bg-active: #ffffff;
+    --kb-bg-active-text: #17171b;
+    --kb-bg-code: #f5f5f7;
+    --kb-text-primary: #17171b;
+    --kb-text-secondary: #5e5e68;
+    --kb-text-muted: #9898a4;
+    --kb-text-ghost: #ceced6;
+    --kb-border: rgba(0, 0, 0, 0.08);
+    --kb-border-strong: rgba(0, 0, 0, 0.16);
+    --kb-accent: #2563eb;
+    --kb-accent-text: #1d4ed8;
+    --kb-accent-dim: rgba(37, 99, 235, 0.09);
+    --kb-radius: 6px;
+    --kb-paper-bg: #ffffff;
+    --kb-paper-border: rgba(0, 0, 0, 0.08);
+    --kb-paper-radius: 3px;
+}
+
+[data-editor-theme='obsidian'] {
+    --kb-bg-canvas: #131417;
+    --kb-bg-sidebar: #0d0e10;
+    --kb-bg-surface: #1a1c21;
+    --kb-bg-elevated: #20232a;
+    --kb-bg-hover: rgba(255, 255, 255, 0.05);
+    --kb-bg-active: rgba(168, 130, 255, 0.15);
+    --kb-bg-active-text: #e4e6eb;
+    --kb-bg-code: #0a0b0d;
+    --kb-text-primary: #e4e6eb;
+    --kb-text-secondary: #9ca3b0;
+    --kb-text-muted: #5c6370;
+    --kb-text-ghost: #393f4a;
+    --kb-border: rgba(255, 255, 255, 0.065);
+    --kb-border-strong: rgba(255, 255, 255, 0.15);
+    --kb-accent: #a882ff;
+    --kb-accent-text: #c0a6ff;
+    --kb-accent-dim: rgba(168, 130, 255, 0.14);
+    --kb-radius: 5px;
+    --kb-paper-bg: transparent;
+    --kb-paper-border: transparent;
+    --kb-paper-radius: 0px;
+}
+
+[data-editor-theme='ia'] {
+    --kb-bg-canvas: #f7f6f2;
+    --kb-bg-sidebar: #efede7;
+    --kb-bg-surface: #ffffff;
+    --kb-bg-elevated: #ffffff;
+    --kb-bg-hover: rgba(28, 25, 23, 0.05);
+    --kb-bg-active: rgba(217, 79, 43, 0.11);
+    --kb-bg-active-text: #1c1917;
+    --kb-bg-code: #eceae2;
+    --kb-text-primary: #1c1917;
+    --kb-text-secondary: #57534e;
+    --kb-text-muted: #a8a29e;
+    --kb-text-ghost: #d6d3cd;
+    --kb-border: rgba(28, 25, 23, 0.08);
+    --kb-border-strong: rgba(28, 25, 23, 0.18);
+    --kb-accent: #d94f2b;
+    --kb-accent-text: #c2410c;
+    --kb-accent-dim: rgba(217, 79, 43, 0.1);
+    --kb-radius: 5px;
+    --kb-paper-bg: transparent;
+    --kb-paper-border: transparent;
+    --kb-paper-radius: 0px;
+}
+
+/* ==========================================================================
+   1. 全局外壳与主画布
+   ========================================================================== */
+[data-editor-theme] {
+    background-color: var(--kb-bg-canvas) !important;
+    color: var(--kb-text-primary) !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "PingFang SC", sans-serif !important;
+}
+
+[data-editor-theme] > .flex-1 {
+    background-color: var(--kb-bg-canvas) !important;
+}
+
+[data-editor-theme='linear'] > .flex-1 {
+    background-image: radial-gradient(60% 35% at 50% 0%, rgba(110, 123, 242, 0.08), transparent 70%);
+}
+
+/* ==========================================================================
+   2. 左侧目录栏（.doc-sidebar）：1:1 还原原型侧栏底色、选中态与紧凑树行
+   ========================================================================== */
+[data-editor-theme] .doc-sidebar {
+    background-color: var(--kb-bg-sidebar) !important;
+    border-right: 1px solid var(--kb-border) !important;
+    color: var(--kb-text-secondary) !important;
+}
+
+[data-editor-theme] .doc-sidebar > div {
+    background-color: transparent !important;
+}
+
+[data-editor-theme] .doc-sidebar > div:nth-child(2) {
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    border-bottom: 1px solid var(--kb-border) !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* 第二行：搜索框容器保留舒展呼吸间距 */
+[data-editor-theme] .doc-sidebar > div:nth-child(3) {
+    height: auto !important;
+    padding: 10px 10px 6px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+[data-editor-theme] .doc-sidebar > div:nth-child(3) > div {
+    width: 100% !important;
+}
+
+[data-editor-theme] .doc-sidebar > div:nth-child(3) svg {
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    left: 9px !important;
+    width: 13px !important;
+    height: 13px !important;
+}
+
+[data-editor-theme] .doc-sidebar .group\/kb-title {
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: var(--kb-radius) !important;
+    padding: 4px 2px !important;
+}
+
+[data-editor-theme] .doc-sidebar .group\/kb-title:hover {
+    background-color: transparent !important;
+}
+
+[data-editor-theme] .doc-sidebar .group\/kb-title h2 {
+    color: var(--kb-text-primary) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+}
+
+[data-editor-theme] .doc-sidebar .kb-icon-shell {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: var(--kb-radius) !important;
+    margin-right: 8px !important;
+    box-shadow: none !important;
+}
+
+[data-editor-theme='geist'] .doc-sidebar .kb-icon-shell {
+    background-color: #111111 !important;
+}
+
+[data-editor-theme='geist'] .doc-sidebar .kb-icon-shell svg {
+    color: #ffffff !important;
+}
+
+[data-editor-theme] .doc-sidebar .kb-icon-shell svg {
+    width: 12px !important;
+    height: 12px !important;
+    stroke-width: 1.8 !important;
+}
+
+[data-editor-theme] .doc-sidebar .group\/kb-title > svg:last-child {
+    width: 13px !important;
+    height: 13px !important;
+    color: var(--kb-text-muted) !important;
+    stroke-width: 1.75 !important;
+}
+
+[data-editor-theme] .doc-sidebar > div:nth-child(3) input {
+    height: 29px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 28px !important;
+    background-color: var(--kb-bg-canvas) !important;
+    border: 1px solid var(--kb-border) !important;
+    color: var(--kb-text-primary) !important;
+    border-radius: var(--kb-radius) !important;
+    font-size: 12px !important;
+}
+
+[data-editor-theme] .doc-sidebar > div:nth-child(3) input::placeholder {
+    color: var(--kb-text-muted) !important;
+}
+
+/* 目录内联新建 / 重命名输入框：极简 1px 细框，去掉紫蓝粗边框与左侧多余缩进 */
+[data-editor-theme] .doc-sidebar .doc-sidebar-inline-input {
+    height: 24px !important;
+    padding: 0 7px !important;
+    background-color: var(--kb-bg-surface) !important;
+    border: 1px solid var(--kb-border-strong) !important;
+    border-radius: var(--kb-radius) !important;
+    box-shadow: none !important;
+    color: var(--kb-text-primary) !important;
+    font-size: 13px !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-sidebar-inline-input::selection {
+    background-color: var(--kb-accent-dim) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .doc-sidebar .bg-slate-200\/50 {
+    background-color: transparent !important;
+    height: 28px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+[data-editor-theme] .doc-sidebar > div:nth-child(4) {
+    padding: 4px 8px 16px !important;
+}
+
+.kb-sidebar-section-label {
+    display: none;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--kb-text-muted);
+    padding: 8px 8px 5px;
+}
+
+[data-editor-theme] .kb-sidebar-section-label {
+    display: block;
+}
+
+[data-editor-theme] .doc-sidebar .doc-tree-row {
+    height: 28px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin: 1px 0 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    color: var(--kb-text-secondary) !important;
+    border-radius: var(--kb-radius) !important;
+    isolation: isolate !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-tree-row svg {
+    stroke-width: 1.5 !important;
+    margin-right: 0 !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-tree-row svg:not([style*='color']):not(.text-yellow-500):not(.text-yellow-400) {
+    color: var(--kb-text-muted) !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-tree-row:hover {
+    background-color: transparent !important;
+    color: var(--kb-text-primary) !important;
+}
+
+/* 悬停灰底与选中黑底共用完全一致的缩进起止范围，确保长度 100% 对齐 */
+[data-editor-theme] .doc-sidebar .doc-tree-row:not(.doc-tree-row--selected):hover::after {
+    display: block !important;
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: max(0px, calc((var(--tree-depth) - 1) * 16px + 20px)) !important;
+    right: 0 !important;
+    border-radius: var(--kb-radius) !important;
+    background-color: var(--kb-bg-hover) !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
+}
+
+/* 选中条严格从缩进引导线右侧开始，左边缘与同级文档对齐 */
+[data-editor-theme] .doc-sidebar .doc-tree-row--selected::before {
+    display: none !important;
+    content: none !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-tree-row--selected::after {
+    display: block !important;
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: max(0px, calc((var(--tree-depth) - 1) * 16px + 20px)) !important;
+    right: 0 !important;
+    border-radius: var(--kb-radius) !important;
+    background-color: var(--kb-bg-active) !important;
+    z-index: -1 !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-tree-row--selected {
+    background-color: transparent !important;
+    color: var(--kb-bg-active-text) !important;
+    font-weight: 500 !important;
+}
+
+[data-editor-theme='geist'] .doc-sidebar .doc-tree-row--selected,
+[data-editor-theme='geist'] .doc-sidebar .doc-tree-row--selected span:not(.kb-cover-badge),
+[data-editor-theme='geist'] .doc-sidebar .doc-tree-row--selected svg:not([style*='color']):not(.text-yellow-500):not(.text-yellow-400) {
+    color: #ffffff !important;
+}
+
+/* 极客主题下目录「封面」微徽标：黑白克制质感 */
+[data-editor-theme] .doc-sidebar .kb-cover-badge {
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace !important;
+    font-size: 10px !important;
+    line-height: 14px !important;
+    padding: 0 5px !important;
+    border-radius: 3px !important;
+    background-color: var(--kb-bg-canvas) !important;
+    border: 1px solid var(--kb-border-strong) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme='geist'] .doc-sidebar .doc-tree-row--selected .kb-cover-badge {
+    background-color: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    color: #ffffff !important;
+}
+
+[data-editor-theme='geist'] .doc-sidebar .doc-tree-row--selected .kb-tree-ext {
+    color: rgba(255, 255, 255, 0.72) !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-tree-guide {
+    background-color: var(--kb-border) !important;
+}
+
+/* 底部操作栏：与右侧极客状态栏保持 28px 等高，分割线水平贯通 */
+[data-editor-theme] .doc-sidebar .doc-sidebar-footer {
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+    padding: 0 10px !important;
+    border-top: 1px solid var(--kb-border) !important;
+    background-color: var(--kb-bg-sidebar) !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-sidebar-footer > .relative {
+    display: flex !important;
+    align-items: center !important;
+    height: 22px !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-sidebar-footer button {
+    height: 22px !important;
+    padding: 0 6px !important;
+    color: var(--kb-text-muted) !important;
+    border-radius: var(--kb-radius) !important;
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    gap: 5px !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-sidebar-footer button span {
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-sidebar-footer button svg {
+    width: 13px !important;
+    height: 13px !important;
+    stroke-width: 1.65 !important;
+}
+
+[data-editor-theme] .doc-sidebar .doc-sidebar-footer button:hover {
+    background-color: var(--kb-bg-hover) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+/* ==========================================================================
+   3. 顶部栏（DocumentEditorHeader）：44px 极简条
+   ========================================================================== */
+[data-editor-theme] .doc-editor-header {
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 16px !important;
+    background-color: var(--kb-bg-canvas) !important;
+    border-bottom: 1px solid var(--kb-border) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme='architect'] .doc-editor-header {
+    background-color: var(--kb-bg-surface) !important;
+}
+
+[data-editor-theme] .doc-editor-header input {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--kb-text-primary) !important;
+    letter-spacing: -0.01em !important;
+}
+
+[data-editor-theme] .doc-editor-header > div:nth-child(2) {
+    gap: 6px !important;
+}
+
+[data-editor-theme] .doc-editor-header > div:nth-child(2) > * {
+    margin-left: 0 !important;
+}
+
+[data-editor-theme] .doc-editor-header > div:nth-child(2) .w-px {
+    height: 14px !important;
+    background-color: var(--kb-border) !important;
+    margin: 0 4px !important;
+}
+
+[data-editor-theme] .doc-editor-header button:not([role='switch']):not(.rounded-full),
+[data-editor-theme] .doc-editor-header a {
+    height: 26px !important;
+    padding: 0 9px !important;
+    border-radius: var(--kb-radius) !important;
+    border: 1px solid var(--kb-border) !important;
+    background-color: transparent !important;
+    color: var(--kb-text-secondary) !important;
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+
+[data-editor-theme] .doc-editor-header button:not([role='switch']):not(.rounded-full) span,
+[data-editor-theme] .doc-editor-header a span {
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+}
+
+[data-editor-theme] .doc-editor-header button:not([role='switch']):not(.rounded-full) svg,
+[data-editor-theme] .doc-editor-header a svg {
+    width: 13px !important;
+    height: 13px !important;
+    stroke-width: 1.65 !important;
+}
+
+[data-editor-theme] .doc-editor-header > div:first-child > button:first-child {
+    width: 26px !important;
+    height: 26px !important;
+    padding: 0 !important;
+    border: none !important;
+    justify-content: center !important;
+    margin-right: 8px !important;
+    flex-shrink: 0 !important;
+}
+
+[data-editor-theme] .doc-editor-header > div:first-child > button:first-child svg {
+    width: 15px !important;
+    height: 15px !important;
+    stroke-width: 1.65 !important;
+}
+
+[data-editor-theme] .doc-editor-header button:not([role='switch']):not(.rounded-full):hover,
+[data-editor-theme] .doc-editor-header a:hover {
+    background-color: var(--kb-bg-hover) !important;
+    border-color: var(--kb-border-strong) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+/* 发布标签与 Switch 开关极简统一 */
+[data-editor-theme] .doc-editor-header > div:nth-child(2) > div:last-child {
+    gap: 6px !important;
+}
+
+[data-editor-theme] .doc-editor-header > div:nth-child(2) > div:last-child > span {
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    color: var(--kb-text-secondary) !important;
+}
+
+[data-editor-theme] .doc-editor-header button[role='switch'] {
+    height: 18px !important;
+    width: 32px !important;
+    margin-left: 0 !important;
+}
+
+[data-editor-theme] .doc-editor-header button[role='switch'] > span:last-child {
+    height: 14px !important;
+    width: 14px !important;
+}
+
+[data-editor-theme] .doc-editor-header button[role='switch'][aria-checked='true'] > span:last-child {
+    transform: translateX(14px) !important;
+}
+
+[data-editor-theme] .doc-editor-header button[role='switch'][aria-checked='false'] {
+    background-color: #d4d4d8 !important;
+}
+
+[data-editor-theme] .doc-editor-header button[role='switch'][aria-checked='true'] {
+    background-color: var(--kb-accent) !important;
+}
+
+/* ==========================================================================
+   4. VisualEditor 工具栏 + 原型大标题 & Frontmatter + 居中极客画布
+   ========================================================================== */
+[data-editor-theme] .visual-editor {
+    background-color: var(--kb-bg-canvas) !important;
+}
+
+[data-editor-theme] .visual-toolbar {
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 12px !important;
+    gap: 0 !important;
+    background-color: var(--kb-bg-canvas) !important;
+    border-bottom: 1px solid var(--kb-border) !important;
+}
+
+[data-editor-theme='architect'] .visual-toolbar {
+    background-color: var(--kb-bg-surface) !important;
+}
+
+[data-editor-theme] .visual-toolbar .toolbar-group {
+    border-color: var(--kb-border) !important;
+    padding: 0 5px !important;
+    gap: 1px !important;
+    align-items: center !important;
+}
+
+[data-editor-theme] .visual-toolbar .toolbar-group:first-of-type {
+    padding-left: 0 !important;
+}
+
+[data-editor-theme] .visual-toolbar > .toolbar-group:last-of-type {
+    margin-left: auto !important;
+    padding-right: 0 !important;
+}
+
+[data-editor-theme] .visual-toolbar button {
+    height: 26px !important;
+    min-width: 26px !important;
+    padding: 0 5px !important;
+    color: var(--kb-text-secondary) !important;
+    border-radius: var(--kb-radius) !important;
+    font-size: 11.5px !important;
+}
+
+[data-editor-theme] .visual-toolbar button svg {
+    width: 14px !important;
+    height: 14px !important;
+    stroke-width: 1.7 !important;
+}
+
+[data-editor-theme] .visual-toolbar button:hover {
+    background-color: var(--kb-bg-hover) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .visual-toolbar button.is-active {
+    background-color: var(--kb-accent-dim) !important;
+    color: var(--kb-accent-text) !important;
+}
+
+[data-editor-theme] .visual-editor > .overflow-y-auto {
+    background-color: var(--kb-bg-canvas) !important;
+}
+
+/* 非纸张模式：760px 居中极客画布留白；若用户设置了自定义纸张背景色则优先尊重用户设置 */
+[data-editor-theme]:not([data-editor-theme='architect']) .visual-editor > .overflow-y-auto > div:not(.page-container) {
+    max-width: 760px !important;
+    margin: 0 auto !important;
+    padding: 40px 36px 120px !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme]:not([data-editor-theme='architect']) .visual-editor > .overflow-y-auto > div:not(.page-container):not([style*='background-color']) {
+    background-color: transparent !important;
+}
+
+/* 建筑纸张模式：浅灰底板 + 3px 微圆角纯白纸张 + 无阴影 1px 边框 */
+[data-editor-theme='architect'] .visual-editor > .overflow-y-auto > div:not(.page-container),
+[data-editor-theme='architect'] .visual-editor .page-container {
+    max-width: 800px !important;
+    margin: 28px auto 72px !important;
+    padding: 44px 52px !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: 3px !important;
+    box-shadow: none !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme='architect'] .visual-editor > .overflow-y-auto > div:not(.page-container):not([style*='background-color']),
+[data-editor-theme='architect'] .visual-editor .page-container:not([style*='background-color']) {
+    background-color: #ffffff !important;
+}
+
+[data-editor-theme]:not([data-editor-theme='architect']) .visual-editor .page-container {
+    border: 1px solid var(--kb-border) !important;
+    border-radius: var(--kb-radius) !important;
+    box-shadow: none !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme]:not([data-editor-theme='architect']) .visual-editor .page-container:not([style*='background-color']) {
+    background-color: var(--kb-bg-surface) !important;
+}
+
+/* 正文排版：等宽代码 + 克制行高 */
+[data-editor-theme] .visual-editor .ProseMirror {
+    color: var(--kb-text-primary) !important;
+    font-size: 15px !important;
+    line-height: 1.75 !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror h1 {
+    font-size: 26px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror h2 {
+    font-size: 20px !important;
+    font-weight: 650 !important;
+    letter-spacing: -0.015em !important;
+    color: var(--kb-text-primary) !important;
+    padding-bottom: 6px !important;
+    border-bottom: 1px solid var(--kb-border) !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror h3 {
+    font-size: 16.5px !important;
+    font-weight: 600 !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror p,
+[data-editor-theme] .visual-editor .ProseMirror li {
+    color: var(--kb-text-secondary) !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror strong,
+[data-editor-theme] .visual-editor .ProseMirror b {
+    color: var(--kb-text-primary) !important;
+    font-weight: 600 !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror pre {
+    background-color: var(--kb-bg-code) !important;
+    border: 1px solid var(--kb-border) !important;
+    border-radius: 10px !important;
+    padding: 16px 20px !important;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace !important;
+    font-size: 13px !important;
+    line-height: 1.65 !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror pre code {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror :not(pre) > code {
+    background-color: var(--kb-bg-code) !important;
+    border: 1px solid var(--kb-border) !important;
+    color: var(--kb-accent-text) !important;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace !important;
+    border-radius: 4px !important;
+    padding: 1px 5px !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror blockquote {
+    background-color: transparent !important;
+    border-left: 2px solid var(--kb-border-strong) !important;
+    border-radius: 0 !important;
+    padding: 2px 0 2px 16px !important;
+    margin: 18px 0 !important;
+    color: var(--kb-text-muted) !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror a {
+    color: var(--kb-accent-text) !important;
+}
+
+/* 任务清单复选框同步主题强调色（Geist 下为纯黑极简） */
+[data-editor-theme] .visual-editor .ProseMirror ul[data-type='taskList'] input[type='checkbox'],
+[data-editor-theme] .md-editor-preview input[type='checkbox'] {
+    accent-color: var(--kb-accent) !important;
+    cursor: pointer;
+}
+
+/* 极简现代水平分割线表格（无竖线、无外框、无灰底表头） */
+[data-editor-theme] .visual-editor .ProseMirror table,
+[data-editor-theme] .md-editor-preview table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border: none !important;
+    margin: 20px 0 !important;
+    background: transparent !important;
+    font-size: 14px !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror th,
+[data-editor-theme] .visual-editor .ProseMirror td,
+[data-editor-theme] .md-editor-preview th,
+[data-editor-theme] .md-editor-preview td {
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 1px solid color-mix(in srgb, var(--kb-border) 55%, transparent) !important;
+    background: transparent !important;
+    padding: 11px 16px 11px 0 !important;
+    text-align: left !important;
+    vertical-align: top !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror th,
+[data-editor-theme] .md-editor-preview th {
+    font-weight: 600 !important;
+    color: var(--kb-text-primary) !important;
+    border-bottom: 1px solid var(--kb-border) !important;
+    padding-top: 8px !important;
+    padding-bottom: 10px !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror td,
+[data-editor-theme] .md-editor-preview td {
+    color: var(--kb-text-secondary) !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror tr:last-child td,
+[data-editor-theme] .md-editor-preview tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* ==========================================================================
+   5. 底部极客状态栏（.kb-geek-statusbar）
+   ========================================================================== */
+.kb-geek-statusbar {
+    height: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    box-sizing: border-box;
+    padding: 0 14px;
+    background: var(--kb-bg-sidebar);
+    border-top: 1px solid var(--kb-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    color: var(--kb-text-muted);
+    flex-shrink: 0;
+}
+
+.kb-sb-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.kb-sb-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    margin-right: 6px;
+}
+
+/* 极客主题下悬浮 AI 按钮避开 28px 底部状态栏 */
+.kb-ai-fab[data-editor-theme] {
+    bottom: 42px !important;
+    right: 20px !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: var(--kb-radius) !important;
+    background-color: var(--kb-bg-surface) !important;
+    border-color: var(--kb-border) !important;
+    color: var(--kb-text-secondary) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.kb-ai-fab[data-editor-theme]:hover {
+    background-color: var(--kb-accent) !important;
+    border-color: var(--kb-accent) !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   6. AI 知识助理抽屉（.kb-ai-drawer）极客风格适配
+   ========================================================================== */
+[data-editor-theme] .kb-ai-drawer {
+    background-color: var(--kb-bg-surface) !important;
+    border-left: 1px solid var(--kb-border) !important;
+    box-shadow: -8px 0 28px rgba(0, 0, 0, 0.08) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .kb-ai-drawer > div:first-child {
+    background-color: var(--kb-bg-canvas) !important;
+    border-bottom: 1px solid var(--kb-border) !important;
+}
+
+[data-editor-theme] .kb-ai-drawer .bg-gradient-to-tr {
+    background: var(--kb-accent) !important;
+    border-radius: var(--kb-radius) !important;
+    box-shadow: none !important;
+}
+
+[data-editor-theme] .kb-ai-drawer .bg-blue-50 {
+    background-color: var(--kb-bg-sidebar) !important;
+    border: 1px solid var(--kb-border) !important;
+    border-radius: var(--kb-radius) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .kb-ai-drawer .rounded-xl,
+[data-editor-theme] .kb-ai-drawer .rounded-2xl,
+[data-editor-theme] .kb-ai-drawer .rounded-lg,
+[data-editor-theme] .kb-ai-drawer select,
+[data-editor-theme] .kb-ai-drawer textarea {
+    border-radius: var(--kb-radius) !important;
+}
+
+[data-editor-theme] .kb-ai-drawer .border-gray-200 {
+    border-color: var(--kb-border) !important;
+}
+
+[data-editor-theme] .kb-ai-drawer button.group:hover {
+    background-color: var(--kb-bg-hover) !important;
+    border-color: var(--kb-border-strong) !important;
+}
+
+[data-editor-theme] .kb-ai-drawer button.group:hover svg {
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .kb-ai-drawer .bg-blue-600 {
+    background-color: var(--kb-accent) !important;
+    border-color: var(--kb-accent) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+[data-editor-theme] .kb-ai-drawer .bg-blue-600:hover:not(:disabled) {
+    opacity: 0.88;
+}
+
+[data-editor-theme] .kb-ai-drawer .text-blue-600 {
+    color: var(--kb-accent-text) !important;
+}
+
+/* ==========================================================================
+   7. 目录右键菜单（.kb-context-menu）极客风格适配
+   ========================================================================== */
+[data-editor-theme] .kb-context-menu {
+    background-color: var(--kb-bg-surface) !important;
+    border: 1px solid var(--kb-border) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1) !important;
+    padding: 4px !important;
+}
+
+[data-editor-theme] .kb-context-menu .border-b,
+[data-editor-theme] .kb-context-menu .border-t {
+    border-color: var(--kb-border) !important;
+}
+
+[data-editor-theme] .kb-context-menu button.w-full {
+    height: 28px !important;
+    padding: 0 10px !important;
+    border-radius: var(--kb-radius) !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: var(--kb-text-secondary) !important;
+}
+
+[data-editor-theme] .kb-context-menu button.w-full:hover {
+    background-color: var(--kb-bg-hover) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .kb-context-menu button.w-full:not(.text-rose-500):not(.text-red-500) svg {
+    color: var(--kb-text-muted) !important;
+}
+
+[data-editor-theme] .kb-context-menu button.w-full:hover:not(.text-rose-500):not(.text-red-500) svg {
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .kb-context-menu button.text-rose-500,
+[data-editor-theme] .kb-context-menu button.text-red-500 {
+    color: #dc2626 !important;
+}
+
+[data-editor-theme] .kb-context-menu button.text-rose-500:hover,
+[data-editor-theme] .kb-context-menu button.text-red-500:hover {
+    background-color: rgba(220, 38, 38, 0.08) !important;
+}
+
+/* ==========================================================================
+   6. md-editor-v3 Markdown 模式深度适配
+   ========================================================================== */
+[data-editor-theme] .md-editor {
+    background-color: var(--kb-bg-canvas) !important;
+    --md-bk-color: var(--kb-bg-canvas) !important;
+    --md-bk-color-outstand: var(--kb-bg-code) !important;
+    --md-color: var(--kb-text-primary) !important;
+    --md-border-color: var(--kb-border) !important;
+    color: var(--kb-text-primary) !important;
+}
+
+[data-editor-theme] .md-editor-toolbar-wrapper {
+    background-color: var(--kb-bg-canvas) !important;
+    border-bottom: 1px solid var(--kb-border) !important;
+}
+
+[data-editor-theme] .md-editor-content,
+[data-editor-theme] .md-editor-footer {
+    background-color: var(--kb-bg-canvas) !important;
+}
+
+[data-editor-theme] .md-editor-footer {
+    border-top: 1px solid var(--kb-border) !important;
+    color: var(--kb-text-muted) !important;
+}
+
+[data-editor-theme] .md-editor-toolbar-item:hover {
+    background-color: var(--kb-bg-hover) !important;
+    border-radius: var(--kb-radius) !important;
+}
+
+[data-editor-theme] .md-editor-toolbar-active {
+    background-color: var(--kb-accent-dim) !important;
+    color: var(--kb-accent-text) !important;
+    border-radius: var(--kb-radius) !important;
+}
+
+[data-editor-theme='architect'] .md-editor-content {
+    background-color: var(--kb-bg-canvas) !important;
+    padding: 20px 28px !important;
+}
+
+[data-editor-theme='architect'] .md-editor-input-wrapper,
+[data-editor-theme='architect'] .md-editor-preview-wrapper {
+    background-color: var(--kb-paper-bg) !important;
+    border: 1px solid var(--kb-paper-border) !important;
+    border-radius: var(--kb-paper-radius) !important;
+    box-shadow: none !important;
+}

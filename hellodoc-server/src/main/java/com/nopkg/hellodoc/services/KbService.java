@@ -135,6 +135,18 @@ public class KbService {
                 .orElse(false);
     }
 
+    private static final java.util.Set<String> ALLOWED_EDITOR_THEMES =
+            java.util.Set.of("default", "linear", "geist", "architect", "obsidian", "ia");
+
+    // 规范化知识库编辑风格，未知取值统一回退为默认风格
+    private String normalizeEditorTheme(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return "default";
+        }
+        String normalized = raw.trim().toLowerCase(java.util.Locale.ROOT);
+        return ALLOWED_EDITOR_THEMES.contains(normalized) ? normalized : "default";
+    }
+
     @Transactional
     @Auditable(targetType = AuditTargetType.KB, action = AuditAction.CREATE, targetIdExpression = "#result.id")
     public KbKnowledgeBase createKnowledgeBase(Long userId, com.nopkg.hellodoc.web.dto.kb.KbCreateDTO dto) {
@@ -146,6 +158,7 @@ public class KbService {
         kb.setOwnerId(userId);
         kb.setAllowAnonymous(Boolean.TRUE.equals(dto.getAllowAnonymous()));
         kb.setGuestbookEnabled(!Boolean.FALSE.equals(dto.getGuestbookEnabled()));
+        kb.setEditorTheme(normalizeEditorTheme(dto.getEditorTheme()));
         if (dto.getVisibility() != null) {
             kb.setVisibility(dto.getVisibility());
         }
@@ -245,6 +258,7 @@ public class KbService {
             kb.setVisibility(dto.getVisibility());
         }
         if (dto.getGuestbookEnabled() != null) kb.setGuestbookEnabled(dto.getGuestbookEnabled());
+        if (dto.getEditorTheme() != null) kb.setEditorTheme(normalizeEditorTheme(dto.getEditorTheme()));
         if (dto.getVisibility() != null || dto.getAllowAnonymous() != null) directoryRevision.bump(lockedDirectory);
         kb.setUpdatedAt(OffsetDateTime.now());
         return kbRepository.save(kb);

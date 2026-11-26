@@ -1,0 +1,1 @@
+ALTER TABLE IF EXISTS kb_knowledge_base ADD COLUMN IF NOT EXISTS editor_theme VARCHAR(32) DEFAULT 'default' NOT NULL;

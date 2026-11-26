@@ -94,6 +94,10 @@ const isPublishedFile = (doc: TreeNodeLike) => doc.type === 'file' && doc.status
                 <span class="block truncate">{{ doc.name }}</span>
             </slot>
         </div>
+        <span v-if="doc.isCover"
+            class="kb-cover-badge ml-2 shrink-0 px-1.5 py-0.5 text-[10px] leading-none font-medium rounded border border-amber-300/80 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/30 dark:text-amber-300">
+            封面
+        </span>
         <span v-if="showPublishedBadge && mutedPublished && isPublishedFile(doc)" :title="publishedLabel || undefined"
             :aria-label="publishedLabel || undefined" role="img" class="ml-2 mr-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" />
     </div>

@@ -23,6 +23,7 @@ const toggle = () => {
             {{ label }}
         </span>
         <button @click="toggle" :disabled="disabled" :disabled-attr="disabled" type="button"
+            role="switch" :aria-checked="modelValue"
             class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
             :class="[modelValue ? 'bg-indigo-600' : 'bg-slate-200']">
             <span class="sr-only">Toggle</span>

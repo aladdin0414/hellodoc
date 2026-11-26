@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as Icons from 'lucide-vue-next'
 import BaseDialog from '../shared/BaseDialog.vue'
+import { KB_EDITOR_THEMES, normalizeKbEditorTheme, type KbEditorTheme } from '../../constants/editorThemes'
 
 type ColorOption = { name: string; value: string }
 type KbUpsertMode = 'create' | 'edit'
@@ -15,6 +16,7 @@ type KbUpsertModel = {
     icon?: string
     visibility?: string
     guestbookEnabled?: boolean
+    editorTheme?: KbEditorTheme | string
 }
 
 const props = defineProps<{
@@ -96,6 +98,12 @@ const selectIcon = (iconName: string) => {
     showIconPicker.value = false
 }
 
+const selectedEditorTheme = computed(() => normalizeKbEditorTheme(kb.value.editorTheme))
+
+const selectEditorTheme = (themeId: KbEditorTheme) => {
+    kb.value.editorTheme = themeId
+}
+
 onMounted(() => {
     document.addEventListener('click', handleOutsideClick)
 })
@@ -171,6 +179,31 @@ onUnmounted(() => {
                                     <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ t(option === 'private' ? 'kb.upsertVisibilityPrivateDesc' : 'kb.upsertVisibilityPublicDesc') }}</span>
                                 </span>
                             </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('kb.upsertEditorThemeLabel') }}</label>
+                        <div class="grid grid-cols-2 gap-2" role="radiogroup" :aria-label="t('kb.upsertEditorThemeLabel')">
+                            <button
+                                v-for="theme in KB_EDITOR_THEMES"
+                                :key="theme.id"
+                                type="button"
+                                @click="selectEditorTheme(theme.id)"
+                                :aria-pressed="selectedEditorTheme === theme.id"
+                                class="flex items-start gap-2.5 rounded-md border px-2.5 py-2 text-left transition-colors"
+                                :class="selectedEditorTheme === theme.id
+                                    ? 'border-slate-900 bg-slate-50 dark:border-slate-200 dark:bg-slate-800'
+                                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
+                            >
+                                <span
+                                    class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border border-black/15"
+                                    :style="{ backgroundColor: theme.dotColor }"
+                                ></span>
+                                <span class="min-w-0">
+                                    <span class="block text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{{ t(theme.nameKey) }}</span>
+                                    <span class="block text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{{ t(theme.descKey) }}</span>
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </div>

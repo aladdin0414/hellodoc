@@ -32,6 +32,7 @@ const props = defineProps<{
     codeFoldable?: boolean
     previewEnabled?: boolean
     kbId: number
+    editorTheme?: string
     setEditorRef: (instance: any) => void
 }>()
 
@@ -383,13 +384,14 @@ defineExpose({
                     auto-mobile @on-upload-img="(files, callback) => emit('uploadImg', files, callback)"
                     @on-save="emit('save')" @on-remount="emit('editorRemount')"
                     :class="isUploadingAssets ? 'flex-1 !h-full border-none ow-uploading' : 'flex-1 !h-full border-none'"
-                    :theme="isDark ? 'dark' : 'light'" :no-border="true" :noImgZoomIn="true"
+                    :theme="editorTheme === 'linear' || editorTheme === 'obsidian' ? 'dark' : (editorTheme ? 'light' : (isDark ? 'dark' : 'light'))" :no-border="true" :noImgZoomIn="true"
                     :preview-theme="isDark ? 'github' : 'github'" code-theme="atom"
                     :codeFoldable="codeFoldable ?? true" :showCodeRowNumber="false" />
             </template>
             <template v-else>
                 <VisualEditor :ref="handleSetEditorRef" v-model="currentDoc.content" :placeholder="placeholder" :is-read-only="isReadOnlyByCollab"
                     :kb-id="kbId" :doc-id="currentDoc.id" :doc-name="currentDoc.name || ''"
+                    :doc-status="(currentDoc as any).status" :editor-theme="editorTheme"
                     :paper-bg-color="currentDoc.paperBgColor"
                     :show-paper-color-button="showPaperColorButton"
                     :is-uploading-assets="isUploadingAssets"

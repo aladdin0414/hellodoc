@@ -66,6 +66,8 @@ const props = defineProps<{
     kbId?: number
     docId?: number
     docName?: string
+    docStatus?: string
+    editorTheme?: string
 }>()
 
 const emit = defineEmits<{

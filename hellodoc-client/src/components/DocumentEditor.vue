@@ -35,6 +35,8 @@ import { useDocumentUiState } from '../composables/editor/useDocumentUiState'
 import type { ExposeParam } from 'md-editor-v3'
 import { useTheme } from '../composables/useTheme'
 import { useI18n } from 'vue-i18n'
+import { normalizeKbEditorTheme } from '../constants/editorThemes'
+import '../styles/kb-editor-themes.css'
 
 const { isDark } = useTheme()
 const { t, locale } = useI18n()
@@ -69,6 +71,11 @@ interface DocDetail extends DocListItem {
 const documents = ref<DocListItem[]>([])
 const currentDoc = ref<DocDetail | null>(null)
 const kbDetail = ref<any>(null)
+// 仅在选择了非默认风格时挂载 data-editor-theme，确保默认风格零侵入
+const activeEditorTheme = computed(() => {
+    const theme = normalizeKbEditorTheme(kbDetail.value?.editorTheme)
+    return theme === 'default' ? undefined : theme
+})
 const activeDocId = ref<number | null>(null)
 const editingDocId = ref<number | null>(null)
 const editingName = ref('')
@@ -131,7 +138,7 @@ const isVisualPreviewMode = ref(false)
 const PREVIEW_ENABLED_STORAGE_KEY = 'hellodoc:document-editor:preview-enabled'
 const previewEnabled = ref(true)
 const aiGenerating = ref(false)
-const showPaperColorButton = ref(true)
+const showPaperColorButton = ref(false)
 
 const loadPreviewEnabledFromLocal = () => {
     try {
@@ -943,6 +950,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
 
 <template>
     <div
+        :data-editor-theme="activeEditorTheme"
         :class="{ 'ow-mobile-no-hover': isMobile }"
         class="flex h-screen bg-[#f5f5f4] dark:bg-[#161b22] overflow-hidden font-sans text-slate-900 dark:text-slate-200 selection:bg-indigo-100 selection:text-indigo-900 dark:selection:text-slate-100">
         <div v-if="!isVisualPreviewMode && isMobile && isSidebarVisible" class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
@@ -995,6 +1003,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
 
                 <DocumentEditorContentPane ref="contentPaneRef" :current-doc="currentDoc" :doc-loading="docLoading" :is-mobile="isMobile"
                     :kb-id="kbId"
+                    :editor-theme="activeEditorTheme"
                     :is-uploading-assets="isUploadingAssets" :is-dark="isDark"
                     :is-read-only-by-collab="isReadOnlyByCollab" :set-editor-ref="setMdEditorRef"
                     :show-paper-color-button="showPaperColorButton"
@@ -1016,6 +1025,19 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
                     <p class="text-sm font-medium">{{ t('editor.selectOrCreateDoc') }}</p>
                 </div>
             </div>
+
+            <!-- 极客主题底部状态栏（仅非 default 风格显示） -->
+            <footer v-if="activeEditorTheme && !isVisualPreviewMode" class="kb-geek-statusbar">
+                <div class="kb-sb-group">
+                    <span><span class="kb-sb-dot"></span>{{ saving ? 'saving...' : (hasUnsavedChanges ? 'modified' : 'synced') }}</span>
+                    <span>theme: {{ activeEditorTheme }}</span>
+                    <span>encoding: utf-8</span>
+                </div>
+                <div class="kb-sb-group">
+                    <span v-if="currentDoc">{{ (currentDoc.content || '').replace(/\s+/g, '').length }} chars</span>
+                    <span>{{ kbDetail?.title || 'vault' }}</span>
+                </div>
+            </footer>
         </div>
 
         <DocumentEditorOverlays v-if="!isVisualPreviewMode" :show-context-menu="showContextMenu" :menu-position="menuPosition" :documents="documents"
@@ -1059,7 +1081,8 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
     <button
         v-if="!isVisualPreviewMode && currentDoc?.type === 'file'"
         @click="showAiDrawer = !showAiDrawer"
-        class="fixed bottom-6 right-6 z-40 w-10 h-10 rounded-full bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-sm hover:shadow-md flex items-center justify-center transition-colors duration-200 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+        :data-editor-theme="activeEditorTheme"
+        class="kb-ai-fab fixed bottom-6 right-6 z-40 w-10 h-10 rounded-full bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-sm hover:shadow-md flex items-center justify-center transition-colors duration-200 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
         :title="t('aiDrawer.title')"
     >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1073,6 +1096,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
 
     <!-- 独立 AI 知识助理抽屉 -->
     <AiAssistantDrawer
+        :data-editor-theme="activeEditorTheme"
         :visible="showAiDrawer"
         :document-context="currentDoc?.content"
         :doc-id="currentDoc?.id"

@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="linear">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HelloDoc · 极客笔记编辑器原型</title>
+  <style>
+    /* ==========================================================================
+       1. 基础重置与字体系统
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "PingFang SC", sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+      --sidebar-w: 256px;
+      --topbar-h: 44px;
+      --statusbar-h: 26px;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ==========================================================================
+       2. 五套高阶极客笔记设计风格（零廉价装饰，精密 Token 控制）
+       ========================================================================== */
+
+    /* [1] Linear / Raycast · 精密暗夜 (Precision Dark) */
+    [data-theme="linear"] {
+      --bg-canvas: #0B0C0E;
+      --bg-sidebar: #0F1013;
+      --bg-surface: #141519;
+      --bg-elevated: #191B20;
+      --bg-hover: rgba(255, 255, 255, 0.045);
+      --bg-active: rgba(255, 255, 255, 0.08);
+      --bg-code: #08090B;
+      --bg-glass: rgba(18, 19, 24, 0.84);
+
+      --text-primary: #F2F4F8;
+      --text-secondary: #98A0B3;
+      --text-muted: #5A6275;
+      --text-ghost: #3A404E;
+
+      --border-hairline: rgba(255, 255, 255, 0.07);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --accent: #6E7BF2;
+      --accent-text: #9BA5FF;
+      --accent-dim: rgba(110, 123, 242, 0.14);
+
+      --radius: 6px;
+      --radius-lg: 10px;
+      --shadow-float: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      --canvas-glow: radial-gradient(60% 35% at 50% 0%, rgba(110, 123, 242, 0.08), transparent 70%);
+      --paper-card: transparent;
+      --paper-border: transparent;
+      --paper-padding: 0;
+    }
+
+    /* [2] Vercel / Geist · 纯粹黑白实验室 (Monochrome Lab) */
+    [data-theme="geist"] {
+      --bg-canvas: #FAFAFA;
+      --bg-sidebar: #F4F4F5;
+      --bg-surface: #FFFFFF;
+      --bg-elevated: #FFFFFF;
+      --bg-hover: rgba(0, 0, 0, 0.04);
+      --bg-active: #111111;
+      --bg-code: #F4F4F5;
+      --bg-glass: rgba(255, 255, 255, 0.88);
+
+      --text-primary: #09090B;
+      --text-secondary: #52525B;
+      --text-muted: #9CA3AF;
+      --text-ghost: #D4D4D8;
+
+      --border-hairline: #E4E4E7;
+      --border-strong: #18181B;
+      --accent: #09090B;
+      --accent-text: #09090B;
+      --accent-dim: rgba(9, 9, 11, 0.07);
+
+      --radius: 4px;
+      --radius-lg: 6px;
+      --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+      --canvas-glow: none;
+      --paper-card: transparent;
+      --paper-border: transparent;
+      --paper-padding: 0;
+    }
+
+    /* [3] Anytype / Craft · 空间建筑纸张 (Architectural Paper) */
+    [data-theme="architect"] {
+      --bg-canvas: #EFEFF2;
+      --bg-sidebar: #E6E6EA;
+      --bg-surface: #FFFFFF;
+      --bg-elevated: #FFFFFF;
+      --bg-hover: rgba(0, 0, 0, 0.04);
+      --bg-active: #FFFFFF;
+      --bg-code: #F5F5F7;
+      --bg-glass: rgba(255, 255, 255, 0.85);
+
+      --text-primary: #17171B;
+      --text-secondary: #5E5E68;
+      --text-muted: #9898A4;
+      --text-ghost: #CECED6;
+
+      --border-hairline: rgba(0, 0, 0, 0.075);
+      --border-strong: rgba(0, 0, 0, 0.16);
+      --accent: #2563EB;
+      --accent-text: #1D4ED8;
+      --accent-dim: rgba(37, 99, 235, 0.09);
+
+      --radius: 6px;
+      --radius-lg: 8px;
+      --paper-radius: 3px;
+      --shadow-float: 0 8px 24px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
+      --canvas-glow: none;
+      --paper-card: #FFFFFF;
+      --paper-border: rgba(0, 0, 0, 0.08);
+      --paper-padding: 44px 52px;
+    }
+
+    /* [4] Obsidian / Zed · 极客双链暗影 (Graph Obsidian) */
+    [data-theme="obsidian"] {
+      --bg-canvas: #131417;
+      --bg-sidebar: #0D0E10;
+      --bg-surface: #1A1C21;
+      --bg-elevated: #20232A;
+      --bg-hover: rgba(255, 255, 255, 0.05);
+      --bg-active: rgba(168, 130, 255, 0.15);
+      --bg-code: #0A0B0D;
+      --bg-glass: rgba(22, 24, 29, 0.88);
+
+      --text-primary: #E4E6EB;
+      --text-secondary: #9CA3B0;
+      --text-muted: #5C6370;
+      --text-ghost: #393F4A;
+
+      --border-hairline: rgba(255, 255, 255, 0.065);
+      --border-strong: rgba(255, 255, 255, 0.15);
+      --accent: #A882FF;
+      --accent-text: #C0A6FF;
+      --accent-dim: rgba(168, 130, 255, 0.14);
+
+      --radius: 5px;
+      --radius-lg: 8px;
+      --shadow-float: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(168, 130, 255, 0.15);
+      --canvas-glow: none;
+      --paper-card: transparent;
+      --paper-border: transparent;
+      --paper-padding: 0;
+    }
+
+    /* [5] iA Writer / Bear · 极客纯享排版 (Typographic Focus) */
+    [data-theme="ia"] {
+      --bg-canvas: #F7F6F2;
+      --bg-sidebar: #EFEDE7;
+      --bg-surface: #FFFFFF;
+      --bg-elevated: #FFFFFF;
+      --bg-hover: rgba(28, 25, 23, 0.05);
+      --bg-active: rgba(217, 79, 43, 0.11);
+      --bg-code: #ECEAE2;
+      --bg-glass: rgba(247, 246, 242, 0.88);
+
+      --text-primary: #1C1917;
+      --text-secondary: #57534E;
+      --text-muted: #A8A29E;
+      --text-ghost: #D6D3CD;
+
+      --border-hairline: rgba(28, 25, 23, 0.08);
+      --border-strong: rgba(28, 25, 23, 0.18);
+      --accent: #D94F2B;
+      --accent-text: #C2410C;
+      --accent-dim: rgba(217, 79, 43, 0.1);
+
+      --radius: 5px;
+      --radius-lg: 8px;
+      --shadow-float: 0 16px 40px rgba(28, 25, 23, 0.12), 0 0 0 1px rgba(28, 25, 23, 0.08);
+      --canvas-glow: none;
+      --paper-card: transparent;
+      --paper-border: transparent;
+      --paper-padding: 0;
+    }
+
+    /* ==========================================================================
+       3. 全局骨架与微交互
+       ========================================================================== */
+    html, body {
+      height: 100%;
+      font-family: var(--font-sans);
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow: hidden;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .workspace-row {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      position: relative;
+    }
+
+    /* 通用线性 SVG 图标 */
+    .ico {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.65;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+    .ico-sm {
+      width: 13px;
+      height: 13px;
+    }
+
+    /* ==========================================================================
+       4. 左侧目录栏（精密文件树风格）
+       ========================================================================== */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: 210px;
+      max-width: 400px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      user-select: none;
+      transition: margin-left 240ms var(--ease-out), background-color 200ms ease;
+    }
+    .app.sidebar-collapsed .sidebar {
+      margin-left: calc(var(--sidebar-w) * -1);
+    }
+
+    .sidebar-top {
+      height: var(--topbar-h);
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .vault-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+    .vault-mark {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background: var(--text-primary);
+      color: var(--bg-canvas);
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .vault-ver {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 1px 5px;
+      border: 1px solid var(--border-hairline);
+      border-radius: 3px;
+    }
+
+    .icon-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+    .icon-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    /* 快捷命令触发框 */
+    .cmd-trigger-wrap {
+      padding: 10px 10px 6px;
+    }
+    .cmd-trigger {
+      width: 100%;
+      height: 30px;
+      padding: 0 9px;
+      background: var(--bg-canvas);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 140ms ease, color 140ms ease;
+    }
+    .cmd-trigger:hover {
+      border-color: var(--border-strong);
+      color: var(--text-secondary);
+    }
+    .cmd-trigger-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .kbd {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--border-hairline);
+      background: var(--bg-sidebar);
+      color: var(--text-muted);
+    }
+
+    /* 目录树 */
+    .tree-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 8px 16px;
+    }
+    .tree-scroll::-webkit-scrollbar { width: 4px; }
+    .tree-scroll::-webkit-scrollbar-thumb { background: transparent; border-radius: 99px; }
+    .tree-scroll:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
+
+    .tree-section {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 10px 8px 5px;
+    }
+
+    .tree-ul { list-style: none; }
+    .tree-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 28px;
+      padding: 0 8px;
+      margin: 1px 0;
+      border-radius: var(--radius);
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background-color 100ms ease, color 100ms ease;
+    }
+    .tree-row:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .tree-row.active {
+      background: var(--bg-active);
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    [data-theme="geist"] .tree-row.active {
+      color: #FFFFFF;
+    }
+    [data-theme="geist"] .tree-row.active .tree-ext,
+    [data-theme="geist"] .tree-row.active .ico {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .tree-arrow {
+      width: 14px;
+      height: 14px;
+      display: grid;
+      place-items: center;
+      color: var(--text-muted);
+      transition: transform 140ms var(--ease-out);
+      flex-shrink: 0;
+    }
+    .tree-arrow.open { transform: rotate(90deg); }
+    .tree-arrow.empty { visibility: hidden; }
+
+    .tree-label {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tree-ext {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text-muted);
+      opacity: 0.75;
+    }
+    .tree-sub {
+      list-style: none;
+      padding-left: 14px;
+      position: relative;
+    }
+    .tree-sub::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 2px;
+      bottom: 4px;
+      width: 1px;
+      background: var(--border-hairline);
+    }
+    .tree-sub.hidden { display: none; }
+
+    /* 拖拽条 */
+    .resizer {
+      width: 4px;
+      cursor: col-resize;
+      margin-left: -2px;
+      margin-right: -2px;
+      z-index: 10;
+      position: relative;
+    }
+    .resizer::after {
+      content: "";
+      position: absolute;
+      inset: 0 1px;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity 150ms ease;
+    }
+    .resizer:hover::after, .resizer.dragging::after { opacity: 0.65; }
+    .app.sidebar-collapsed .resizer { display: none; }
+
+    /* ==========================================================================
+       5. 右侧主区域 & 顶部极简栏
+       ========================================================================== */
+    .main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-canvas);
+      background-image: var(--canvas-glow);
+      position: relative;
+    }
+
+    .topbar {
+      height: var(--topbar-h);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-hairline);
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .crumb-current {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 风格分段切换器（精密胶囊） */
+    .theme-dock {
+      display: flex;
+      align-items: center;
+      padding: 2px;
+      background: var(--bg-sidebar);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius);
+      gap: 1px;
+    }
+    .theme-btn {
+      height: 24px;
+      padding: 0 9px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 500;
+      border-radius: calc(var(--radius) - 2px);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 130ms ease;
+    }
+    .theme-btn:hover {
+      color: var(--text-primary);
+    }
+    .theme-btn.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+    }
+    [data-theme="geist"] .theme-btn.active {
+      background: #111111;
+      color: #FFFFFF;
+    }
+    .theme-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .action-chip {
+      height: 26px;
+      padding: 0 9px;
+      border: 1px solid var(--border-hairline);
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: var(--radius);
+      font-size: 11.5px;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .action-chip:hover {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+    .action-chip.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent-text);
+    }
+
+    /* ==========================================================================
+       5.5 极客 Markdown 编辑工具栏（自适应五大风格）
+       ========================================================================== */
+    .md-toolbar {
+      min-height: 40px;
+      padding: 4px 16px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 2px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-hairline);
+      z-index: 9;
+      flex-shrink: 0;
+    }
+
+    .md-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .md-sep {
+      width: 1px;
+      height: 16px;
+      background: var(--border-hairline);
+      margin: 0 7px;
+      flex-shrink: 0;
+    }
+
+    .md-btn {
+      height: 28px;
+      min-width: 28px;
+      padding: 0 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: var(--radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 110ms ease, color 110ms ease, border-color 110ms ease;
+    }
+    .md-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .md-btn.active {
+      background: var(--accent-dim);
+      color: var(--accent-text);
+      border-color: rgba(110, 123, 242, 0.25);
+    }
+    .md-btn .ico {
+      width: 15px;
+      height: 15px;
+    }
+
+    /* 标题下拉选择器 */
+    .md-dropdown-wrap {
+      position: relative;
+    }
+    .md-heading-btn {
+      padding: 0 8px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .md-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      min-width: 148px;
+      padding: 5px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-float);
+      display: none;
+      flex-direction: column;
+      z-index: 80;
+    }
+    .md-dropdown.open {
+      display: flex;
+    }
+    .md-drop-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 9px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      font-family: inherit;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .md-drop-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .md-drop-item code {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+
+    /* 文本高亮与列表样式补充 */
+    .editor-body mark {
+      background: var(--accent-dim);
+      color: var(--text-primary);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .editor-body ul:not(.task-list),
+    .editor-body ol {
+      padding-left: 22px;
+      margin: 12px 0;
+      color: var(--text-secondary);
+    }
+    .editor-body li {
+      margin: 4px 0;
+    }
+
+    /* ==========================================================================
+       6. 编辑区画布与极客排版细节
+       ========================================================================== */
+    .editor-layout {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+
+    .editor-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 42px 36px 120px;
+      scroll-behavior: smooth;
+    }
+    .editor-scroll::-webkit-scrollbar { width: 6px; }
+    .editor-scroll::-webkit-scrollbar-thumb { background: var(--border-hairline); border-radius: 99px; }
+
+    .paper-sheet {
+      max-width: 740px;
+      margin: 0 auto;
+      background: var(--paper-card);
+      border: 1px solid var(--paper-border);
+      border-radius: var(--paper-radius, var(--radius-lg));
+      padding: var(--paper-padding);
+      transition: all 240ms var(--ease-out);
+    }
+    [data-theme="architect"] .paper-sheet {
+      box-shadow: none;
+    }
+
+    /* 文档标题 */
+    .doc-title {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.24;
+      letter-spacing: -0.025em;
+      color: var(--text-primary);
+      outline: none;
+      margin-bottom: 18px;
+    }
+    .doc-title:empty::before {
+      content: "Untitled Note";
+      color: var(--text-ghost);
+    }
+
+    /* Frontmatter 极客属性面板 */
+    .frontmatter {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px 16px;
+      padding: 12px 14px;
+      margin-bottom: 30px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+    }
+    .fm-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .fm-key {
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .fm-val {
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .fm-badge {
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: var(--accent-dim);
+      color: var(--accent-text);
+      font-size: 10.5px;
+    }
+
+    /* 正文编辑区 */
+    .editor-body {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text-primary);
+      outline: none;
+    }
+    .editor-body > * {
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    /* 极客标志性细节：Markdown 幽灵行前标记 */
+    .editor-body h2,
+    .editor-body h3 {
+      font-family: var(--font-display);
+      font-weight: 650;
+      letter-spacing: -0.015em;
+      color: var(--text-primary);
+      scroll-margin-top: 24px;
+    }
+    .editor-body h2 {
+      font-size: 20px;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+    .editor-body h2::before {
+      content: "##";
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-ghost);
+      margin-right: 10px;
+    }
+    .editor-body h3 {
+      font-size: 16.5px;
+      margin-top: 22px;
+      margin-bottom: 8px;
+    }
+    .editor-body h3::before {
+      content: "###";
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-ghost);
+      margin-right: 8px;
+    }
+
+    .editor-body p {
+      color: var(--text-secondary);
+    }
+    .editor-body strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .editor-body code {
+      font-family: var(--font-mono);
+      font-size: 0.85em;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: var(--bg-code);
+      color: var(--accent-text);
+      border: 1px solid var(--border-hairline);
+    }
+
+    /* 双向链接 [[wikilink]] */
+    .wikilink {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      color: var(--accent-text);
+      background: var(--accent-dim);
+      padding: 1px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: filter 120ms ease;
+    }
+    .wikilink:hover {
+      filter: brightness(1.15);
+    }
+
+    /* 极客 Callout */
+    .callout {
+      padding: 12px 15px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-left: 2px solid var(--accent);
+      border-radius: var(--radius);
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      margin: 18px 0;
+    }
+    .callout-head {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-text);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    /* 精密代码块（带行号感与语言标签） */
+    .code-card {
+      background: var(--bg-code);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 18px 0;
+    }
+    .code-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border-hairline);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .copy-btn {
+      border: 1px solid var(--border-hairline);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .copy-btn:hover {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+    .code-card pre {
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: var(--text-primary);
+      overflow-x: auto;
+    }
+
+    /* 待办清单 */
+    .task-list { list-style: none; margin: 14px 0; }
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 3px 0;
+      color: var(--text-secondary);
+    }
+    .task-box {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      margin-top: 5px;
+      border: 1.5px solid var(--border-strong);
+      border-radius: 3px;
+      background: transparent;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .task-box:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .task-box:checked::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 4px;
+      height: 8px;
+      border: solid #FFFFFF;
+      border-width: 0 1.6px 1.6px 0;
+      transform: rotate(42deg);
+    }
+    .task-item.done span {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .editor-body blockquote {
+      border-left: 2px solid var(--border-strong);
+      padding-left: 14px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .editor-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 18px 0;
+    }
+    .editor-table th, .editor-table td {
+      border: 1px solid var(--border-hairline);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .editor-table th {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-surface);
+      font-weight: 500;
+    }
+    .editor-table td { color: var(--text-secondary); }
+
+    /* Markdown 源码视图切换 */
+    .source-textarea {
+      display: none;
+      width: 100%;
+      min-height: 460px;
+      background: var(--bg-code);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius);
+      padding: 18px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      outline: none;
+      resize: vertical;
+    }
+    .main.source-mode .editor-body { display: none; }
+    .main.source-mode .source-textarea { display: block; }
+
+    /* ==========================================================================
+       7. 右侧大纲面板
+       ========================================================================== */
+    .outline-pane {
+      width: 216px;
+      border-left: 1px solid var(--border-hairline);
+      padding: 24px 14px;
+      overflow-y: auto;
+      display: none;
+      flex-shrink: 0;
+    }
+    .outline-pane.open { display: block; }
+    .outline-head {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .outline-ul { list-style: none; }
+    .outline-li {
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 4px 8px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .outline-li:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .outline-li.h3 {
+      padding-left: 18px;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       8. 底部极客状态栏 (Status Bar)
+       ========================================================================== */
+    .statusbar {
+      height: var(--statusbar-h);
+      padding: 0 14px;
+      background: var(--bg-sidebar);
+      border-top: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22C55E;
+      margin-right: 6px;
+    }
+
+    /* ==========================================================================
+       9. ⌘K 命令面板 & 选中浮动条 & Slash 菜单
+       ========================================================================== */
+    .cmd-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 14vh;
+    }
+    .cmd-backdrop.open { display: flex; }
+
+    .cmd-modal {
+      width: 520px;
+      max-width: 92vw;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-float);
+      overflow: hidden;
+    }
+    .cmd-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-hairline);
+      color: var(--text-muted);
+    }
+    .cmd-input-row input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 14px;
+      color: var(--text-primary);
+      font-family: inherit;
+    }
+    .cmd-results {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 6px;
+    }
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .cmd-item:hover, .cmd-item.selected {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .cmd-item-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .cmd-tag {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+
+    .float-bar {
+      position: fixed;
+      z-index: 120;
+      display: none;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-float);
+    }
+    .float-bar.open { display: flex; }
+    .fmt-btn {
+      height: 26px;
+      min-width: 26px;
+      padding: 0 7px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .fmt-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    .slash-menu {
+      position: fixed;
+      z-index: 130;
+      width: 220px;
+      display: none;
+      flex-direction: column;
+      padding: 5px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-float);
+    }
+    .slash-menu.open { display: flex; }
+    .slash-opt {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 9px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      font-family: inherit;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .slash-opt:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .slash-opt code {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+
+    /* 专注模式 */
+    .app.focus .sidebar,
+    .app.focus .resizer,
+    .app.focus .outline-pane,
+    .app.focus .statusbar {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="workspace-row">
+      <!-- 左侧精密目录树 -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="vault-title">
+            <span class="vault-mark">H</span>
+            <span>HelloDoc</span>
+            <span class="vault-ver">vault</span>
+          </div>
+          <div style="display:flex;gap:2px;">
+            <button class="icon-btn" id="newNoteBtn" title="新建笔记">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="icon-btn" id="collapseBtn" title="收起侧栏">
+              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="cmd-trigger-wrap">
+          <button class="cmd-trigger" id="openCmdBtn">
+            <span class="cmd-trigger-left">
+              <svg class="ico ico-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span>快速跳转 / 命令…</span>
+            </span>
+            <span class="kbd">⌘K</span>
+          </button>
+        </div>
+
+        <div class="tree-scroll" id="treeContainer"></div>
+      </aside>
+
+      <div class="resizer" id="resizer"></div>
+
+      <!-- 右侧主编辑区 -->
+      <main class="main" id="mainArea">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="icon-btn" id="toggleSidebarBtn" title="切换目录 (⌘B)">
+              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+            </button>
+            <nav class="breadcrumbs" id="breadcrumbs"></nav>
+          </div>
+
+          <div class="topbar-right">
+            <!-- 五套世界级极客风格切换器 -->
+            <div class="theme-dock" role="group" aria-label="设计风格">
+              <button class="theme-btn active" data-theme="linear" title="Linear / Raycast 精密暗夜">
+                <span class="theme-dot" style="background:#6E7BF2;"></span>Linear 暗夜
+              </button>
+              <button class="theme-btn" data-theme="geist" title="Vercel / Geist 纯粹黑白">
+                <span class="theme-dot" style="background:#111111;"></span>Geist 黑白
+              </button>
+              <button class="theme-btn" data-theme="architect" title="Anytype / Craft 建筑纸张">
+                <span class="theme-dot" style="background:#2563EB;"></span>建筑纸张
+              </button>
+              <button class="theme-btn" data-theme="obsidian" title="Obsidian / Zed 极客双链">
+                <span class="theme-dot" style="background:#A882FF;"></span>Obsidian
+              </button>
+              <button class="theme-btn" data-theme="ia" title="iA Writer / Bear 极客纯享">
+                <span class="theme-dot" style="background:#D94F2B;"></span>iA 排版
+              </button>
+            </div>
+
+            <button class="action-chip" id="sourceToggleBtn" title="切换 Markdown 源码视图">
+              <svg class="ico ico-sm" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>
+              <span>源码</span>
+            </button>
+            <button class="action-chip" id="outlineToggleBtn" title="文档大纲">
+              <svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h14"/></svg>
+              <span>大纲</span>
+            </button>
+            <button class="action-chip" id="focusToggleBtn" title="专注模式">
+              <svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- 极客 Markdown 编辑工具栏 -->
+        <div class="md-toolbar" id="mdToolbar" role="toolbar" aria-label="Markdown 编辑工具栏">
+          <!-- 1. 源码与预览模式 -->
+          <div class="md-group">
+            <button class="md-btn" id="tbSourceBtn" title="Markdown 源码视图">
+              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m10 9-3 3 3 3M14 9l3 3-3 3"/></svg>
+            </button>
+            <button class="md-btn" id="tbPreviewBtn" title="阅读预览模式">
+              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/><path d="m10 9 5 3-5 3z"/></svg>
+            </button>
+          </div>
+          <span class="md-sep"></span>
+
+          <!-- 2. 文字格式：B / U / 高亮 / I / 删除线 -->
+          <div class="md-group">
+            <button class="md-btn" data-md-cmd="bold" title="加粗 (⌘B)">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="underline" title="下划线 (⌘U)">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M6 4v6a6 6 0 0 0 12 0V4M4 20h16"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="highlight" title="荧光高亮">
+              <svg class="ico" viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="italic" title="斜体 (⌘I)">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M19 4h-9M14 20H5M15 4 9 20"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="strikeThrough" title="删除线">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6M4 12h16"/></svg>
+            </button>
+          </div>
+          <span class="md-sep"></span>
+
+          <!-- 3. 标题下拉 -->
+          <div class="md-group md-dropdown-wrap">
+            <button class="md-btn md-heading-btn" id="headingDropBtn" title="标题级别">
+              <span id="headingLabel">H1</span>
+              <svg class="ico ico-sm" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="md-dropdown" id="headingMenu">
+              <button class="md-drop-item" data-block="p"><span>正文段落</span><code>P</code></button>
+              <button class="md-drop-item" data-block="h1"><span>一级标题</span><code>#</code></button>
+              <button class="md-drop-item" data-block="h2"><span>二级标题</span><code>##</code></button>
+              <button class="md-drop-item" data-block="h3"><span>三级标题</span><code>###</code></button>
+            </div>
+          </div>
+          <span class="md-sep"></span>
+
+          <!-- 4. 对齐方式 -->
+          <div class="md-group">
+            <button class="md-btn" data-md-cmd="justifyLeft" title="左对齐">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18M3 12h12M3 18h16"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="justifyCenter" title="居中对齐">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M4 18h16"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="justifyRight" title="右对齐">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18M9 12h12M5 18h16"/></svg>
+            </button>
+          </div>
+          <span class="md-sep"></span>
+
+          <!-- 5. 列表与待办 -->
+          <div class="md-group">
+            <button class="md-btn" data-md-cmd="insertUnorderedList" title="无序列表">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="insertOrderedList" title="有序列表">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+            </button>
+            <button class="md-btn" data-md-insert="todo" title="任务清单">
+              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4M13 6h8M13 12h8M13 18h8"/></svg>
+            </button>
+          </div>
+          <span class="md-sep"></span>
+
+          <!-- 6. 块与媒体插入：引用、行内代码、代码块、链接、图片、表格 -->
+          <div class="md-group">
+            <button class="md-btn" data-md-insert="quote" title="引用块">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18M9 12h12M9 18h12M4 11v8"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="inlineCode" title="行内代码">
+              <svg class="ico" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>
+            </button>
+            <button class="md-btn" data-md-insert="code" title="代码块">
+              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m10 9-3 3 3 3M14 9l3 3-3 3"/></svg>
+            </button>
+            <button class="md-btn" data-md-insert="link" title="插入双向链接">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </button>
+            <button class="md-btn" data-md-insert="image" title="插入图片占位">
+              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>
+            </button>
+            <button class="md-btn" data-md-insert="table" title="插入表格">
+              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/></svg>
+            </button>
+          </div>
+          <span class="md-sep"></span>
+
+          <!-- 7. 撤销与重做 -->
+          <div class="md-group">
+            <button class="md-btn" data-md-cmd="undo" title="撤销 (⌘Z)">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+            </button>
+            <button class="md-btn" data-md-cmd="redo" title="重做 (⇧⌘Z)">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+            </button>
+          </div>
+          <span class="md-sep"></span>
+
+          <!-- 8. 主题循环、导出 MD、全屏专注 -->
+          <div class="md-group" style="margin-left:auto;">
+            <button class="md-btn" id="tbCycleThemeBtn" title="循环切换设计风格">
+              <svg class="ico" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+            </button>
+            <button class="md-btn" id="tbExportMdBtn" title="导出为 .md 文件">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+            </button>
+            <button class="md-btn active" id="tbFullscreenBtn" title="全屏 / 专注写作">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-layout">
+          <div class="editor-scroll">
+            <div class="paper-sheet">
+              <h1 class="doc-title" id="docTitle" contenteditable="true" spellcheck="false"></h1>
+
+              <!-- 极客 Frontmatter 属性栏 -->
+              <div class="frontmatter" id="frontmatter"></div>
+
+              <!-- 富文本编辑区 -->
+              <article class="editor-body" id="editorBody" contenteditable="true" spellcheck="false"></article>
+
+              <!-- Markdown 源码视图 -->
+              <textarea class="source-textarea" id="sourceTextarea" spellcheck="false"></textarea>
+            </div>
+          </div>
+
+          <aside class="outline-pane" id="outlinePane">
+            <div class="outline-head">Outline</div>
+            <ul class="outline-ul" id="outlineUl"></ul>
+          </aside>
+        </div>
+      </main>
+    </div>
+
+    <!-- 极客底部状态栏 -->
+    <footer class="statusbar">
+      <div class="status-group">
+        <span><span class="status-dot"></span><span id="saveState">synced</span></span>
+        <span id="statusTheme">theme: linear</span>
+        <span>encoding: utf-8</span>
+      </div>
+      <div class="status-group">
+        <span id="wordStats">0 chars · 1 min</span>
+        <span>⌘K 命令 · / 插入块 · 1-5 切换风格</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ⌘K 命令面板 -->
+  <div class="cmd-backdrop" id="cmdBackdrop">
+    <div class="cmd-modal">
+      <div class="cmd-input-row">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="cmdInput" placeholder="输入笔记名称、风格名称或操作指令…" />
+        <span class="kbd">ESC</span>
+      </div>
+      <div class="cmd-results" id="cmdResults"></div>
+    </div>
+  </div>
+
+  <!-- 选中文本浮动格式条 -->
+  <div class="float-bar" id="floatBar">
+    <button class="fmt-btn" data-cmd="bold">B</button>
+    <button class="fmt-btn" data-cmd="italic">I</button>
+    <button class="fmt-btn" data-cmd="code">&lt;/&gt;</button>
+    <button class="fmt-btn" data-cmd="h2">H2</button>
+  </div>
+
+  <!-- Slash 命令菜单 -->
+  <div class="slash-menu" id="slashMenu">
+    <button class="slash-opt" data-ins="h2"><span>二级标题</span><code>##</code></button>
+    <button class="slash-opt" data-ins="callout"><span>提示块 Callout</span><code>&gt; [!note]</code></button>
+    <button class="slash-opt" data-ins="todo"><span>待办任务</span><code>- [ ]</code></button>
+    <button class="slash-opt" data-ins="code"><span>代码块</span><code>```</code></button>
+  </div>
+
+  <script>
+    // =========================================================================
+    // SVG 图标模板（零 Emoji，全线性矢量）
+    // =========================================================================
+    const SVG_CHEVRON = `<svg class="ico ico-sm" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>`;
+    const SVG_FOLDER = `<svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
+    const SVG_FILE = `<svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`;
+
+    const THEME_LIST = [
+      { id: "linear", name: "Linear 精密暗夜", key: "1" },
+      { id: "geist", name: "Geist 纯粹黑白", key: "2" },
+      { id: "architect", name: "建筑纸张", key: "3" },
+      { id: "obsidian", name: "Obsidian 双链", key: "4" },
+      { id: "ia", name: "iA 极客排版", key: "5" }
+    ];
+
+    // =========================================================================
+    // 目录树与文档数据源
+    // =========================================================================
+    const tree = [
+      {
+        id: "dir-core",
+        type: "folder",
+        name: "01-architecture",
+        open: true,
+        children: [
+          { id: "note-1", type: "doc", name: "editor-design-spec", ext: ".md" },
+          { id: "note-2", type: "doc", name: "local-first-sync", ext: ".md" },
+          { id: "note-3", type: "doc", name: "mcp-protocol-bridge", ext: ".md" }
+        ]
+      },
+      {
+        id: "dir-ui",
+        type: "folder",
+        name: "02-interface",
+        open: true,
+        children: [
+          { id: "note-4", type: "doc", name: "design-tokens-matrix", ext: ".md" },
+          { id: "note-5", type: "doc", name: "keyboard-shortcuts", ext: ".md" }
+        ]
+      }
+    ];
+
+    const notes = {
+      "note-1": {
+        title: "笔记型编辑器交互规范",
+        path: ["01-architecture", "editor-design-spec.md"],
+        meta: { status: "active", updated: "2026-11-26", links: "2 backlinks", tags: "#editor #ux" },
+        body: `
+          <p>极客向笔记界面的核心在于<strong>高信噪比</strong>与<strong>空间确定性</strong>：左侧目录树提供类似 IDE 的清晰文件层级，右侧画布则通过克制的排版秩序让注意力完全停留在文本本身。</p>
+          <div class="callout">
+            <div class="callout-head">DESIGN PRINCIPLE · 01</div>
+            去掉多余的视觉装饰与图标噪音。标题前保留极淡的等宽 <code>##</code> 幽灵标记，既维持富文本的可读性，又保留 Markdown 的结构秩序。
+          </div>
+          <h2>双栏比例与键盘优先</h2>
+          <p>高频操作应当通过 <code>⌘K</code> 命令面板与 <code>/</code> 块级菜单完成，而不是在顶部堆砌三排富文本按钮。</p>
+          <ul class="task-list">
+            <li class="task-item done"><input type="checkbox" class="task-box" checked><span>支持 ⌘K 全局命令面板（搜文档 / 切风格 / 专注模式）</span></li>
+            <li class="task-item done"><input type="checkbox" class="task-box" checked><span>支持所见即所得与 Markdown 源码视图一键切换</span></li>
+            <li class="task-item"><input type="checkbox" class="task-box"><span>接入 CRDT 增量同步与本地 IndexedDB 离线缓存</span></li>
+          </ul>
+          <h2>双向链接与语义跳转</h2>
+          <p>通过标准语法引用知识库内其他文档，例如 <span class="wikilink" data-jump="note-3">[[mcp-protocol-bridge]]</span> 或 <span class="wikilink" data-jump="note-4">[[design-tokens-matrix]]</span>，点击即可在当前画布无缝切换。</p>
+          <div class="code-card">
+            <div class="code-bar"><span>ts · optimistic-persist.ts</span><button class="copy-btn">copy</button></div>
+            <pre>export async function commitDelta(docId: string, patch: TextDelta) {
+  store.applyLocal(docId, patch);
+  return queueMicrotask(() =&gt; transport.send("/api/v2/notes/" + docId, patch));
+}</pre>
+          </div>
+          <blockquote>Less chrome, sharper typography, faster keyboard loops.</blockquote>
+        `
+      },
+      "note-2": {
+        title: "Local-First 离线同步机制",
+        path: ["01-architecture", "local-first-sync.md"],
+        meta: { status: "draft", updated: "2026-11-25", links: "1 backlink", tags: "#sync #crdt" },
+        body: `
+          <p>所有编辑操作优先写入内存与本地存储，服务端同步在后台静默队列中完成，确保任何网络波动下打字零延迟。</p>
+          <h2>冲突合并策略</h2>
+          <p>采用基于操作时间戳的增量合并，当远端通过 <span class="wikilink" data-jump="note-3">[[mcp-protocol-bridge]]</span> 修改文档时，前端局部平滑更新。</p>
+        `
+      },
+      "note-3": {
+        title: "MCP 协议与知识库协同",
+        path: ["01-architecture", "mcp-protocol-bridge.md"],
+        meta: { status: "stable", updated: "2026-11-24", links: "3 backlinks", tags: "#mcp #ai" },
+        body: `
+          <p>外部 AI 客户端通过 MCP 读取目录树与文档正文，辅助整理知识碎片并回写至对应文件夹。</p>
+          <div class="callout">
+            <div class="callout-head">PROTOCOL NOTE</div>
+            所有 AI 写入操作受账号 RBAC 权限约束，并保留完整的版本变更记录。
+          </div>
+        `
+      },
+      "note-4": {
+        title: "五套极客视觉 Token 矩阵",
+        path: ["02-interface", "design-tokens-matrix.md"],
+        meta: { status: "review", updated: "2026-11-26", links: "1 backlink", tags: "#tokens #ui" },
+        body: `
+          <p>按键盘数字键 <code>1</code>–<code>5</code> 或点击右上角分段器，即可在五种截然不同的顶级产品美学间即时切换：</p>
+          <table class="editor-table">
+            <thead>
+              <tr><th>Key</th><th>Theme</th><th>Reference</th><th>Character</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td>Linear 暗夜</td><td>Linear / Raycast</td><td>#0B0C0E 深炭底色 + 1px 半透线 + 顶部冷光</td></tr>
+              <tr><td>2</td><td>Geist 黑白</td><td>Vercel / Geist</td><td>纯黑白高对比 + 锐利 4px 圆角 + 零多余色相</td></tr>
+              <tr><td>3</td><td>建筑纸张</td><td>Anytype / Craft</td><td>浅灰底板托起纯白悬浮纸张，空间层次分明</td></tr>
+              <tr><td>4</td><td>Obsidian</td><td>Obsidian / Zed</td><td>极客双链暗影 + 紫罗兰微光点缀</td></tr>
+              <tr><td>5</td><td>iA 排版</td><td>iA Writer / Bear</td><td>暖米灰纸面 + 朱红光标强调 + 极致阅读专注</td></tr>
+            </tbody>
+          </table>
+        `
+      },
+      "note-5": {
+        title: "全局快捷键与操作流",
+        path: ["02-interface", "keyboard-shortcuts.md"],
+        meta: { status: "stable", updated: "2026-11-22", links: "0 backlinks", tags: "#keymap" },
+        body: `
+          <p>脱离鼠标的键盘流设计：</p>
+          <h3>常用组合</h3>
+          <p><code>⌘K</code> 打开全局命令面板 · <code>⌘B</code> 折叠/展开左侧目录 · <code>/</code> 在正文中插入结构块 · <code>1–5</code> 快速对比视觉风格。</p>
+        `
+      }
+    };
+
+    // =========================================================================
+    // DOM & 状态
+    // =========================================================================
+    const app = document.getElementById("app");
+    const mainArea = document.getElementById("mainArea");
+    const treeContainer = document.getElementById("treeContainer");
+    const breadcrumbs = document.getElementById("breadcrumbs");
+    const docTitle = document.getElementById("docTitle");
+    const frontmatter = document.getElementById("frontmatter");
+    const editorBody = document.getElementById("editorBody");
+    const sourceTextarea = document.getElementById("sourceTextarea");
+    const outlinePane = document.getElementById("outlinePane");
+    const outlineUl = document.getElementById("outlineUl");
+    const wordStats = document.getElementById("wordStats");
+    const saveState = document.getElementById("saveState");
+    const statusTheme = document.getElementById("statusTheme");
+    const cmdBackdrop = document.getElementById("cmdBackdrop");
+    const cmdInput = document.getElementById("cmdInput");
+    const cmdResults = document.getElementById("cmdResults");
+    const floatBar = document.getElementById("floatBar");
+    const slashMenu = document.getElementById("slashMenu");
+
+    let activeId = "note-1";
+
+    // =========================================================================
+    // 渲染目录树
+    // =========================================================================
+    function renderTree() {
+      treeContainer.innerHTML = `<div class="tree-section">Workspace / Notes</div>`;
+      const root = document.createElement("ul");
+      root.className = "tree-ul";
+
+      tree.forEach((folder) => {
+        const li = document.createElement("li");
+        const row = document.createElement("div");
+        row.className = "tree-row";
+        row.innerHTML = `
+          <span class="tree-arrow ${folder.open ? "open" : ""}">${SVG_CHEVRON}</span>
+          ${SVG_FOLDER}
+          <span class="tree-label">${folder.name}</span>
+        `;
+        row.onclick = () => {
+          folder.open = !folder.open;
+          renderTree();
+        };
+        li.appendChild(row);
+
+        const sub = document.createElement("ul");
+        sub.className = `tree-sub ${folder.open ? "" : "hidden"}`;
+        folder.children.forEach((doc) => {
+          const dLi = document.createElement("li");
+          const dRow = document.createElement("div");
+          dRow.className = `tree-row ${doc.id === activeId ? "active" : ""}`;
+          dRow.innerHTML = `
+            <span class="tree-arrow empty">${SVG_CHEVRON}</span>
+            ${SVG_FILE}
+            <span class="tree-label">${doc.name}</span>
+            <span class="tree-ext">${doc.ext}</span>
+          `;
+          dRow.onclick = () => openNote(doc.id);
+          dLi.appendChild(dRow);
+          sub.appendChild(dLi);
+        });
+        li.appendChild(sub);
+        root.appendChild(li);
+      });
+      treeContainer.appendChild(root);
+    }
+
+    // =========================================================================
+    // 打开、保存与同步大纲
+    // =========================================================================
+    function persist() {
+      const n = notes[activeId];
+      if (!n) return;
+      n.title = docTitle.textContent.trim() || "Untitled";
+      n.body = editorBody.innerHTML;
+    }
+
+    function openNote(id) {
+      if (!notes[id]) return;
+      persist();
+      activeId = id;
+      const n = notes[id];
+
+      docTitle.textContent = n.title;
+      editorBody.innerHTML = n.body;
+      sourceTextarea.value = htmlToSimpleMd(n.title, n.body);
+
+      frontmatter.innerHTML = `
+        <div class="fm-row"><span class="fm-key">status:</span><span class="fm-badge">${n.meta.status}</span></div>
+        <div class="fm-row"><span class="fm-key">updated:</span><span class="fm-val">${n.meta.updated}</span></div>
+        <div class="fm-row"><span class="fm-key">graph:</span><span class="fm-val">${n.meta.links}</span></div>
+        <div class="fm-row"><span class="fm-key">tags:</span><span class="fm-val">${n.meta.tags}</span></div>
+      `;
+
+      breadcrumbs.innerHTML = `
+        <span>vault</span><span>/</span>
+        <span>${n.path[0]}</span><span>/</span>
+        <span class="crumb-current">${n.path[1]}</span>
+      `;
+
+      renderTree();
+      refreshMeta();
+    }
+
+    function refreshMeta() {
+      const chars = (editorBody.innerText || "").replace(/\s+/g, "").length;
+      const mins = Math.max(1, Math.ceil(chars / 300));
+      wordStats.textContent = `${chars} chars · ${mins} min`;
+
+      const hs = editorBody.querySelectorAll("h2, h3");
+      outlineUl.innerHTML = hs.length
+        ? ""
+        : `<li class="outline-li" style="color:var(--text-muted);cursor:default;">No headings</li>`;
+      hs.forEach((h) => {
+        const li = document.createElement("li");
+        li.className = `outline-li ${h.tagName === "H3" ? "h3" : ""}`;
+        li.textContent = h.textContent.trim();
+        li.onclick = () => h.scrollIntoView({ behavior: "smooth", block: "start" });
+        outlineUl.appendChild(li);
+      });
+    }
+
+    function htmlToSimpleMd(title, html) {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      let out = `# ${title}\n\n`;
+      tmp.childNodes.forEach((node) => {
+        if (node.nodeType !== 1) return;
+        const tag = node.tagName;
+        if (tag === "H2") out += `## ${node.innerText.trim()}\n\n`;
+        else if (tag === "H3") out += `### ${node.innerText.trim()}\n\n`;
+        else if (tag === "BLOCKQUOTE") out += `> ${node.innerText.trim()}\n\n`;
+        else if (tag === "DIV" && node.classList.contains("code-card")) {
+          out += "```ts\n" + node.querySelector("pre").innerText + "\n```\n\n";
+        } else {
+          out += `${node.innerText.trim()}\n\n`;
+        }
+      });
+      return out.trim();
+    }
+
+    // =========================================================================
+    // 主题切换（按钮 + 1-5 快捷键）
+    // =========================================================================
+    function setTheme(themeId) {
+      document.documentElement.setAttribute("data-theme", themeId);
+      document.querySelectorAll(".theme-btn").forEach((b) => {
+        b.classList.toggle("active", b.dataset.theme === themeId);
+      });
+      statusTheme.textContent = `theme: ${themeId}`;
+    }
+
+    document.querySelectorAll(".theme-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+    });
+
+    // =========================================================================
+    // 工具栏交互：侧栏、源码、大纲、专注、拖拽宽度
+    // =========================================================================
+    const toggleSidebar = () => app.classList.toggle("sidebar-collapsed");
+    document.getElementById("collapseBtn").onclick = toggleSidebar;
+    document.getElementById("toggleSidebarBtn").onclick = toggleSidebar;
+
+    document.getElementById("outlineToggleBtn").onclick = (e) => {
+      outlinePane.classList.toggle("open");
+      e.currentTarget.classList.toggle("active");
+    };
+    document.getElementById("focusToggleBtn").onclick = (e) => {
+      app.classList.toggle("focus");
+      e.currentTarget.classList.toggle("active");
+    };
+    document.getElementById("sourceToggleBtn").onclick = (e) => {
+      mainArea.classList.toggle("source-mode");
+      e.currentTarget.classList.toggle("active");
+      if (mainArea.classList.contains("source-mode")) {
+        sourceTextarea.value = htmlToSimpleMd(docTitle.textContent, editorBody.innerHTML);
+      }
+    };
+
+    // 侧栏宽度拖拽
+    const resizer = document.getElementById("resizer");
+    let resizing = false;
+    resizer.onmousedown = () => { resizing = true; resizer.classList.add("dragging"); };
+    window.addEventListener("mousemove", (e) => {
+      if (!resizing) return;
+      const w = Math.min(400, Math.max(210, e.clientX));
+      document.documentElement.style.setProperty("--sidebar-w", `${w}px`);
+    });
+    window.addEventListener("mouseup", () => {
+      resizing = false;
+      resizer.classList.remove("dragging");
+    });
+
+    // 新建笔记
+    document.getElementById("newNoteBtn").onclick = () => {
+      const id = `note-${Date.now()}`;
+      const slug = `untitled-${Object.keys(notes).length + 1}`;
+      notes[id] = {
+        title: "Untitled Note",
+        path: ["01-architecture", `${slug}.md`],
+        meta: { status: "draft", updated: "2026-11-26", links: "0 backlinks", tags: "#draft" },
+        body: `<p>开始输入正文… 按 <code>/</code> 插入内容块，按 <code>⌘K</code> 呼出命令面板。</p>`
+      };
+      tree[0].open = true;
+      tree[0].children.unshift({ id, type: "doc", name: slug, ext: ".md" });
+      openNote(id);
+      docTitle.focus();
+    };
+
+    // =========================================================================
+    // 编辑器事件：自动保存、复选框、代码复制、双向链接
+    // =========================================================================
+    let timer = null;
+    function scheduleSave() {
+      saveState.textContent = "saving...";
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        persist();
+        refreshMeta();
+        saveState.textContent = "synced";
+      }, 280);
+    }
+    docTitle.addEventListener("input", scheduleSave);
+    editorBody.addEventListener("input", scheduleSave);
+
+    editorBody.addEventListener("click", (e) => {
+      if (e.target.classList.contains("task-box")) {
+        e.target.closest(".task-item")?.classList.toggle("done", e.target.checked);
+        scheduleSave();
+      }
+      const wiki = e.target.closest(".wikilink");
+      if (wiki?.dataset.jump) openNote(wiki.dataset.jump);
+      if (e.target.classList.contains("copy-btn")) {
+        const pre = e.target.closest(".code-card").querySelector("pre");
+        navigator.clipboard?.writeText(pre.innerText);
+        e.target.textContent = "copied";
+        setTimeout(() => (e.target.textContent = "copy"), 1200);
+      }
+    });
+
+    // =========================================================================
+    // ⌘K 命令面板
+    // =========================================================================
+    function renderCmd(q = "") {
+      const kw = q.trim().toLowerCase();
+      const items = [];
+
+      Object.entries(notes).forEach(([id, n]) => {
+        if (!kw || n.title.toLowerCase().includes(kw) || n.path[1].includes(kw)) {
+          items.push({ label: n.title, tag: n.path[1], act: () => openNote(id) });
+        }
+      });
+      THEME_LIST.forEach((t) => {
+        if (!kw || t.name.toLowerCase().includes(kw) || t.id.includes(kw)) {
+          items.push({ label: `切换风格: ${t.name}`, tag: `Key ${t.key}`, act: () => setTheme(t.id) });
+        }
+      });
+
+      cmdResults.innerHTML = "";
+      items.forEach((it, idx) => {
+        const div = document.createElement("div");
+        div.className = `cmd-item ${idx === 0 ? "selected" : ""}`;
+        div.innerHTML = `<span class="cmd-item-left">${it.label}</span><span class="cmd-tag">${it.tag}</span>`;
+        div.onclick = () => { it.act(); closeCmd(); };
+        cmdResults.appendChild(div);
+      });
+    }
+
+    function openCmd() {
+      cmdBackdrop.classList.add("open");
+      cmdInput.value = "";
+      renderCmd();
+      setTimeout(() => cmdInput.focus(), 20);
+    }
+    function closeCmd() { cmdBackdrop.classList.remove("open"); }
+
+    document.getElementById("openCmdBtn").onclick = openCmd;
+    cmdBackdrop.onclick = (e) => { if (e.target === cmdBackdrop) closeCmd(); };
+    cmdInput.oninput = (e) => renderCmd(e.target.value);
+
+    // 全局快捷键
+    window.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        cmdBackdrop.classList.contains("open") ? closeCmd() : openCmd();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleSidebar();
+      } else if (e.key === "Escape") {
+        closeCmd();
+        slashMenu.classList.remove("open");
+      } else if (
+        !e.metaKey && !e.ctrlKey && !e.altKey &&
+        document.activeElement !== docTitle &&
+        document.activeElement !== editorBody &&
+        document.activeElement !== cmdInput &&
+        document.activeElement !== sourceTextarea
+      ) {
+        const hit = THEME_LIST.find((t) => t.key === e.key);
+        if (hit) setTheme(hit.id);
+      }
+    });
+
+    // =========================================================================
+    // 选中浮条 & Slash 菜单
+    // =========================================================================
+    document.addEventListener("selectionchange", () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !editorBody.contains(sel.anchorNode)) {
+        floatBar.classList.remove("open");
+        return;
+      }
+      const rect = sel.getRangeAt(0).getBoundingClientRect();
+      if (rect.width > 0) {
+        floatBar.style.left = `${Math.max(12, rect.left + rect.width / 2 - 70)}px`;
+        floatBar.style.top = `${Math.max(10, rect.top - 40)}px`;
+        floatBar.classList.add("open");
+      }
+    });
+
+    floatBar.onmousedown = (e) => {
+      e.preventDefault();
+      const cmd = e.target.closest(".fmt-btn")?.dataset.cmd;
+      if (!cmd) return;
+      if (cmd === "code") document.execCommand("insertHTML", false, `<code>${window.getSelection()}</code>`);
+      else if (cmd === "h2") document.execCommand("formatBlock", false, "h2");
+      else document.execCommand(cmd, false, null);
+      floatBar.classList.remove("open");
+      scheduleSave();
+    };
+
+    editorBody.addEventListener("keyup", (e) => {
+      if (e.key === "/") {
+        const sel = window.getSelection();
+        if (sel.rangeCount) {
+          const r = sel.getRangeAt(0).getBoundingClientRect();
+          slashMenu.style.left = `${Math.min(window.innerWidth - 240, r.left)}px`;
+          slashMenu.style.top = `${Math.min(window.innerHeight - 180, r.bottom + 8)}px`;
+          slashMenu.classList.add("open");
+        }
+      }
+    });
+
+    slashMenu.onclick = (e) => {
+      const ins = e.target.closest(".slash-opt")?.dataset.ins;
+      if (!ins) return;
+      const map = {
+        h2: `<h2>新章节标题</h2><p>继续输入…</p>`,
+        callout: `<div class="callout"><div class="callout-head">NOTE</div>输入关键提示…</div><p></p>`,
+        todo: `<ul class="task-list"><li class="task-item"><input type="checkbox" class="task-box"><span>新待办事项</span></li></ul>`,
+        code: `<div class="code-card"><div class="code-bar"><span>ts</span><button class="copy-btn">copy</button></div><pre>// code here</pre></div><p></p>`
+      };
+      editorBody.focus();
+      document.execCommand("insertHTML", false, map[ins] || "");
+      slashMenu.classList.remove("open");
+      scheduleSave();
+    };
+
+    // =========================================================================
+    // MD 工具栏完整交互逻辑
+    // =========================================================================
+    const tbSourceBtn = document.getElementById("tbSourceBtn");
+    const tbPreviewBtn = document.getElementById("tbPreviewBtn");
+    const headingDropBtn = document.getElementById("headingDropBtn");
+    const headingMenu = document.getElementById("headingMenu");
+    const headingLabel = document.getElementById("headingLabel");
+    const tbFullscreenBtn = document.getElementById("tbFullscreenBtn");
+
+    function toggleSourceView() {
+      mainArea.classList.toggle("source-mode");
+      const isSrc = mainArea.classList.contains("source-mode");
+      document.getElementById("sourceToggleBtn").classList.toggle("active", isSrc);
+      tbSourceBtn.classList.toggle("active", isSrc);
+      if (isSrc) {
+        sourceTextarea.value = htmlToSimpleMd(docTitle.textContent, editorBody.innerHTML);
+      }
+    }
+    document.getElementById("sourceToggleBtn").onclick = toggleSourceView;
+    tbSourceBtn.onclick = toggleSourceView;
+
+    tbPreviewBtn.onclick = () => {
+      const isReadonly = editorBody.getAttribute("contenteditable") === "false";
+      editorBody.setAttribute("contenteditable", isReadonly ? "true" : "false");
+      tbPreviewBtn.classList.toggle("active", !isReadonly);
+      saveState.textContent = isReadonly ? "synced" : "readonly preview";
+    };
+
+    // 标题下拉
+    headingDropBtn.onclick = (e) => {
+      e.stopPropagation();
+      headingMenu.classList.toggle("open");
+    };
+    document.addEventListener("click", () => headingMenu.classList.remove("open"));
+    headingMenu.onclick = (e) => {
+      const item = e.target.closest(".md-drop-item");
+      if (!item) return;
+      const block = item.dataset.block;
+      headingLabel.textContent = block.toUpperCase();
+      editorBody.focus();
+      document.execCommand("formatBlock", false, block);
+      headingMenu.classList.remove("open");
+      scheduleSave();
+    };
+
+    // 工具栏常规格式化命令
+    document.getElementById("mdToolbar").addEventListener("mousedown", (e) => {
+      const cmdBtn = e.target.closest("[data-md-cmd]");
+      if (cmdBtn) {
+        e.preventDefault();
+        const cmd = cmdBtn.dataset.mdCmd;
+        editorBody.focus();
+        if (cmd === "highlight") {
+          const sel = window.getSelection().toString() || "重点标记";
+          document.execCommand("insertHTML", false, `<mark>${sel}</mark>`);
+        } else if (cmd === "inlineCode") {
+          const sel = window.getSelection().toString() || "code";
+          document.execCommand("insertHTML", false, `<code>${sel}</code>`);
+        } else {
+          document.execCommand(cmd, false, null);
+        }
+        scheduleSave();
+        return;
+      }
+
+      const insBtn = e.target.closest("[data-md-insert]");
+      if (insBtn) {
+        e.preventDefault();
+        const type = insBtn.dataset.mdInsert;
+        const snippets = {
+          todo: `<ul class="task-list"><li class="task-item"><input type="checkbox" class="task-box"><span>待办任务项</span></li></ul>`,
+          quote: `<blockquote>在这里输入引用或核心观点…</blockquote><p></p>`,
+          code: `<div class="code-card"><div class="code-bar"><span>ts</span><button class="copy-btn">copy</button></div><pre>// code snippet</pre></div><p></p>`,
+          link: `<span class="wikilink" data-jump="note-3">[[mcp-protocol-bridge]]</span> `,
+          image: `<div class="callout"><div class="callout-head">IMAGE · PLACEHOLDER</div>架构示意图 / 截图占位（支持拖拽或粘贴图片上传）</div><p></p>`,
+          table: `<table class="editor-table"><thead><tr><th>Column A</th><th>Column B</th><th>Column C</th></tr></thead><tbody><tr><td>Value 1</td><td>Value 2</td><td>Value 3</td></tr></tbody></table><p></p>`
+        };
+        editorBody.focus();
+        document.execCommand("insertHTML", false, snippets[type] || "");
+        scheduleSave();
+      }
+    });
+
+    // 循环切换主题、导出 .md、全屏专注
+    document.getElementById("tbCycleThemeBtn").onclick = () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      const idx = THEME_LIST.findIndex((t) => t.id === cur);
+      const next = THEME_LIST[(idx + 1) % THEME_LIST.length];
+      setTheme(next.id);
+    };
+
+    document.getElementById("tbExportMdBtn").onclick = () => {
+      const md = htmlToSimpleMd(docTitle.textContent, editorBody.innerHTML);
+      const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(docTitle.textContent || "note").trim()}.md`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+
+    tbFullscreenBtn.onclick = () => {
+      app.classList.toggle("focus");
+      const isFocus = app.classList.contains("focus");
+      document.getElementById("focusToggleBtn").classList.toggle("active", isFocus);
+    };
+
+    // 初始化
+    openNote(activeId);
+  </script>
+</body>
+</html>

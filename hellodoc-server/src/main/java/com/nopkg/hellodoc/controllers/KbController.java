@@ -37,16 +37,16 @@ public class KbController {
         record KbSummary(Long id, String title, String description, String icon, String color,
                         Long ownerId, String ownerName, String ownerAvatar, Boolean isPinned, Boolean isShared,
                         String lastModified,
-                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled, OffsetDateTime pinnedAt, Integer sortOrder,
+                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled, String editorTheme, OffsetDateTime pinnedAt, Integer sortOrder,
                         OffsetDateTime createdAt, String role) {
         }
 
         record CreateKbRequest(String title, String description, String color, String icon,
-                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled) {
+                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled, String editorTheme) {
         }
 
         record UpdateKbRequest(String title, String description, String color, String icon,
-                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled) {
+                        Boolean allowAnonymous, Visibility visibility, Boolean guestbookEnabled, String editorTheme) {
         }
 
         record PinRequest(Boolean pinned) {
@@ -119,7 +119,7 @@ public class KbController {
                                                         kb.getIcon(), kb.getColor(),
                                                         kb.getOwnerId(), ownerName, ownerAvatar, pinned, shared,
                                                         lastModified,
-                                                        kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(),
+                                                        kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), kb.getEditorTheme(),
                                                         pref != null ? pref.getPinnedAt() : null,
                                                         pref != null ? pref.getSortOrder() : null,
                                                         kb.getCreatedAt(), role);
@@ -166,6 +166,7 @@ public class KbController {
                 dto.setAllowAnonymous(request.allowAnonymous());
                 dto.setVisibility(request.visibility());
                 dto.setGuestbookEnabled(request.guestbookEnabled());
+                dto.setEditorTheme(request.editorTheme());
 
                 KbKnowledgeBase kb = kbService.createKnowledgeBase(userId, dto);
                 SysUser owner = kbService.loadUsersByIds(Set.of(userId)).get(userId);
@@ -174,7 +175,7 @@ public class KbController {
                 KbSummary summary = new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(), kb.getIcon(),
                                 kb.getColor(), kb.getOwnerId(), ownerName, ownerAvatar, false, false,
                                 Optional.ofNullable(kb.getUpdatedAt()).map(OffsetDateTime::toString).orElse(""),
-                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), null, null, kb.getCreatedAt(), "OWNER");
+                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), kb.getEditorTheme(), null, null, kb.getCreatedAt(), "OWNER");
                 return ApiResponse.success(summary);
         }
 
@@ -207,7 +208,7 @@ public class KbController {
                                 kb.getColor(), kb.getOwnerId(), ownerName, ownerAvatar,
                                 pref != null && Boolean.TRUE.equals(pref.getIsPinned()), shared,
                                 Optional.ofNullable(kb.getUpdatedAt()).map(OffsetDateTime::toString).orElse(""),
-                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(),
+                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), kb.getEditorTheme(),
                                 pref != null ? pref.getPinnedAt() : null,
                                 pref != null ? pref.getSortOrder() : null,
                                 kb.getCreatedAt(), role);
@@ -228,6 +229,7 @@ public class KbController {
                 dto.setAllowAnonymous(request.allowAnonymous());
                 dto.setVisibility(request.visibility());
                 dto.setGuestbookEnabled(request.guestbookEnabled());
+                dto.setEditorTheme(request.editorTheme());
 
                 KbKnowledgeBase kb = kbService.updateKnowledgeBase(userId, kbId, dto);
                 SysUser owner = kbService.loadUsersByIds(Set.of(kb.getOwnerId())).get(kb.getOwnerId());
@@ -246,7 +248,7 @@ public class KbController {
                 KbSummary summary = new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(), kb.getIcon(),
                                 kb.getColor(), kb.getOwnerId(), ownerName, ownerAvatar, false, shared,
                                 Optional.ofNullable(kb.getUpdatedAt()).map(OffsetDateTime::toString).orElse(""),
-                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), null, null, kb.getCreatedAt(), role);
+                                kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), kb.getEditorTheme(), null, null, kb.getCreatedAt(), role);
                 return ApiResponse.success(summary);
         }
 
@@ -280,7 +282,7 @@ public class KbController {
                                         return new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(),
                                                         kb.getIcon(), kb.getColor(),
                                                         kb.getOwnerId(), "", "", false, false, lastModified,
-                                                        kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), null, null,
+                                                        kb.getAllowAnonymous(), kb.getVisibility(), kb.getGuestbookEnabled(), kb.getEditorTheme(), null, null,
                                                         kb.getCreatedAt(), "OWNER");
                                 })
                                 .toList();

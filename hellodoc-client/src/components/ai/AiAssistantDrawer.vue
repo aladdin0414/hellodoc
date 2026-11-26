@@ -286,7 +286,7 @@ watch(() => props.visible, (val) => {
     >
       <aside
         v-if="visible"
-        class="fixed inset-y-0 right-0 z-50 w-full sm:w-[500px] md:w-[560px] bg-white dark:bg-[#161b22] shadow-2xl border-l border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden"
+        class="kb-ai-drawer fixed inset-y-0 right-0 z-50 w-full sm:w-[500px] md:w-[560px] bg-white dark:bg-[#161b22] shadow-2xl border-l border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden"
       >
         <!-- 抽屉头部 -->
         <div class="h-16 px-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between flex-shrink-0 bg-gray-50/80 dark:bg-gray-800/40 backdrop-blur-sm">

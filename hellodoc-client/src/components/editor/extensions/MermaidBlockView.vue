@@ -42,14 +42,37 @@ const isEditable = computed(() => props.editor.isEditable)
 
 // 初始化 mermaid（仅设置一次）
 let mermaidInitialized = false
+const getMermaidThemeOptions = () => {
+    const editorTheme = document.querySelector('[data-editor-theme]')?.getAttribute('data-editor-theme')
+    if (editorTheme === 'geist') {
+        return {
+            theme: 'base' as const,
+            themeVariables: {
+                primaryColor: '#FAFAFA',
+                primaryTextColor: '#09090B',
+                primaryBorderColor: '#18181B',
+                lineColor: '#52525B',
+                secondaryColor: '#F4F4F5',
+                tertiaryColor: '#FFFFFF',
+                edgeLabelBackground: '#FAFAFA',
+                clusterBkg: '#F4F4F5',
+                clusterBorder: '#E4E4E7',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "PingFang SC", sans-serif',
+            },
+        }
+    }
+    const isDark = document.documentElement.classList.contains('dark')
+    return {
+        theme: (isDark ? 'dark' : 'default') as 'dark' | 'default',
+    }
+}
+
 const initMermaid = () => {
     if (mermaidInitialized) return
     try {
-        // 检测暗色模式
-        const isDark = document.documentElement.classList.contains('dark')
         mermaid.initialize({
             startOnLoad: false,
-            theme: isDark ? 'dark' : 'default',
+            ...getMermaidThemeOptions(),
             securityLevel: 'loose',
             suppressErrorRendering: true,
             flowchart: { useMaxWidth: true, htmlLabels: true },
@@ -145,12 +168,11 @@ watch(
 
 // 监听暗色模式变化
 const observer = new MutationObserver(() => {
-    const isDark = document.documentElement.classList.contains('dark')
     mermaidInitialized = false
     try {
         mermaid.initialize({
             startOnLoad: false,
-            theme: isDark ? 'dark' : 'default',
+            ...getMermaidThemeOptions(),
             securityLevel: 'loose',
             suppressErrorRendering: true,
             flowchart: { useMaxWidth: true, htmlLabels: true },

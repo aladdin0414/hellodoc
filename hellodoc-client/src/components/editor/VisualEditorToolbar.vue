@@ -399,7 +399,7 @@ defineExpose({ closeDropdowns })
         </template>
 
         <div class="toolbar-group flex shrink-0 gap-0.5 px-2">
-            <div class="relative" v-if="!isPlainTextMode && (showPaperColorButton ?? true)">
+            <div class="relative" v-if="!isPlainTextMode && (showPaperColorButton ?? false)">
                 <button
                     ref="paperButtonRef"
                     @click="openPaperColorPicker"

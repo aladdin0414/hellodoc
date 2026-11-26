@@ -39,7 +39,7 @@ public class PublicKbController {
 
         public record KbSummary(Long id, String title, String description, String icon, String color,
                         Long ownerId, String ownerName, String ownerAvatar, String lastModified,
-                        Visibility visibility, Boolean guestbookEnabled, OffsetDateTime createdAt) {
+                        Visibility visibility, Boolean guestbookEnabled, String editorTheme, OffsetDateTime createdAt) {
         }
 
         public record KbDocItem(Long id, String name, String type, Long parentId, Integer orderNum, String status,
@@ -67,7 +67,7 @@ public class PublicKbController {
 
                 KbSummary summary = new KbSummary(kb.getId(), kb.getTitle(), kb.getDescription(), kb.getIcon(),
                                 kb.getColor(), kb.getOwnerId(), ownerName, ownerAvatar, lastModified,
-                                kb.getVisibility(), kb.getGuestbookEnabled(), kb.getCreatedAt());
+                                kb.getVisibility(), kb.getGuestbookEnabled(), kb.getEditorTheme(), kb.getCreatedAt());
                 return ApiResponse.success(summary);
         }
 

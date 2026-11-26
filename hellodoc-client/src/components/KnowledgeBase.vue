@@ -31,6 +31,7 @@ interface KbSummary {
     description: string
     icon: string | null
     color?: string
+    editorTheme?: string
     ownerId: number
     ownerName: string
     isPinned: boolean
@@ -145,6 +146,7 @@ type KbUpsertModel = {
     icon?: string
     visibility?: string
     guestbookEnabled?: boolean
+    editorTheme?: string
 }
 
 const HOME_WIDGET_SETTINGS_KEY = 'homeWidgetSettings'
@@ -455,7 +457,8 @@ const resetUpsertKb = () => {
         description: '',
         color: colors[0]?.value,
         visibility: 'private',
-        guestbookEnabled: true
+        guestbookEnabled: true,
+        editorTheme: 'default'
     }
 }
 
@@ -467,7 +470,8 @@ const openCreateModal = () => {
 const openEditModal = (kb: KbSummary) => {
     upsertKb.value = {
         ...kb,
-        icon: kb.icon ?? undefined
+        icon: kb.icon ?? undefined,
+        editorTheme: kb.editorTheme || 'default'
     }
     showEditModal.value = true
 }
@@ -485,7 +489,8 @@ const handleCreate = async () => {
             color: upsertKb.value.color,
             icon: upsertKb.value.icon,
             visibility: upsertKb.value.visibility,
-            guestbookEnabled: upsertKb.value.guestbookEnabled
+            guestbookEnabled: upsertKb.value.guestbookEnabled,
+            editorTheme: upsertKb.value.editorTheme || 'default'
         })
         showCreateModal.value = false
         resetUpsertKb()
@@ -512,7 +517,8 @@ const handleUpdate = async () => {
             color: upsertKb.value.color,
             icon: upsertKb.value.icon,
             visibility: upsertKb.value.visibility,
-            guestbookEnabled: upsertKb.value.guestbookEnabled
+            guestbookEnabled: upsertKb.value.guestbookEnabled,
+            editorTheme: upsertKb.value.editorTheme || 'default'
         })
         showEditModal.value = false
         resetUpsertKb()

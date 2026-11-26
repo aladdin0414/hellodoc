@@ -70,7 +70,7 @@ onUnmounted(() => {
 
 <template>
     <div
-        class="h-16 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#1e1e1e] z-20">
+        class="doc-editor-header h-16 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-[#1e1e1e] z-20">
         <div class="flex-1 min-w-0 mr-4 flex items-center">
             <button @click="emit('toggleSidebar')"
                 class="p-1.5 mr-1 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-slate-50 dark:hover:bg-gray-700 transition-all border border-transparent hover:border-slate-200 dark:hover:border-gray-600"

@@ -1,3 +1,5 @@
+import type { KbEditorTheme } from '../constants/editorThemes'
+
 export interface KnowledgeBase {
     id: number
     title: string
@@ -10,6 +12,8 @@ export interface KnowledgeBase {
     isShared: boolean
     lastModified: string
     visibility: 'public' | 'private' | string
+    guestbookEnabled?: boolean
+    editorTheme?: KbEditorTheme | string
     ownerAvatar?: string
     role?: string
     isPinned: boolean
@@ -36,4 +40,5 @@ export interface CreateKbInput {
     color?: string
     visibility?: string
     guestbookEnabled?: boolean
+    editorTheme?: KbEditorTheme | string
 }

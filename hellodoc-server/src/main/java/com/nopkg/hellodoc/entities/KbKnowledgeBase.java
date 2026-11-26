@@ -45,6 +45,12 @@ public class KbKnowledgeBase {
     @Column(name = "guestbook_enabled", nullable = false)
     private Boolean guestbookEnabled = true;
 
+    @NotNull
+    @Size(max = 32)
+    @ColumnDefault("'default'")
+    @Column(name = "editor_theme", nullable = false, length = 32)
+    private String editorTheme = "default";
+
     @ColumnDefault("false")
     @Column(name = "allow_anonymous")
     private Boolean allowAnonymous;

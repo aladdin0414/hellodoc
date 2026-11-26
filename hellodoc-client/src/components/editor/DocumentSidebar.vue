@@ -42,7 +42,7 @@ const props = defineProps<{
     isMobile: boolean
     sidebarWidth: number
     isResizingSidebar: boolean
-    kbDetail: { title?: string; color?: string; icon?: string | null } | null
+    kbDetail: { title?: string; color?: string; icon?: string | null; editorTheme?: string } | null
     showKbDropdown: boolean
     editableKbs: KbLike[]
     kbId: number
@@ -190,9 +190,12 @@ const getKbIcon = (iconName?: string | null) => {
     <div v-show="visible"
         @dragover.prevent="emit('containerDragOver', $event)"
         @drop.prevent="emit('containerDrop', $event)"
-        :class="isMobile
-            ? 'fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-[#161b22] border-r border-slate-200 dark:border-slate-800'
-            : 'flex-shrink-0 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-[#161b22] relative group/sidebar'"
+        :class="[
+            'doc-sidebar',
+            isMobile
+                ? 'fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-[#161b22] border-r border-slate-200 dark:border-slate-800'
+                : 'flex-shrink-0 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-[#161b22] relative group/sidebar'
+        ]"
         :style="isMobile ? { width: '85vw' } : { width: sidebarWidth + 'px' }">
         <div v-if="!isMobile"
             class="absolute top-0 right-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-300 z-50 transition-colors opacity-0 group-hover/sidebar:opacity-100"
@@ -274,6 +277,9 @@ const getKbIcon = (iconName?: string | null) => {
 
         <div class="flex-1 overflow-y-auto py-2 px-3 scrollbar-subtle" @click="emit('clearSelection')"
             @dragover.prevent="emit('containerDragOver', $event)" @drop.prevent="emit('containerDrop', $event)">
+            <div v-if="kbDetail?.editorTheme && kbDetail.editorTheme !== 'default'" class="kb-sidebar-section-label">
+                Workspace / Notes
+            </div>
             <div v-if="loading" class="flex justify-center py-8">
                 <div class="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent"></div>
             </div>
@@ -412,7 +418,7 @@ const getKbIcon = (iconName?: string | null) => {
         </div>
 
         <div
-            class="px-4 py-2.5 border-t border-slate-200/50 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#161b22] shrink-0 z-10">
+            class="doc-sidebar-footer px-4 py-2.5 border-t border-slate-200/50 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#161b22] shrink-0 z-10">
             <button @click="emit('goHome')"
                 class="text-slate-500 dark:text-gray-400 hover:text-indigo-600 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700 transition-all hover:-translate-x-0.5 flex items-center space-x-2"
                 :title="t('editor.backHome')">
