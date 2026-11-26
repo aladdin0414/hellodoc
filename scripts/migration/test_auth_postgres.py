@@ -26,6 +26,20 @@ def main(test):
             subprocess.run(["go", "test", "-count=1", "-v", "./internal/auth", "-run", f"^{test}$"],
                            check=True, cwd=ROOT / "hellodoc-go", env=env)
 
+        if test == "TestLoginPersistence":
+            sql("GRANT INSERT, SELECT ON sys_refresh_token, sys_login_log TO store_reader; "
+                "GRANT USAGE ON sys_refresh_token_id_seq, sys_login_log_id_seq TO store_reader")
+            env["AUTH_ACCOUNT_PASSWORD"] = target.account_password
+            env["AUTH_LOOKUP_PHASE"] = "initial"
+            check()
+            sql("REVOKE INSERT ON sys_login_log FROM store_reader")
+            env["AUTH_LOOKUP_PHASE"] = "roles"
+            check()
+            sql("UPDATE sys_user SET status = 2 WHERE id = " + str(target.user_id))
+            env["AUTH_LOOKUP_PHASE"] = "updated"
+            check()
+            return
+
         sql("""
             INSERT INTO sys_user(id, status) VALUES (-41, NULL);
             INSERT INTO sys_user_auth(id, user_id, identity_type, identifier, credential, status, verified)
@@ -60,5 +74,5 @@ def main(test):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("test", nargs="?", choices=["TestLookupPasswordAccount", "TestBearerReloadAccount"], default="TestLookupPasswordAccount")
+    parser.add_argument("test", nargs="?", choices=["TestLookupPasswordAccount", "TestBearerReloadAccount", "TestLoginPersistence"], default="TestLookupPasswordAccount")
     main(parser.parse_args().test)

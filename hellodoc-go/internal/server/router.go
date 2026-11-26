@@ -59,7 +59,10 @@ func NewRouterWithAuth(version string, now func() time.Time, svc *auth.Service) 
 		}
 	})
 	if svc != nil {
-		content = svc.Bearer(content)
+		routes := http.NewServeMux()
+		routes.Handle("/api/system/info", content)
+		svc.RegisterRoutes(routes)
+		content = svc.Bearer(routes)
 	}
 	serveInfo := func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -85,6 +88,7 @@ func NewRouterWithAuth(version string, now func() time.Time, svc *auth.Service) 
 	}
 	if svc != nil {
 		mux.HandleFunc("/api/system/info", serveInfo)
+		mux.HandleFunc("/api/auth/", serveInfo)
 		return mux
 	}
 	for _, method := range []string{http.MethodGet, http.MethodOptions, http.MethodPost} {
