@@ -688,6 +688,8 @@ const handleExport = async () => {
 
 const moreMenuRef = ref<HTMLElement | null>(null)
 const moreMenuOpen = ref(false)
+const mobileMoreMenuRef = ref<HTMLElement | null>(null)
+const mobileMoreMenuOpen = ref(false)
 
 const handleExportCurrentDoc = async () => {
     if (!currentDoc.value) return
@@ -703,6 +705,7 @@ const handleExportCurrentDoc = async () => {
 
 const openShareModal = () => {
     moreMenuOpen.value = false
+    mobileMoreMenuOpen.value = false
     sharePopover.value = true
 }
 
@@ -710,6 +713,9 @@ const handleGlobalClick = (e: MouseEvent) => {
     closeContextMenu()
     if (moreMenuOpen.value && moreMenuRef.value && !moreMenuRef.value.contains(e.target as Node)) {
         moreMenuOpen.value = false
+    }
+    if (mobileMoreMenuOpen.value && mobileMoreMenuRef.value && !mobileMoreMenuRef.value.contains(e.target as Node)) {
+        mobileMoreMenuOpen.value = false
     }
 }
 
@@ -927,27 +933,94 @@ watch(sharePopover, (newVal) => {
 
         <!-- 移动端顶部顶栏 (吸顶) -->
         <header v-if="isMobile && !isStandalone" class="h-14 border-b border-slate-200/80 dark:border-zinc-800 flex items-center justify-between px-4 bg-white/80 dark:bg-[#0f1117]/80 backdrop-blur-md z-30 shrink-0">
-            <div class="flex items-center gap-3 min-w-0">
-                <template v-if="kbDetail">
-                    <div class="kb-icon-shell kb-icon-shell--sm shrink-0" :style="getIconBgStyle(kbDetail?.color)">
-                        <template v-if="getKbIcon(kbDetail?.icon)">
-                            <img v-if="getKbIcon(kbDetail?.icon)?.type === 'image'" :src="String(getKbIcon(kbDetail?.icon)?.value)" class="kb-icon-glyph kb-icon-glyph--sm object-cover rounded" alt="kb-icon" />
-                            <component v-else :is="getKbIcon(kbDetail?.icon)?.value" class="kb-icon-glyph kb-icon-glyph--sm" :style="getIconStyle(kbDetail?.color)" />
-                        </template>
-                        <component v-else :is="(Icons as any).Book" class="kb-icon-glyph kb-icon-glyph--sm" :style="getIconStyle(kbDetail?.color)" />
-                    </div>
-                </template>
+            <div class="flex items-center gap-2 min-w-0">
+                <button
+                    @click="isMobileDrawerOpen = true"
+                    class="p-2 -ml-2 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors shrink-0"
+                    :aria-label="t('kbView.doc.catalog')"
+                    :title="t('kbView.doc.catalog')"
+                >
+                    <Icons.Menu class="w-5 h-5" />
+                </button>
                 <span class="font-semibold text-sm truncate">{{ kbDetail?.title || t('kbView.doc.loadingTitle') }}</span>
             </div>
 
-            <div class="flex items-center gap-1.5 shrink-0">
-                <button @click="toggleTheme" class="p-2 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 rounded-lg">
-                    <Icons.Sun v-if="isDark" class="w-4 h-4" />
-                    <Icons.Moon v-else class="w-4 h-4" />
+            <div class="relative shrink-0" ref="mobileMoreMenuRef">
+                <button
+                    @click.stop="mobileMoreMenuOpen = !mobileMoreMenuOpen"
+                    class="p-2 -mr-2 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    :aria-label="t('aiDrawer.moreActions')"
+                    :title="t('aiDrawer.moreActions')"
+                >
+                    <Icons.MoreHorizontal class="w-5 h-5" />
                 </button>
-                <button @click="isMobileDrawerOpen = true" class="p-2 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg" :aria-label="t('aiDrawer.openMenu')">
-                    <Icons.Menu class="w-5 h-5" />
-                </button>
+
+                <!-- 移动端顶部栏 ... 下拉菜单 -->
+                <div
+                    v-if="mobileMoreMenuOpen"
+                    class="absolute right-0 mt-1.5 w-44 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-slate-200/80 dark:border-zinc-800 py-1 z-40 text-xs text-slate-700 dark:text-zinc-300 divide-y divide-slate-100 dark:divide-zinc-800/60"
+                >
+                    <div class="py-1">
+                        <!-- 回到首页 -->
+                        <button
+                            @click.stop="router.push('/'); mobileMoreMenuOpen = false"
+                            class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors"
+                        >
+                            <Icons.Home class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                            <span>{{ t('kbView.nav.backHome') }}</span>
+                        </button>
+
+                        <!-- 切换主题风格 -->
+                        <button
+                            @click.stop="toggleTheme(); mobileMoreMenuOpen = false"
+                            class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors"
+                        >
+                            <Icons.Sun v-if="isDark" class="w-3.5 h-3.5 text-amber-500" />
+                            <Icons.Moon v-else class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                            <span>{{ isDark ? t('kbView.nav.lightMode') : t('kbView.nav.darkMode') }}</span>
+                        </button>
+
+                        <!-- 编辑 -->
+                        <button
+                            v-if="canEdit && currentDoc"
+                            @click.stop="handleEdit(); mobileMoreMenuOpen = false"
+                            class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors"
+                        >
+                            <Icons.Edit3 class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                            <span>{{ t('kbView.doc.editTooltip') }}</span>
+                        </button>
+
+                        <!-- 收藏 -->
+                        <button
+                            v-if="isLoggedIn && currentDoc"
+                            @click.stop="handleToggleFavorite(); mobileMoreMenuOpen = false"
+                            class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors"
+                        >
+                            <Icons.Star class="w-3.5 h-3.5" :class="isFavorite ? 'text-amber-500 fill-amber-500' : 'text-slate-400 dark:text-zinc-500'" />
+                            <span>{{ isFavorite ? t('kbView.favorite.tooltipRemove') : t('kbView.favorite.tooltipAdd') }}</span>
+                        </button>
+                    </div>
+
+                    <div v-if="currentDoc" class="py-1">
+                        <!-- 分享 -->
+                        <button
+                            @click.stop="openShareModal"
+                            class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors"
+                        >
+                            <Icons.Share2 class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                            <span>{{ t('kbView.share.title') }}</span>
+                        </button>
+
+                        <!-- 导出 ZIP -->
+                        <button
+                            @click.stop="handleExportCurrentDoc(); mobileMoreMenuOpen = false"
+                            class="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors"
+                        >
+                            <Icons.Download class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                            <span>{{ t('kbView.export.button') }}</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -989,7 +1062,7 @@ watch(sharePopover, (newVal) => {
                         </span>
                     </router-link>
 
-                    <!-- 收起侧边栏按钮 (Desktop) / 关闭按钮 (Mobile) -->
+                    <!-- 收起侧边栏按钮 (仅 Desktop 显示) -->
                     <button
                         v-if="!isMobile"
                         @click="isSidebarCollapsed = true"
@@ -997,13 +1070,6 @@ watch(sharePopover, (newVal) => {
                         :title="t('kbView.doc.collapseSidebar', '收起侧边栏')"
                     >
                         <Icons.PanelLeftClose class="w-4 h-4" />
-                    </button>
-                    <button
-                        v-else
-                        @click="isMobileDrawerOpen = false"
-                        class="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800 rounded-md transition-colors"
-                    >
-                        <Icons.X class="w-4 h-4" />
                     </button>
                 </div>
 
@@ -1085,8 +1151,8 @@ watch(sharePopover, (newVal) => {
                     </div>
                 </div>
 
-                <!-- 侧边栏底部工具栏 -->
-                <div class="h-12 px-3 border-t border-slate-200/70 dark:border-zinc-800/70 flex items-center justify-between shrink-0 text-slate-500 dark:text-zinc-400 text-xs">
+                <!-- 侧边栏底部工具栏（仅桌面端显示，移动端已集成至顶部 ... 菜单） -->
+                <div v-if="!isMobile" class="h-12 px-3 border-t border-slate-200/70 dark:border-zinc-800/70 flex items-center justify-between shrink-0 text-slate-500 dark:text-zinc-400 text-xs">
                     <router-link
                         to="/"
                         class="inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
@@ -1120,8 +1186,8 @@ watch(sharePopover, (newVal) => {
                     <Icons.PanelLeft class="w-4 h-4" />
                 </button>
 
-                <!-- 页面最右上角 ... 更多操作按钮 -->
-                <div v-if="!isStandalone && currentDoc" class="absolute top-4 right-6 z-30" ref="moreMenuRef">
+                <!-- 页面最右上角 ... 更多操作按钮（仅桌面端显示，移动端已集成至顶栏） -->
+                <div v-if="!isMobile && !isStandalone && currentDoc" class="absolute top-4 right-6 z-30" ref="moreMenuRef">
                     <button
                         @click.stop="moreMenuOpen = !moreMenuOpen"
                         class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xs border border-slate-200/60 dark:border-zinc-800 shadow-2xs"
