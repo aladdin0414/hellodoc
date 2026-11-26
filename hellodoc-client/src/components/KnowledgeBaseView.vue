@@ -1255,9 +1255,9 @@ watch(sharePopover, (newVal) => {
                             </footer>
 
                             <!-- 留言讨论评论区 -->
-                            <div class="mt-8">
+                            <div v-if="isGuestbookEnabled && currentDoc?.id" class="mt-8">
                                 <KbCommentSection
-                                    :doc-id="currentDoc?.id"
+                                    :doc-id="currentDoc.id"
                                     :current-user-id="currentUserId"
                                     :current-user="currentUser"
                                     :is-guestbook-enabled="isGuestbookEnabled"

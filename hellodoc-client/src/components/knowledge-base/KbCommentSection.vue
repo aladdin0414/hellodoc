@@ -22,7 +22,7 @@ const replyContent = ref('')
 const commentLoading = ref(false)
 
 const fetchComments = async () => {
-    if (!props.docId) return
+    if (!props.docId || !props.isGuestbookEnabled || !props.isLoggedIn) return
     try {
         const res: any = await getComments(props.docId)
         comments.value = res
@@ -31,13 +31,17 @@ const fetchComments = async () => {
     }
 }
 
-watch(() => props.docId, (newDocId) => {
-    if (newDocId) {
-        fetchComments()
-    } else {
-        comments.value = []
-    }
-}, { immediate: true })
+watch(
+    () => [props.docId, props.isGuestbookEnabled, props.isLoggedIn] as const,
+    ([newDocId, guestbookEnabled, loggedIn]) => {
+        if (newDocId && guestbookEnabled && loggedIn) {
+            fetchComments()
+        } else {
+            comments.value = []
+        }
+    },
+    { immediate: true }
+)
 
 const handleAddComment = async () => {
     if (!newComment.value.trim() || !props.docId) return

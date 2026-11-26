@@ -100,8 +100,9 @@ request.interceptors.response.use(
             const msg = resolveErrorMessage(res.code, res.message)
             message.error(msg)
 
-            // 如果后端返回 Token 失效/错误码，自动清除 Token 并重定向至登录页
-            if (res.code === 1005 || res.code === 1006 || res.code === 401 || res.code === 403) {
+            // 如果后端返回 Token 失效/未认证错误码，自动清除 Token 并重定向至登录页
+            // 注意：res.code === 403 表示业务无权限（NO_PERMISSION），不代表 Token 失效，不应清理登录态或强制跳转
+            if (res.code === 1005 || res.code === 1006 || res.code === 401) {
                 clearAuthTokens()
                 const loginPath = window.location.pathname.startsWith('/m') ? '/m/login' : '/login'
                 if (!window.location.pathname.includes('/login')) {
@@ -119,6 +120,12 @@ request.interceptors.response.use(
         
         // 当返回 401 或 403 拒绝访问时处理 Token 失效
         if ((response?.status === 401 || response?.status === 403) && !config._retry) {
+            const isPublicViewPage = window.location.pathname === '/view' || window.location.pathname.startsWith('/view/')
+            // 公开浏览页收到 403 时，不清除凭据也不强制跳登录，交由页面自身处理或降级
+            if (response?.status === 403 && isPublicViewPage) {
+                return Promise.reject(error)
+            }
+
             if (response?.status === 401) {
                 if (isRefreshing) {
                     return new Promise(resolve => {
