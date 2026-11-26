@@ -58,6 +58,17 @@ func TestBearerConfiguredSystemInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer svc.Store.DB.Close()
+	t.Run("JDBC SSL requires encryption", func(t *testing.T) {
+		var serverSSL string
+		if err := svc.Store.DB.QueryRowContext(t.Context(), "show ssl").Scan(&serverSSL); err != nil || serverSSL != "off" {
+			t.Fatal("expected plaintext fixture")
+		}
+		t.Setenv("DB_URL", strings.Replace(os.Getenv("DB_URL"), "sslmode=disable", "ssl=true", 1))
+		if insecure, err := configuredAuth(); err == nil {
+			insecure.Store.DB.Close()
+			t.Fatal("JDBC ssl=true fell back to plaintext")
+		}
+	})
 	for _, name := range []string{"URL", "USERNAME", "PASSWORD"} {
 		t.Setenv("SPRING_DATASOURCE_"+name, os.Getenv("DB_"+name))
 		if err := os.Unsetenv("DB_" + name); err != nil {
@@ -130,6 +141,82 @@ func TestDatabaseDSNEscaping(t *testing.T) {
 		params := cfg.RuntimeParams
 		if params["search_path"] != "tenant, public" || params["options"] != "-c statement_timeout=1000" || params["application_name"] != tc.want {
 			t.Errorf("schema %q, options %q, app %q", params["search_path"], params["options"], params["application_name"])
+		}
+	}
+}
+
+func TestDatabaseDSNQueryOrder(t *testing.T) {
+	t.Setenv("DB_USERNAME", "fixture")
+	t.Setenv("DB_PASSWORD", "fixture")
+	for _, prefix := range []string{"jdbc:", ""} {
+		for _, tc := range []struct {
+			query      string
+			tls        bool
+			db, schema string
+		}{
+			{"sslmode=disable&ssl=true&dbname=first&database=second&currentSchema=old&search_path=new", true, "second", "new"},
+			{"ssl=true&sslmode=disable&database=first&dbname=second&search_path=old&currentSchema=new", false, "second", "new"},
+			{"sslmode=require&sslmode=disable&database=old&database=new&currentSchema=old&currentSchema=tenant%2C%20public", false, "new", "tenant, public"},
+		} {
+			t.Setenv("DB_URL", prefix+"postgresql://127.0.0.1/fixture?"+tc.query)
+			dsn, err := databaseDSN()
+			if err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := pgx.ParseConfig(dsn)
+			if err != nil {
+				t.Fatal("pgx parse failed")
+			}
+			wantTLS := tc.tls
+			if prefix == "jdbc:" && strings.Contains(tc.query, "sslmode=disable") {
+				wantTLS = false
+			}
+			if (cfg.TLSConfig != nil) != wantTLS || cfg.Database != tc.db || cfg.RuntimeParams["search_path"] != tc.schema {
+				t.Errorf("input %q %q yielded tls=%t database=%q schema=%q", prefix, tc.query, cfg.TLSConfig != nil, cfg.Database, cfg.RuntimeParams["search_path"])
+			}
+		}
+	}
+}
+
+func TestJDBCSSLPolicy(t *testing.T) {
+	t.Setenv("DB_USERNAME", "fixture")
+	t.Setenv("DB_PASSWORD", "fixture")
+	for _, tc := range []struct {
+		query                     string
+		verify, disabled, invalid bool
+	}{
+		{"ssl=true", true, false, false}, {"ssl", true, false, false}, {"ssl=TRUE", true, false, false},
+		{"ssl=false&ssl=true", true, false, false},
+		{"sslmode=verify-full&ssl=true", true, false, false}, {"ssl=true&sslmode=VERIFY-FULL", true, false, false},
+		{"ssl=true&sslmode=disable", false, true, false}, {"sslmode=disable&ssl=true", false, true, false},
+		{"sslmode=", false, false, true}, {"sslmode=unsupported", false, false, true}, {"ssl=true&%73slmode=disable", false, false, true},
+	} {
+		t.Setenv("DB_URL", "jdbc:postgresql://127.0.0.1/fixture?"+tc.query)
+		dsn, err := databaseDSN()
+		if err != nil && tc.invalid {
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := pgx.ParseConfig(dsn)
+		if tc.invalid {
+			if err == nil {
+				t.Errorf("%s accepted invalid mode", tc.query)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatal("pgx parse failed")
+		}
+		if tc.disabled {
+			if cfg.TLSConfig != nil {
+				t.Errorf("%s TLS still enabled", tc.query)
+			}
+			continue
+		}
+		if tc.verify && (cfg.TLSConfig == nil || cfg.TLSConfig.InsecureSkipVerify || cfg.TLSConfig.ServerName != "127.0.0.1" || len(cfg.Fallbacks) != 0) {
+			t.Errorf("%s lost full server verification", tc.query)
 		}
 	}
 }

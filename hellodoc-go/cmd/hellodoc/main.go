@@ -34,23 +34,65 @@ func databaseDSN() (string, error) {
 	if err != nil || dsn.Scheme != "postgresql" || dsn.Hostname() == "" || len(dsn.Path) < 2 || username == "" || password == "" {
 		return "", errors.New("authentication requires a PostgreSQL DB_URL, DB_USERNAME and DB_PASSWORD")
 	}
-	rawQuery := dsn.RawQuery
-	// JDBC uses form decoding, whereas libpq treats an unescaped plus literally.
-	if !jdbc {
-		rawQuery = strings.ReplaceAll(rawQuery, "+", "%2B")
+	// pgx applies aliases and duplicates in URL order, including ssl / sslmode.
+	// Keep each entry in place when translating the JDBC property spelling.
+	var pairs []string
+	var ssl, sslMode string
+	var hasSSL, hasMode bool
+	for pair := range strings.SplitSeq(dsn.RawQuery, "&") {
+		if pair == "" && jdbc {
+			continue
+		}
+		key, value, found := strings.Cut(pair, "=")
+		name, err := url.PathUnescape(key)
+		// JDBC leaves property names literal, but pgx decodes them. Reject
+		// ambiguous encodings that could introduce a different connection option.
+		if err != nil || (jdbc && name != key) {
+			return "", errors.New("invalid authentication database URL parameters")
+		}
+		if name == "currentSchema" {
+			key = "search_path"
+		}
+		if jdbc {
+			// JDBC form-decodes values. libpq uses percent decoding and reserves raw '='.
+			value, err = url.QueryUnescape(value)
+			if err != nil {
+				return "", errors.New("invalid authentication database URL parameters")
+			}
+			switch name {
+			case "ssl":
+				ssl, hasSSL = value, true
+				continue
+			case "sslmode":
+				sslMode, hasMode = strings.ToLower(value), true
+				continue
+			}
+			value = strings.ReplaceAll(url.QueryEscape(value), "+", "%20")
+			found = true
+		}
+		if found {
+			pair = key + "=" + value
+		}
+		pairs = append(pairs, pair)
 	}
-	query, err := url.ParseQuery(rawQuery)
-	if err != nil {
-		return "", errors.New("invalid authentication database URL parameters")
+	// pgjdbc SslMode.of gives an explicit sslmode priority over ssl in either
+	// order. Its ssl=true (and bare ssl) requires hostname and certificate checks.
+	if hasMode {
+		switch sslMode {
+		case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
+		default:
+			return "", errors.New("invalid authentication database sslmode")
+		}
+	} else if hasSSL {
+		sslMode = "prefer"
+		if ssl == "" || strings.EqualFold(ssl, "true") {
+			sslMode = "verify-full"
+		}
 	}
-	hasSchema := query.Has("currentSchema")
-	if hasSchema {
-		query.Set("search_path", query.Get("currentSchema"))
-		query.Del("currentSchema")
+	if hasSSL || hasMode {
+		pairs = append(pairs, "sslmode="+sslMode)
 	}
-	if jdbc || hasSchema {
-		dsn.RawQuery = strings.ReplaceAll(query.Encode(), "+", "%20")
-	}
+	dsn.RawQuery = strings.Join(pairs, "&")
 	dsn.User = url.UserPassword(username, password)
 	return dsn.String(), nil
 }
