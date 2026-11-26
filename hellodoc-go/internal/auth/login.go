@@ -29,8 +29,24 @@ func newUUID() string {
 }
 
 func (s *Service) Login(ctx context.Context, username, password string) (AuthResponse, error) {
+	return s.login(ctx, username, &password)
+}
+
+func (s *Service) login(ctx context.Context, username string, password *string) (AuthResponse, error) {
+	encoder := s.passwordEncoder()
+	// Prepare the dummy hash before loading either an existing or missing user,
+	// as Spring's DaoAuthenticationProvider does.
+	s.dummyOnce.Do(func() {
+		s.dummyHash, s.dummyErr = encoder.Encode("userNotFoundPassword")
+	})
+	if s.dummyErr != nil {
+		return AuthResponse{}, s.dummyErr
+	}
 	a, err := s.Store.Lookup(ctx, username)
 	if errors.Is(err, sql.ErrNoRows) {
+		if password != nil {
+			encoder.Matches(*password, s.dummyHash)
+		}
 		return AuthResponse{}, errCredentials
 	}
 	if err != nil {
@@ -39,7 +55,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (AuthRes
 	if !a.Enabled() {
 		return AuthResponse{}, errDisabled
 	}
-	if a.Credential == nil || !s.Passwords.Matches(password, *a.Credential) {
+	if password == nil || a.Credential == nil || !encoder.Matches(*password, *a.Credential) {
 		return AuthResponse{}, errCredentials
 	}
 	access, err := s.Tokens.Access(a.Identifier, a.Roles)

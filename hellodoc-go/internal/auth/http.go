@@ -11,13 +11,15 @@ import (
 
 var errRequest = errors.New("invalid request")
 
-func readJSON[T any](r *http.Request) (*T, error) {
+const maxAuthBodyBytes = 64 << 10
+
+func readJSON[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
 	media, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || !(media == "application/json" || strings.HasPrefix(media, "application/") && strings.HasSuffix(media, "+json")) {
 		return nil, errRequest
 	}
 	var req *T
-	dec := json.NewDecoder(r.Body)
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxAuthBodyBytes))
 	if dec.Decode(&req) != nil || req == nil || dec.Decode(new(any)) != io.EOF {
 		return nil, errRequest
 	}
@@ -51,16 +53,16 @@ func writeResult(w http.ResponseWriter, data any, err error) {
 }
 func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/login", func(w http.ResponseWriter, r *http.Request) {
-		req, err := readJSON[struct{ Username, Password *string }](r)
+		req, err := readJSON[struct{ Username, Password *string }](w, r)
 		if err != nil {
 			writeResult(w, nil, err)
 			return
 		}
-		if req.Username == nil || req.Password == nil {
+		if req.Username == nil {
 			writeResult(w, nil, errCredentials)
 			return
 		}
-		data, err := s.Login(r.Context(), *req.Username, *req.Password)
+		data, err := s.login(r.Context(), *req.Username, req.Password)
 		writeResult(w, data, err)
 	})
 	mux.HandleFunc("POST /api/auth/register", func(w http.ResponseWriter, r *http.Request) {
@@ -68,14 +70,13 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 			RegisterRequest
 			Username *string `json:"username"`
 			Password *string `json:"password"`
-		}](r)
-		if err != nil || req.Username == nil || req.Password == nil {
+		}](w, r)
+		if err != nil || req.Username == nil {
 			writeResult(w, nil, errRequest)
 			return
 		}
 		req.RegisterRequest.Username = *req.Username
-		req.RegisterRequest.Password = *req.Password
-		data, err := s.Register(r.Context(), req.RegisterRequest)
+		data, err := s.register(r.Context(), req.RegisterRequest, req.Password)
 		writeResult(w, data, err)
 	})
 }

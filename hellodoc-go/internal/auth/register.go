@@ -43,6 +43,10 @@ func optionalRegistrationText(value string) *string {
 }
 
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (PublicUser, error) {
+	return s.register(ctx, req, &req.Password)
+}
+
+func (s *Service) register(ctx context.Context, req RegisterRequest, password *string) (PublicUser, error) {
 	user := PublicUser{
 		Nickname: req.Username,
 		RealName: optionalRegistrationText(req.RealName),
@@ -53,30 +57,33 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (PublicUser
 	if nickname := optionalRegistrationText(req.Nickname); nickname != nil {
 		user.Nickname = *nickname
 	}
-	tx, err := s.Store.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
-	if err != nil {
-		return PublicUser{}, err
-	}
-	defer tx.Rollback()
-
-	usernameExists := func() (bool, error) {
+	usernameExists := func(queryRow func(context.Context, string, ...any) *sql.Row) (bool, error) {
 		var exists bool
-		err := tx.QueryRowContext(ctx, `
+		err := queryRow(ctx, `
 			SELECT EXISTS(SELECT 1 FROM sys_user_auth WHERE identity_type = 'PASSWORD' AND identifier = $1)`,
 			req.Username).Scan(&exists)
 		return exists, err
 	}
-	exists, err := usernameExists()
+	exists, err := usernameExists(s.Store.DB.QueryRowContext)
 	if err != nil {
 		return PublicUser{}, err
 	}
 	if exists {
 		return PublicUser{}, errConflict
 	}
-	credential, err := s.Passwords.Encode(req.Password)
+	if password == nil {
+		return PublicUser{}, errRequest
+	}
+	credential, err := s.passwordEncoder().Encode(*password)
 	if err != nil {
 		return PublicUser{}, err
 	}
+
+	tx, err := s.Store.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return PublicUser{}, err
+	}
+	defer tx.Rollback()
 
 	now := time.Now().UTC()
 	err = tx.QueryRowContext(ctx, `
@@ -89,7 +96,7 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (PublicUser
 	if errors.Is(err, sql.ErrNoRows) {
 		// A concurrent registration may collide on email or phone before
 		// reaching the identity insert. Check whether it claimed this username.
-		exists, lookupErr := usernameExists()
+		exists, lookupErr := usernameExists(tx.QueryRowContext)
 		if lookupErr != nil {
 			return PublicUser{}, lookupErr
 		}

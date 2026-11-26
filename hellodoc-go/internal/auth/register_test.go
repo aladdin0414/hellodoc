@@ -16,7 +16,6 @@ func TestRegisterContract(t *testing.T) {
 
 	for _, tc := range []struct{ name, media, body string }{
 		{"missing fields", "application/json", "{}"},
-		{"missing password", "application/json", `{"username":"new"}`},
 		{"null username", "application/json", `{"username":null,"password":"fixture"}`},
 		{"wrong media", "text/plain", `{"username":"new","password":"fixture"}`},
 		{"malformed", "application/json", "{"},

@@ -96,6 +96,20 @@ func TestLoginPersistence(t *testing.T) {
 	svc := Service{Store: store, Tokens: tokens}
 	ctx := t.Context()
 	password := os.Getenv("AUTH_ACCOUNT_PASSWORD")
+	if phase == "initial" {
+		codec := &observedPasswords{PasswordCodec: PasswordCodec{Encoder: "sha256", Pepper: "pepper", Output: "base64"}}
+		missing := Service{Store: store, Passwords: codec}
+		for _, raw := range []string{"first", "second"} {
+			resp, err := missing.Login(ctx, "missing_user", raw)
+			if !errors.Is(err, errCredentials) || resp != (AuthResponse{}) {
+				t.Fatalf("missing account returned a session or error %v", err)
+			}
+		}
+		if codec.encodes != 1 || len(codec.matches) != 2 || codec.matches[0][0] != "first" || codec.matches[1][0] != "second" ||
+			codec.matches[0][1] != codec.matches[1][1] || len(codec.matches[0][1]) != 44 {
+			t.Fatal("missing accounts did not compare both passwords with one configured dummy hash")
+		}
+	}
 	if _, err = svc.Login(ctx, "migration_fixture", password+"wrong"); !errors.Is(err, errCredentials) && phase == "initial" {
 		t.Fatal("incorrect password accepted")
 	}
@@ -103,8 +117,21 @@ func TestLoginPersistence(t *testing.T) {
 	for range 2 {
 		resp, err := svc.Login(ctx, "migration_fixture", password)
 		if phase != "initial" {
-			if err == nil || resp != (AuthResponse{}) || phase == "updated" && !errors.Is(err, errDisabled) {
-				t.Fatal("failed login returned session or wrong error")
+			if err == nil || resp != (AuthResponse{}) {
+				t.Fatal("failed login returned a session")
+			}
+			if phase == "roles" {
+				var pgErr *pgconn.PgError
+				if !errors.As(err, &pgErr) || pgErr.Code != "42501" || !strings.Contains(pgErr.Message, "sys_login_log") {
+					t.Fatalf("expected denied login audit insert, got %v", err)
+				}
+			} else {
+				if !errors.Is(err, errDisabled) {
+					t.Fatalf("disabled login returned %v", err)
+				}
+				for _, body := range []string{`{"username":"migration_fixture"}`, `{"username":"migration_fixture","password":null}`} {
+					checkAuthResult(t, &svc, "/api/auth/login", body, 1002)
+				}
 			}
 			break
 		}
@@ -231,6 +258,10 @@ func TestRegisterAtomic(t *testing.T) {
 		t.Fatalf("successes %d conflicts %d and rows %v; want one success, one conflict and rows %v", successes, conflicts, after, want)
 	}
 
+	for _, fields := range []string{"", `,"password":null`} {
+		checkAuthResult(t, &svc, "/api/auth/register", fmt.Sprintf(`{"username":%q%s}`, name, fields), 1003)
+		checkAuthResult(t, &svc, "/api/auth/register", fmt.Sprintf(`{"username":"missing_password"%s}`, fields), 9999)
+	}
 	mux := http.NewServeMux()
 	svc.RegisterRoutes(mux)
 	for _, tc := range []struct{ locale, message string }{
@@ -264,12 +295,23 @@ func TestRegisterAtomic(t *testing.T) {
 		t.Fatalf("repeated request changed rows from %v to %v", want, after)
 	}
 	if phase == "initial" {
+		codec := &observedPasswords{
+			PasswordCodec: PasswordCodec{Encoder: "sha256"},
+			beforeEncode: func() {
+				if used := store.DB.Stats().InUse; used != 0 {
+					t.Errorf("password encoding held %d database connections", used)
+				}
+			},
+		}
+		httpService := Service{Store: store, Passwords: codec}
+		httpMux := http.NewServeMux()
+		httpService.RegisterRoutes(httpMux)
 		r := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(
 			`{"username":"http_fixture","password":"fixture","realName":" Fixture Name ","nickname":"Fixture Nickname","phone":"   "}`))
 		r.Header.Set("Content-Type", "application/json")
 		r.Header.Set("X-Language", "en")
 		w := httptest.NewRecorder()
-		svc.Bearer(mux).ServeHTTP(w, r)
+		httpService.Bearer(httpMux).ServeHTTP(w, r)
 		var body struct {
 			Code    int
 			Message string
@@ -282,4 +324,41 @@ func TestRegisterAtomic(t *testing.T) {
 			t.Fatalf("registration response: status %d, body %s", w.Code, w.Body.String())
 		}
 	}
+}
+
+func checkAuthResult(t *testing.T, svc *Service, path, body string, want int) {
+	t.Helper()
+	mux := http.NewServeMux()
+	svc.RegisterRoutes(mux)
+	r := httptest.NewRequest("POST", path, strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, r)
+	var result struct {
+		Code int
+		Data any
+	}
+	if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &result) != nil || result.Code != want || result.Data != nil {
+		t.Fatalf("%s: status %d, body %s, want code %d", path, w.Code, w.Body.String(), want)
+	}
+}
+
+type observedPasswords struct {
+	PasswordCodec
+	encodes      int
+	matches      [][2]string
+	beforeEncode func()
+}
+
+func (c *observedPasswords) Encode(raw string) (string, error) {
+	c.encodes++
+	if c.beforeEncode != nil {
+		c.beforeEncode()
+	}
+	return c.PasswordCodec.Encode(raw)
+}
+
+func (c *observedPasswords) Matches(raw, encoded string) bool {
+	c.matches = append(c.matches, [2]string{raw, encoded})
+	return c.PasswordCodec.Matches(raw, encoded)
 }
