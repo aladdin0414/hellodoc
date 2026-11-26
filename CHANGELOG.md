@@ -1,5 +1,15 @@
 # Changelog
 
+## [v3.6.10] - 2026-11-26
+
+### 更新说明
+
+- fix: 修复公开知识库匿名访问时因评论组件请求被 403 拦截而强制跳转登录页的问题，并将全局 403 无权限错误从强制登出跳登录逻辑中解耦。
+
+### Changelog
+
+- fix: Prevent anonymous visits to public knowledge bases from being redirected to the login page due to 403 comment requests, and decouple global 403 permission errors from forced logout and login redirection.
+
 ## [v3.6.9] - 2026-11-25
 
 ### 更新说明
