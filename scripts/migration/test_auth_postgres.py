@@ -20,7 +20,7 @@ def main(test):
             "REVOKE TEMPORARY ON DATABASE auth_fixture FROM PUBLIC; "
             "GRANT SELECT ON sys_user, sys_user_auth, sys_role, sys_user_role TO store_reader")
         env = {"HOME": os.environ["HOME"], "PATH": os.environ["PATH"],
-               "AUTH_STORE_FIXTURE": f"postgres://store_reader:{password}@127.0.0.1:{target.port}/auth_fixture?sslmode=disable"}
+               "AUTH_STORE_PORT": str(target.port), "AUTH_STORE_PASSWORD": password}
 
         def check():
             subprocess.run(["go", "test", "-count=1", "-v", "./internal/auth", "-run", f"^{test}$"],

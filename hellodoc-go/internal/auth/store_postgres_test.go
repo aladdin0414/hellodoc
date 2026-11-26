@@ -2,17 +2,34 @@ package auth
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"testing"
 )
 
 func TestLookupPasswordAccount(t *testing.T) {
-	dsn := os.Getenv("AUTH_STORE_FIXTURE")
-	if dsn == "" {
+	if _, present := os.LookupEnv("AUTH_STORE_FIXTURE"); present {
+		t.Fatal("raw fixture DSN is unsupported")
+	}
+	portText, password, phase := os.Getenv("AUTH_STORE_PORT"), os.Getenv("AUTH_STORE_PASSWORD"), os.Getenv("AUTH_LOOKUP_PHASE")
+	if portText == "" && password == "" && phase == "" {
 		t.Skip("run scripts/migration/test_auth_postgres.py")
 	}
+	if phase != "initial" && phase != "updated" {
+		t.Fatal("invalid fixture phase")
+	}
+	port, err := strconv.ParseUint(portText, 10, 16)
+	if err != nil || port == 0 {
+		t.Fatal("invalid fixture port")
+	}
+	if _, err := hex.DecodeString(password); len(password) != 48 || err != nil {
+		t.Fatal("invalid fixture password")
+	}
+	dsn := fmt.Sprintf("postgres://store_reader:%s@127.0.0.1:%d/auth_fixture?sslmode=disable", password, port)
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		t.Fatal(err)
@@ -42,7 +59,7 @@ func TestLookupPasswordAccount(t *testing.T) {
 	if probe.UserID != -41 || probe.AuthID != -42 || probe.Credential != nil || probe.Nickname != nil {
 		t.Fatal("wrong password identity or nullable fields")
 	}
-	switch os.Getenv("AUTH_LOOKUP_PHASE") {
+	switch phase {
 	case "initial":
 		if probe.Status != nil || !probe.Enabled() || probe.Avatar != nil || probe.Roles == nil || len(probe.Roles) != 0 {
 			t.Fatal("expected enabled account with null status and no roles")
@@ -55,7 +72,5 @@ func TestLookupPasswordAccount(t *testing.T) {
 		if probe.Status == nil || *probe.Status != 2 || probe.Enabled() || probe.Avatar == nil || *probe.Avatar != "avatar.png" {
 			t.Fatal("expected disabled account with updated avatar")
 		}
-	default:
-		t.Fatal("missing fixture phase")
 	}
 }
