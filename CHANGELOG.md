@@ -1,5 +1,15 @@
 # Changelog
 
+## [v3.6.12] - 2026-11-26
+
+### 更新说明
+
+- feat: 知识库新增编辑风格选项并支持 Geist 黑白极简主题
+
+### Changelog
+
+- feat: Support selecting an editor style when creating or updating a knowledge base and add the Geist Monochrome editor theme
+
 ## [v3.6.11] - 2026-11-26
 
 ### 更新说明
