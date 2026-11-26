@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nopkg/hellodoc/hellodoc-go/internal/auth"
 )
 
 func TestSystemInfoRoute(t *testing.T) {
@@ -146,5 +148,36 @@ func TestSystemInfoCORSConfiguration(t *testing.T) {
 				t.Errorf("status %d, headers %v", res.Code, res.Header())
 			}
 		})
+	}
+}
+
+func TestBearerSystemInfo(t *testing.T) {
+	for _, tc := range []struct {
+		method, credential string
+		status             int
+	}{
+		{"GET", "Basic example", 200}, {"GET", "bearer malformed", 200}, {"GET", "Bearer malformed", 401},
+		{"HEAD", "Bearer malformed", 401}, {"OPTIONS", "Bearer malformed", 401},
+	} {
+		r := httptest.NewRequest(tc.method, "/api/system/info", nil)
+		r.Header.Set("Authorization", tc.credential)
+		w := httptest.NewRecorder()
+		NewRouterWithAuth("test", time.Now, &auth.Service{}).ServeHTTP(w, r)
+		if w.Code != tc.status || (tc.method == "HEAD" && w.Body.Len() != 0) {
+			t.Errorf("%s %s: status %d", tc.method, tc.credential, w.Code)
+		}
+	}
+}
+
+func TestBearerPreflightBeforeAuthentication(t *testing.T) {
+	t.Setenv("APP_CORS_ALLOWED_ORIGINS", "*")
+	r := httptest.NewRequest("OPTIONS", "/api/system/info", nil)
+	r.Header.Set("Origin", "http://localhost:12345")
+	r.Header.Set("Access-Control-Request-Method", "GET")
+	r.Header.Set("Authorization", "Bearer invalid")
+	w := httptest.NewRecorder()
+	NewRouterWithAuth("test", time.Now, &auth.Service{}).ServeHTTP(w, r)
+	if w.Code != 200 || w.Header().Get("Access-Control-Allow-Origin") != "*" || w.Header().Get("WWW-Authenticate") != "" {
+		t.Fatal("credential blocked preflight")
 	}
 }

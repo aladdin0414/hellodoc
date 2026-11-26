@@ -33,21 +33,31 @@ def main(test):
                      (-43, -41, 'EMAIL', 'lookup_fixture', 'different', 0, true),
                      (-44, -41, 'EMAIL', 'email_only', 'different', 0, true);
         """)
+        if test == "TestBearerReloadAccount":
+            subprocess.run(["go", "test", "-count=1", "-v", "./cmd/hellodoc", "-run", "^TestBearerConfiguredSystemInfo$"],
+                           check=True, cwd=ROOT / "hellodoc-go", env=env)
         env["AUTH_LOOKUP_PHASE"] = "initial"
         check()
         sql("""
-            UPDATE sys_user SET status = 2, avatar = 'avatar.png' WHERE id = -41;
             INSERT INTO sys_role(id, role_code, status) VALUES
                 (-51, 'Zulu', 1), (-52, NULL, 0), (-53, 'null', 0),
                 (-54, '😀', 0), (-55, 'Ａ', 0);
             INSERT INTO sys_user_role(user_id, role_id) VALUES
                 (-41, -51), (-41, -52), (-41, -53), (-41, -54), (-41, -55);
         """)
+        if test == "TestBearerReloadAccount":
+            env["AUTH_LOOKUP_PHASE"] = "roles"
+            check()
+        sql("UPDATE sys_user SET status = 2, avatar = 'avatar.png', language_mode='en-US' WHERE id = -41")
         env["AUTH_LOOKUP_PHASE"] = "updated"
         check()
+        if test == "TestBearerReloadAccount":
+            sql("DELETE FROM sys_user_auth WHERE id = -42")
+            env["AUTH_LOOKUP_PHASE"] = "deleted"
+            check()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("test", nargs="?", choices=["TestLookupPasswordAccount"], default="TestLookupPasswordAccount")
+    parser.add_argument("test", nargs="?", choices=["TestLookupPasswordAccount", "TestBearerReloadAccount"], default="TestLookupPasswordAccount")
     main(parser.parse_args().test)

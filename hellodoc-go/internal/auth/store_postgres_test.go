@@ -11,7 +11,8 @@ import (
 	"testing"
 )
 
-func TestLookupPasswordAccount(t *testing.T) {
+func fixtureStore(t *testing.T) (*Store, string) {
+	t.Helper()
 	if _, present := os.LookupEnv("AUTH_STORE_FIXTURE"); present {
 		t.Fatal("raw fixture DSN is unsupported")
 	}
@@ -19,7 +20,7 @@ func TestLookupPasswordAccount(t *testing.T) {
 	if portText == "" && password == "" && phase == "" {
 		t.Skip("run scripts/migration/test_auth_postgres.py")
 	}
-	if phase != "initial" && phase != "updated" {
+	if phase != "initial" && phase != "updated" && phase != "roles" && phase != "deleted" {
 		t.Fatal("invalid fixture phase")
 	}
 	port, err := strconv.ParseUint(portText, 10, 16)
@@ -34,8 +35,12 @@ func TestLookupPasswordAccount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
-	store := &Store{DB: db}
+	t.Cleanup(func() { db.Close() })
+	return &Store{DB: db}, phase
+}
+
+func TestLookupPasswordAccount(t *testing.T) {
+	store, phase := fixtureStore(t)
 	account, err := store.Lookup(t.Context(), "migration_fixture")
 	if err != nil {
 		t.Fatal(err)

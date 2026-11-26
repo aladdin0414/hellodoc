@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nopkg/hellodoc/hellodoc-go/internal/auth"
 	"github.com/nopkg/hellodoc/hellodoc-go/internal/systeminfo"
 )
 
@@ -18,32 +19,18 @@ const corsMethods = "GET,POST,PUT,DELETE,OPTIONS"
 
 // NewRouter creates the routes implemented by the Go migration so far.
 func NewRouter(version string, now func() time.Time) http.Handler {
+	return NewRouterWithAuth(version, now, nil)
+}
+
+func NewRouterWithAuth(version string, now func() time.Time, svc *auth.Service) http.Handler {
 	info := systeminfo.New(version, now)
 	origins, configured := os.LookupEnv("APP_CORS_ALLOWED_ORIGINS")
 	if !configured {
 		origins = "*"
 	}
 	mux := http.NewServeMux()
-	serveInfo := func(w http.ResponseWriter, r *http.Request) {
+	var content http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
-		h.Set("X-Content-Type-Options", "nosniff")
-		h.Set("X-XSS-Protection", "0")
-		h.Set("X-Frame-Options", "DENY")
-		h.Set("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers")
-		if handleCORS(w, r, origins) {
-			return
-		}
-		h.Set("Content-Language", "zh-CN")
-		// The migration has no token verifier. Fail closed for supplied credentials.
-		if len(r.Header.Values("Authorization")) > 0 {
-			h.Set("WWW-Authenticate", `Bearer error="invalid_token", error_description="invalid_token"`)
-			h.Set("Content-Type", "application/json;charset=UTF-8")
-			w.WriteHeader(http.StatusUnauthorized)
-			if r.Method != http.MethodHead {
-				io.WriteString(w, `{"error":"invalid_token","error_description":"refreshToken 无效","needRefresh":false}`)
-			}
-			return
-		}
 		if r.Method == http.MethodOptions {
 			h.Set("Allow", "GET,HEAD,OPTIONS")
 			h.Set("Accept-Patch", "")
@@ -61,6 +48,31 @@ func NewRouter(version string, now func() time.Time) http.Handler {
 		case http.MethodPost:
 			io.WriteString(w, `{"code":9999,"message":"系统异常，请稍后再试","data":null}`)
 		}
+	})
+	if svc != nil {
+		content = svc.Bearer(content)
+	}
+	serveInfo := func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-XSS-Protection", "0")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers")
+		if handleCORS(w, r, origins) {
+			return
+		}
+		h.Set("Content-Language", "zh-CN")
+		// Standalone mode has no verifier and rejects supplied credentials.
+		if svc == nil && len(r.Header.Values("Authorization")) > 0 {
+			h.Set("WWW-Authenticate", `Bearer error="invalid_token", error_description="invalid_token"`)
+			h.Set("Content-Type", "application/json;charset=UTF-8")
+			w.WriteHeader(http.StatusUnauthorized)
+			if r.Method != http.MethodHead {
+				io.WriteString(w, `{"error":"invalid_token","error_description":"refreshToken 无效","needRefresh":false}`)
+			}
+			return
+		}
+		content.ServeHTTP(w, r)
 	}
 	for _, method := range []string{http.MethodGet, http.MethodOptions, http.MethodPost} {
 		mux.HandleFunc(method+" /api/system/info", serveInfo)
