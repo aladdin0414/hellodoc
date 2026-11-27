@@ -43,6 +43,7 @@ const props = defineProps<{
     sidebarWidth: number
     isResizingSidebar: boolean
     kbDetail: { title?: string; color?: string; icon?: string | null; editorTheme?: string } | null
+    editorTheme?: string
     showKbDropdown: boolean
     editableKbs: KbLike[]
     kbId: number
@@ -262,12 +263,12 @@ const getKbIcon = (iconName?: string | null) => {
         <div class="px-6 pb-4 bg-white dark:bg-[#161b22]">
             <div class="relative group">
                 <input v-model="sidebarSearchQueryModel" type="text"
-                    class="w-full pl-9 pr-3 py-2 text-xs bg-transparent border border-transparent rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all text-slate-900 dark:text-slate-100"
+                    class="w-full pl-9 pr-7 py-2 text-xs bg-slate-100/75 dark:bg-slate-800/75 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                     :placeholder="t('editor.searchCatalog')" />
                 <Search
-                    class="h-4 w-4 text-slate-400 absolute left-3 top-2 group-focus-within:text-indigo-500 transition-colors" />
+                    class="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
                 <button v-if="sidebarSearchQueryModel" @click="sidebarSearchQueryModel = ''"
-                    class="absolute right-2 top-2 text-slate-400 hover:text-slate-600 transition-colors">
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -277,7 +278,7 @@ const getKbIcon = (iconName?: string | null) => {
 
         <div class="flex-1 overflow-y-auto py-2 px-3 scrollbar-subtle" @click="emit('clearSelection')"
             @dragover.prevent="emit('containerDragOver', $event)" @drop.prevent="emit('containerDrop', $event)">
-            <div v-if="kbDetail?.editorTheme && kbDetail.editorTheme !== 'default'" class="kb-sidebar-section-label">
+            <div v-if="props.editorTheme || (kbDetail?.editorTheme && kbDetail.editorTheme !== 'default')" class="kb-sidebar-section-label">
                 Workspace / Notes
             </div>
             <div v-if="loading" class="flex justify-center py-8">
