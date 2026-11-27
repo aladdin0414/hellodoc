@@ -20,6 +20,7 @@ import SearchModal from './SearchModal.vue'
 import { message } from '../utils/message'
 import { useI18n } from 'vue-i18n'
 import { setLocaleModeLocal } from '../composables/useLocale'
+import { setCachedKbEditorTheme } from '../constants/editorThemes'
 
 const router = useRouter()
 const route = useRoute()
@@ -370,10 +371,13 @@ const fetchKbs = async (silent = false) => {
     if (!silent) loading.value = true
     try {
         const data: any = await getKbList()
-        kbs.value = data.map((item: any) => ({
-            ...item,
-            icon: item.icon ?? undefined
-        }))
+        kbs.value = data.map((item: any) => {
+            setCachedKbEditorTheme(item.id, item.editorTheme)
+            return {
+                ...item,
+                icon: item.icon ?? undefined
+            }
+        })
     } catch (error) {
         console.error('Fetch KBs failed:', error)
     } finally {
@@ -520,6 +524,7 @@ const handleUpdate = async () => {
             guestbookEnabled: upsertKb.value.guestbookEnabled,
             editorTheme: upsertKb.value.editorTheme || 'default'
         })
+        setCachedKbEditorTheme(upsertKb.value.id, upsertKb.value.editorTheme || 'default')
         showEditModal.value = false
         resetUpsertKb()
         fetchKbs()

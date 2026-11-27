@@ -35,7 +35,7 @@ import { useDocumentUiState } from '../composables/editor/useDocumentUiState'
 import type { ExposeParam } from 'md-editor-v3'
 import { useTheme } from '../composables/useTheme'
 import { useI18n } from 'vue-i18n'
-import { normalizeKbEditorTheme } from '../constants/editorThemes'
+import { normalizeKbEditorTheme, getCachedKbEditorTheme, setCachedKbEditorTheme } from '../constants/editorThemes'
 import '../styles/kb-editor-themes.css'
 
 const { isDark } = useTheme()
@@ -71,9 +71,10 @@ interface DocDetail extends DocListItem {
 const documents = ref<DocListItem[]>([])
 const currentDoc = ref<DocDetail | null>(null)
 const kbDetail = ref<any>(null)
-// 仅在选择了非默认风格时挂载 data-editor-theme，确保默认风格零侵入
+// 优先使用已加载的知识库详情，未加载完成前同步读取本地缓存以避免首帧主题闪烁
 const activeEditorTheme = computed(() => {
-    const theme = normalizeKbEditorTheme(kbDetail.value?.editorTheme)
+    const rawTheme = kbDetail.value ? kbDetail.value.editorTheme : getCachedKbEditorTheme(props.kbId)
+    const theme = normalizeKbEditorTheme(rawTheme)
     return theme === 'default' ? undefined : theme
 })
 const activeDocId = ref<number | null>(null)
@@ -490,6 +491,7 @@ const fetchKbDetail = async () => {
     try {
         const res: any = await getKbDetail(props.kbId)
         kbDetail.value = res
+        setCachedKbEditorTheme(props.kbId, res?.editorTheme)
     } catch (error) {
         console.error('Fetch kb detail failed:', error)
     }
@@ -516,6 +518,7 @@ const switchKb = (kb: any) => {
         showKbDropdown.value = false
         return
     }
+    setCachedKbEditorTheme(kb.id, kb.editorTheme)
     showKbDropdown.value = false
     router.push({ name: 'Editor', params: { kbId: kb.id } })
 }
@@ -956,7 +959,7 @@ const handleSidebarItemClick = (doc: DocListItem & { depth?: number }, event: Mo
         <div v-if="!isVisualPreviewMode && isMobile && isSidebarVisible" class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
             @click="isSidebarVisible = false"></div>
         <DocumentSidebar v-if="!isVisualPreviewMode" :visible="isSidebarVisible" :is-mobile="isMobile" :sidebar-width="sidebarWidth"
-            :is-resizing-sidebar="isResizingSidebar" :kb-detail="kbDetail" :show-kb-dropdown="showKbDropdown"
+            :is-resizing-sidebar="isResizingSidebar" :kb-detail="kbDetail" :editor-theme="activeEditorTheme" :show-kb-dropdown="showKbDropdown"
             :editable-kbs="editableKbs" :kb-id="props.kbId" :sidebar-search-query="sidebarSearchQuery"
             :loading="loading" :documents="documents" :inline-creating="inlineCreating" :search-results="searchResults"
             :search-loading="searchLoading" :ordered-documents="orderedDocuments" :expanded-folders="expandedFolders"
