@@ -1,5 +1,19 @@
 # Changelog
 
+## [v3.6.13] - 2026-11-27
+
+### 更新说明
+
+- style: 统一默认主题侧边栏搜索框的无边框填充视觉风格
+- style: 还原主题引用块卡片样式并统一超链接下划线配色
+- fix: 缓存知识库编辑主题以消除进入时的主题闪烁
+
+### Changelog
+
+- style: Unify the default-theme sidebar search input with a borderless filled surface style
+- style: Restore card-style blockquote appearance and unify link underline colors across editor themes
+- fix: Cache knowledge base editor themes locally to eliminate theme flash on entry
+
 ## [v3.6.12] - 2026-11-26
 
 ### 更新说明
