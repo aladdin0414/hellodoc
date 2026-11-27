@@ -726,17 +726,39 @@
     padding: 1px 5px !important;
 }
 
-[data-editor-theme] .visual-editor .ProseMirror blockquote {
-    background-color: transparent !important;
+/* 引用块还原浅灰底色与右侧圆角卡片质感，保留主题左侧强调线 */
+[data-editor-theme] .visual-editor .ProseMirror blockquote,
+[data-editor-theme] .md-editor-preview blockquote {
+    background-color: #f8fafc !important;
     border-left: 2px solid var(--kb-border-strong) !important;
-    border-radius: 0 !important;
-    padding: 2px 0 2px 16px !important;
+    border-radius: 0 8px 8px 0 !important;
+    padding: 0.25em 1em 0.25em 0.95em !important;
     margin: 18px 0 !important;
-    color: var(--kb-text-muted) !important;
+    color: var(--kb-text-secondary) !important;
 }
 
-[data-editor-theme] .visual-editor .ProseMirror a {
+.dark [data-editor-theme] .visual-editor .ProseMirror blockquote,
+.dark [data-editor-theme] .md-editor-preview blockquote,
+[data-editor-theme='linear'] .visual-editor .ProseMirror blockquote,
+[data-editor-theme='linear'] .md-editor-preview blockquote {
+    background-color: var(--kb-bg-hover) !important;
+}
+
+/* 超链接文字与下划线统一随主题色变化，避免出现黑字蓝下划线割裂感 */
+[data-editor-theme] .visual-editor .ProseMirror a,
+[data-editor-theme] .md-editor-preview a {
     color: var(--kb-accent-text) !important;
+    text-decoration: underline !important;
+    text-decoration-color: color-mix(in srgb, currentColor 32%, transparent) !important;
+    text-decoration-thickness: 1px !important;
+    text-underline-offset: 3px !important;
+    transition: color 0.15s ease, text-decoration-color 0.15s ease !important;
+}
+
+[data-editor-theme] .visual-editor .ProseMirror a:hover,
+[data-editor-theme] .md-editor-preview a:hover {
+    color: var(--kb-accent-text) !important;
+    text-decoration-color: currentColor !important;
 }
 
 /* 任务清单复选框同步主题强调色（Geist 下为纯黑极简） */
